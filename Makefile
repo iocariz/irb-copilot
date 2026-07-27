@@ -2,7 +2,7 @@
 # All Python runs through `uv run` so the pinned environment (uv.lock) is used.
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down ingest eval-retrieval eval-rag run api ui test lint fmt
+.PHONY: help setup up down ingest ground-truth eval-retrieval eval-rag run api ui test lint fmt
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -20,6 +20,9 @@ down: ## Stop backing services
 
 ingest: ## Run the full ingestion pipeline (download -> parse -> chunk -> index)
 	uv run python -m ingestion
+
+ground-truth: ## Generate evaluation ground truth (LLM; writes evaluation/ground_truth.csv)
+	uv run python -m evaluation.generate_ground_truth
 
 eval-retrieval: ## Evaluate retrieval configs, pick the best (writes results/)
 	uv run python -m evaluation.eval_retrieval

@@ -60,7 +60,7 @@ services:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      # Provisioning (datasource + dashboards) is populated in §16.6.
+      # Auto-provisioned Postgres datasource + monitoring dashboard.
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
 
   api:
