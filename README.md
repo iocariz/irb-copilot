@@ -96,27 +96,49 @@ make up
 make ingest                           # = uv run python -m ingestion.flow (~a few minutes)
 #   in Docker: docker compose exec api python -m ingestion.flow
 
-# 4a. Run the API + UI locally
+# 4. Run the API + UI locally (hot-reload)
 make run                              # API :8000, Streamlit UI :8501
-
-# 4b. …or run everything in containers (first build ~3.3 GB: CPU torch + docling)
-docker compose up -d                  # adds api + ui services
 ```
 
-The image is multi-stage (uv, non-root) and installs **CPU-only torch** — no
-CUDA/nvidia packages. `docker compose` brings up all five services (qdrant,
-postgres, grafana, api, ui); ingest inside the stack with
-`docker compose exec api python -m ingestion.flow`.
+## Running the app
 
-Ask a question:
+Two ways to run it — **don't run both at once**, they both bind ports 8000/8501:
+
+| Mode | Commands | Use when |
+|------|----------|----------|
+| **Local dev** (hot-reload) | `make up` (deps only) → `make run` | developing; fastest feedback |
+| **All in Docker** | `make up-all` (or `docker compose up -d --build`) | run everything containerized |
+
+> Port clash? If `make run` says *"address already in use"*, the Docker `api`/`ui`
+> containers are holding the ports — `docker compose stop api ui`, then `make run`.
+> (`make up` starts only qdrant + postgres + grafana; `make up-all` adds api + ui.)
+
+Then open:
+- **UI** → http://localhost:8501 — type a question, optionally restrict to specific
+  documents, and the cited answer **streams in** with expandable source snippets,
+  👍/👎 feedback, and follow-up questions (a short conversation history is kept).
+- **Grafana** → http://localhost:3000 (`admin` / `admin`) — the monitoring dashboard.
+
+### API
 
 ```bash
+# Ask (full JSON answer with citations, cost, latency)
 curl -s localhost:8000/ask -H 'Content-Type: application/json' \
   -d '{"question":"How many days past due trigger a default?"}' | jq .
+
+# Streaming (server-sent events: sources → tokens → final answer)
+curl -N localhost:8000/ask/stream -H 'Content-Type: application/json' \
+  -d '{"question":"What is a technical default?"}'
+
+# Feedback on a prior answer, and health
+curl -s localhost:8000/feedback -H 'Content-Type: application/json' \
+  -d '{"answer_id":"<id from /ask>","thumbs":"up"}'
+curl -s localhost:8000/health          # {"status":"ok","qdrant":true,"postgres":true}
 ```
 
-Open the **UI** at http://localhost:8501 and the **Grafana** dashboard at
-http://localhost:3000 (admin / admin).
+Restrict retrieval to specific documents by passing `"doc_ids": ["ebagl_2016_07"]`.
+The image is multi-stage (uv, non-root) with **CPU-only torch**; ingest inside the
+Docker stack with `docker compose exec api python -m ingestion.flow`.
 
 ## Evaluation
 
