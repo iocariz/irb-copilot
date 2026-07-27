@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from app.prompts import build_context, build_messages, citation_header, system_prompt
 from app.providers import estimate_cost
-from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations
+from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations, titles_match
 from app.retrieval import RetrievedChunk, filter_by_doc_ids, reciprocal_rank_fusion
 from app.rewrite import expand_acronyms, unknown_acronyms
 from ingestion.models import Chunk
@@ -120,6 +120,72 @@ def test_grounding_flags_wrong_document() -> None:
 def test_grounding_multi_para_partial_match_is_grounded() -> None:
     cites = [Citation(text="Doc A, para. 82, 99", doc_title="Doc A", paras="82, 99")]
     assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == []
+
+
+def test_grounding_accepts_shortened_title_dropping_parenthetical() -> None:
+    full = "ECB Guide to Internal Models (February 2024, consolidated)"
+    cites = [
+        Citation(
+            text="ECB Guide to Internal Models, para. 66",
+            doc_title="ECB Guide to Internal Models",
+            paras="66",
+        )
+    ]
+    assert check_citation_grounding(cites, [_src(full, ["66"])]) == []
+
+
+def test_grounding_accepts_case_insensitive_title() -> None:
+    cites = [Citation(text="doc a, para. 82", doc_title="doc a", paras="82")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == []
+
+
+def test_grounding_accepts_shared_regulatory_code() -> None:
+    full = (
+        "EBA Guidelines on PD estimation, LGD estimation and treatment of "
+        "defaulted exposures (EBA/GL/2017/16)"
+    )
+    cites = [
+        Citation(
+            text="EBA Guidelines on PD/LGD estimation (EBA/GL/2017/16), para. 82",
+            doc_title="EBA Guidelines on PD/LGD estimation (EBA/GL/2017/16)",
+            paras="82",
+        )
+    ]
+    assert check_citation_grounding(cites, [_src(full, ["82"])]) == []
+
+
+def test_grounding_rejects_ambiguous_short_prefix() -> None:
+    """Bare 'EBA Guidelines' must not match every EBA document."""
+    full = "EBA Guidelines on loan origination and monitoring (EBA/GL/2020/06)"
+    cites = [
+        Citation(text="EBA Guidelines, para. 26", doc_title="EBA Guidelines", paras="26")
+    ]
+    assert check_citation_grounding(cites, [_src(full, ["26"])]) == [
+        "EBA Guidelines, para. 26"
+    ]
+
+
+def test_titles_match_helpers() -> None:
+    full = "ECB Guide to Internal Models (February 2024, consolidated)"
+    assert titles_match("ECB Guide to Internal Models", full)
+    assert titles_match(full, full)
+    assert not titles_match("Doc B", "Doc A")
+    assert not titles_match("EBA Guidelines", full)
+
+
+def test_titles_match_token_containment_handles_front_shortening() -> None:
+    # Dropping the leading org word ("ECB") is not a prefix, but the content
+    # words are still a subset — token-containment catches it (prefix did not).
+    full = "ECB Guide to Internal Models (February 2024, consolidated)"
+    assert titles_match("Guide to Internal Models", full)
+
+
+def test_titles_match_rejects_distinct_docs_sharing_few_words() -> None:
+    # Two different guidelines share only generic words -> not a match.
+    assert not titles_match(
+        "EBA Guidelines on loan origination",
+        "EBA Guidelines on downturn LGD estimation",
+    )
 
 
 # --- prompts ---------------------------------------------------------------- #

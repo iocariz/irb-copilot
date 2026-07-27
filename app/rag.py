@@ -26,6 +26,19 @@ from app.rewrite import RewriteResult, rewrite_query
 _BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")
 _CITE_RE = re.compile(r"^(?P<title>.+?),\s*para\.?\s*(?P<paras>.+)$", re.IGNORECASE)
 _PARA_SPLIT_RE = re.compile(r"[,;]")
+# Title normalization for grounding: LLMs often drop dates/parentheticals.
+_PAREN_RE = re.compile(r"\([^)]*\)")
+_WS_RE = re.compile(r"\s+")
+# Stable regulatory identifiers that survive paraphrase (EBA/GL/2017/16, BCBS d424).
+_DOC_CODE_RE = re.compile(r"\b(?:EBA/GL/\d{4}/\d+|BCBS\s*d?\d+)\b", re.IGNORECASE)
+# Token-containment fallback: one title's content words are (mostly) a subset of
+# the other's. Requires enough shared words so generic 2-word titles (e.g. bare
+# "EBA Guidelines") do not match every corpus document.
+_TITLE_TOKEN_RE = re.compile(r"[a-z0-9]+")
+# Only >2-char fillers matter (shorter words are dropped by the length filter).
+_TITLE_STOPWORDS = frozenset({"the", "and", "for", "with", "under", "from", "that", "this"})
+_TITLE_MIN_SHARED_TOKENS = 3
+_TITLE_MIN_CONTAINMENT = 0.8
 
 
 class Citation(BaseModel):
@@ -87,14 +100,60 @@ def parse_citations(text: str) -> list[Citation]:
     return citations
 
 
+def _normalize_title(title: str) -> str:
+    """Lowercase title with parentheticals removed and whitespace collapsed."""
+    return _WS_RE.sub(" ", _PAREN_RE.sub(" ", title)).strip().casefold()
+
+
+def _doc_codes(title: str) -> set[str]:
+    """Regulatory codes embedded in a title (e.g. ``eba/gl/2017/16``)."""
+    return {m.group(0).casefold().replace(" ", "") for m in _DOC_CODE_RE.finditer(title)}
+
+
+def _title_tokens(normalized_title: str) -> set[str]:
+    """Distinctive content words of an already-normalized title."""
+    return {
+        t for t in _TITLE_TOKEN_RE.findall(normalized_title)
+        if len(t) > 2 and t not in _TITLE_STOPWORDS
+    }
+
+
+def titles_match(cited: str, available: str) -> bool:
+    """True if a cited title refers to the same document as a retrieved title.
+
+    Cascade, most-precise first: exact (case-insensitive) → shared regulatory
+    code (EBA/GL/2017/16, BCBS d424) → normalized equality → token-containment
+    (one title's content words are ≥80% a subset of the other's, with at least
+    3 shared words). The last rule handles front/middle shortenings while the
+    minimum-shared-words guard rejects generic titles like bare ``EBA Guidelines``.
+    """
+    if cited.strip().casefold() == available.strip().casefold():
+        return True
+    cited_codes, available_codes = _doc_codes(cited), _doc_codes(available)
+    if cited_codes and available_codes and cited_codes & available_codes:
+        return True
+    a, b = _normalize_title(cited), _normalize_title(available)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    a_tokens, b_tokens = _title_tokens(a), _title_tokens(b)
+    if not a_tokens or not b_tokens:
+        return False
+    shared = len(a_tokens & b_tokens)
+    smaller = min(len(a_tokens), len(b_tokens))
+    return shared >= _TITLE_MIN_SHARED_TOKENS and shared / smaller >= _TITLE_MIN_CONTAINMENT
+
+
 def check_citation_grounding(
     citations: list[Citation], chunks_used: list[SourceChunk]
 ) -> list[str]:
     """Return the texts of citations NOT backed by a retrieved source (pure).
 
-    A citation is grounded if some retrieved chunk shares its document title and
-    at least one cited paragraph number. Ungrounded citations mean the model
-    cited outside the context it was given — a likely hallucination.
+    A citation is grounded if some retrieved chunk matches its document title
+    (exact or fuzzy — see ``titles_match``) and at least one cited paragraph
+    number. Ungrounded citations mean the model cited outside the context it
+    was given — a likely hallucination.
     """
     available: dict[str, set[str]] = {}
     for chunk in chunks_used:
@@ -102,7 +161,10 @@ def check_citation_grounding(
     ungrounded: list[str] = []
     for citation in citations:
         cited = {p.strip() for p in _PARA_SPLIT_RE.split(citation.paras) if p.strip()}
-        if not (cited & available.get(citation.doc_title, set())):
+        if not any(
+            titles_match(citation.doc_title, title) and (cited & paras)
+            for title, paras in available.items()
+        ):
             ungrounded.append(citation.text)
     return ungrounded
 
