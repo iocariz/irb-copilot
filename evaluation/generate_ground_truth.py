@@ -15,6 +15,7 @@ import csv
 import json
 import random
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from app.config import PROJECT_ROOT, get_settings
@@ -101,12 +102,27 @@ def main() -> None:
     sample = stratified_sample(chunks, args.n, seed=args.seed)
     if args.limit:
         sample = sample[: args.limit]
-    print(f"[gt] style={args.style}; {len(sample)} chunks x {args.questions} questions")
+    print(
+        f"[gt] style={args.style}; {len(sample)} chunks x {args.questions} questions "
+        f"({args.workers} workers)"
+    )
+
+    # Generate concurrently (I/O-bound API calls); keep results in sample order.
+    per_chunk: dict[int, list[str]] = {}
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {
+            pool.submit(generate_questions, chunk, args.questions, settings.llm_model, system): i
+            for i, chunk in enumerate(sample)
+        }
+        for done, future in enumerate(as_completed(futures), start=1):
+            per_chunk[futures[future]] = future.result()
+            if done % 25 == 0:
+                print(f"[gt] {done}/{len(sample)} chunks done")
 
     rows: list[dict[str, str]] = []
     overlaps: list[float] = []
-    for i, chunk in enumerate(sample, start=1):
-        for question in generate_questions(chunk, args.questions, settings.llm_model, system):
+    for i, chunk in enumerate(sample):
+        for question in per_chunk.get(i, []):
             rows.append(
                 {
                     "question": question,
@@ -116,8 +132,6 @@ def main() -> None:
                 }
             )
             overlaps.append(lexical_overlap(question, chunk.text))
-        if i % 25 == 0:
-            print(f"[gt] {i}/{len(sample)} chunks -> {len(rows)} questions")
 
     _write_csv(rows, out_path)
     mean_overlap = sum(overlaps) / len(overlaps) if overlaps else 0.0
@@ -150,6 +164,7 @@ def _parse_args() -> argparse.Namespace:
         "--style", choices=("standard", "hard"), default="standard",
         help="hard = paraphrased, de-biased questions (lower lexical overlap)",
     )
+    parser.add_argument("--workers", type=int, default=8, help="concurrent API calls")
     return parser.parse_args()
 
 
