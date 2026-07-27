@@ -1,0 +1,16 @@
+# Keep the build context small; generated data is bind-mounted at runtime.
+.git
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.env
+# Downloaded/generated corpus artifacts (bind-mounted via ./data at runtime).
+data/raw
+data/parsed
+data/chunks
+data/bm25_index
+data/bm25_index_naive
+notebooks/.ipynb_checkpoints
+*.DS_Store

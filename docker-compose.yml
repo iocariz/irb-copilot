@@ -34,6 +34,8 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Create the monitoring tables on first DB init (also done by monitoring.db).
+      - ./monitoring/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-irb} -d ${POSTGRES_DB:-irb}"]
       interval: 10s
@@ -56,6 +58,44 @@ services:
       - grafana_data:/var/lib/grafana
       # Provisioning (datasource + dashboards) is populated in §16.6.
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Point at the compose service names (override .env localhost values).
+      QDRANT_URL: http://qdrant:6333
+      POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-irb}:${POSTGRES_PASSWORD:-irb}@postgres:5432/${POSTGRES_DB:-irb}
+    volumes:
+      # Share the corpus/index between host, api, ui, and `exec … ingestion`.
+      - ./data:/app/data
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+  ui:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      API_URL: http://api:8000
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "${UI_PORT:-8501}:8501"
+    command: streamlit run app/ui.py --server.port 8501 --server.address 0.0.0.0
 
 volumes:
   qdrant_storage:
