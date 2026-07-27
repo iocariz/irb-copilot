@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import matplotlib
@@ -79,13 +80,18 @@ def ensure_naive_index(settings: Settings, *, rebuild: bool) -> tuple[str, objec
     return collection, bm25_dir
 
 
-def precompute_queries(gt: list[dict], settings: Settings) -> dict[tuple[str, bool], str]:
-    """Map (question, rewrite_on) -> query string; rewrites each question once."""
+def precompute_queries(
+    gt: list[dict], settings: Settings, *, workers: int = 8
+) -> dict[tuple[str, bool], str]:
+    """Map (question, rewrite_on) -> query string; rewrites each question once
+    (concurrently — the rewrites are I/O-bound API calls)."""
     rw_settings = settings.model_copy(update={"enable_rewrite": True})
-    queries: dict[tuple[str, bool], str] = {}
-    for question in sorted({row["question"] for row in gt}):
-        queries[(question, False)] = question
-        queries[(question, True)] = rewrite_query(question, rw_settings).rewritten
+    questions = sorted({row["question"] for row in gt})
+    queries: dict[tuple[str, bool], str] = {(q, False): q for q in questions}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        rewrites = pool.map(lambda q: rewrite_query(q, rw_settings).rewritten, questions)
+    for question, rewritten in zip(questions, rewrites, strict=True):
+        queries[(question, True)] = rewritten
     return queries
 
 
@@ -105,30 +111,37 @@ def evaluate_config(
     mode: str,
     chunker: str,
     rewrite_on: bool,
+    workers: int = 8,
 ) -> tuple[float, float]:
-    relevances: list[list[bool]] = []
-    for row in gt:
+    def relevances_for(row: dict) -> list[bool]:
         query = queries[(row["question"], rewrite_on)]
         hits = retriever.search(query, mode=mode, top_k=TOP_K)
-        relevances.append([_is_relevant(chunker, h, row) for h in hits])
+        return [_is_relevant(chunker, h, row) for h in hits]
+
+    # bm25 is local (fast, single-threaded); other modes hit the embedding API.
+    pool_workers = 1 if mode == "bm25" else workers
+    with ThreadPoolExecutor(max_workers=pool_workers) as pool:
+        relevances = list(pool.map(relevances_for, gt))
     return hit_rate_at_k(relevances, TOP_K), mrr_at_k(relevances, TOP_K)
 
 
-def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool) -> list[dict]:
+def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool, workers: int = 8) -> list[dict]:
     collection, bm25_dir = ensure_naive_index(settings, rebuild=rebuild_naive)
     retrievers = {
         "structure": Retriever(settings),
         "naive": Retriever(settings, collection=collection, bm25_dir=bm25_dir),
     }
-    queries = precompute_queries(gt, settings)
+    queries = precompute_queries(gt, settings, workers=workers)
 
     results: list[dict] = []
     for chunker in CHUNKERS:
         for mode in MODES:
             for rewrite_on in REWRITE:
+                # hybrid_rerank uses a shared CPU model; keep it single-threaded.
+                cfg_workers = 1 if mode == "hybrid_rerank" else workers
                 hr, mrr = evaluate_config(
                     retrievers[chunker], gt, queries,
-                    mode=mode, chunker=chunker, rewrite_on=rewrite_on,
+                    mode=mode, chunker=chunker, rewrite_on=rewrite_on, workers=cfg_workers,
                 )
                 label = f"{mode}|{chunker}|{'rw' if rewrite_on else 'raw'}"
                 print(f"[eval] {label:32s} hit@5={hr:.3f} mrr@5={mrr:.3f}")
@@ -192,7 +205,7 @@ def main() -> None:
     if args.limit:
         gt = gt[: args.limit]
     print(f"[eval] {len(gt)} ground-truth questions x {len(MODES) * len(CHUNKERS) * 2} configs")
-    results = run(gt, settings, rebuild_naive=args.rebuild_naive)
+    results = run(gt, settings, rebuild_naive=args.rebuild_naive, workers=args.workers)
     write_outputs(results, output_suffix(gt_path))
 
 
@@ -204,6 +217,7 @@ def _parse_args() -> argparse.Namespace:
         "--ground-truth", default=str(GROUND_TRUTH_CSV),
         help="ground-truth CSV (e.g. evaluation/ground_truth_hard.csv)",
     )
+    parser.add_argument("--workers", type=int, default=8, help="concurrent API calls")
     return parser.parse_args()
 
 

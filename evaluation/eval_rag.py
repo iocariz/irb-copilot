@@ -18,6 +18,7 @@ import argparse
 import csv
 import random
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib
 
@@ -52,16 +53,15 @@ def evaluate_config(
     prompt_version: str,
     judge_model: str,
     log_to_db: bool,
+    workers: int = 8,
 ) -> dict:
-    """Answer + judge every question for one (model, prompt) config; aggregate."""
+    """Answer + judge every question for one (model, prompt) config; aggregate.
+    Questions are processed concurrently (I/O-bound answer + judge calls)."""
     cfg_settings = settings.model_copy(
         update={"llm_model": model, "prompt_version": prompt_version}
     )
-    labels: Counter[str] = Counter()
-    supported = 0
-    answer_cost = judge_cost = latency = 0.0
 
-    for row in gt:
+    def answer_and_judge(row: dict) -> tuple[str, int, float, float, float]:
         ans = rag_answer(row["question"], settings=cfg_settings)
         # Label sources with their citation headers so the judge can verify that
         # the answer's [doc, para. X] citations actually map to a given source.
@@ -73,14 +73,21 @@ def evaluate_config(
             row["question"], reference.get(row["chunk_id"], ""), ans.text, sources,
             model=judge_model,
         )
-        labels[verdict.relevance] += 1
-        supported += int(verdict.citations_supported)
-        answer_cost += ans.cost_usd
-        judge_cost += verdict.cost_usd
-        latency += ans.latency_ms
         if log_to_db:
             _safe_log(ans, verdict.relevance)
+        return (
+            verdict.relevance, int(verdict.citations_supported),
+            ans.cost_usd, verdict.cost_usd, float(ans.latency_ms),
+        )
 
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        outcomes = list(pool.map(answer_and_judge, gt))
+
+    labels: Counter[str] = Counter(o[0] for o in outcomes)
+    supported = sum(o[1] for o in outcomes)
+    answer_cost = sum(o[2] for o in outcomes)
+    judge_cost = sum(o[3] for o in outcomes)
+    latency = sum(o[4] for o in outcomes)
     n = len(gt)
     return {
         "model": model,
@@ -104,7 +111,9 @@ def _safe_log(answer, relevance: str) -> None:  # noqa: ANN001
         print(f"[eval-rag] log_conversation failed: {exc}")
 
 
-def run(gt: list[dict], settings: Settings, *, judge_model: str, log_to_db: bool) -> list[dict]:
+def run(
+    gt: list[dict], settings: Settings, *, judge_model: str, log_to_db: bool, workers: int = 8
+) -> list[dict]:
     reference = {c.chunk_id: c.text for c in load_chunks("structure", settings)}
     results: list[dict] = []
     for model in settings.eval_models_list:
@@ -113,7 +122,7 @@ def run(gt: list[dict], settings: Settings, *, judge_model: str, log_to_db: bool
             row = evaluate_config(
                 gt, reference, settings,
                 model=model, prompt_version=prompt_version,
-                judge_model=judge_model, log_to_db=log_to_db,
+                judge_model=judge_model, log_to_db=log_to_db, workers=workers,
             )
             print(
                 f"[eval-rag]   relevant={row['relevant_rate']:.2f} "
@@ -173,7 +182,10 @@ def main() -> None:
     gt = load_sample(args.n, args.seed)
     n_configs = len(settings.eval_models_list) * len(PROMPT_VERSIONS)
     print(f"[eval-rag] {len(gt)} questions x {n_configs} configs (judge={args.judge_model})")
-    results = run(gt, settings, judge_model=args.judge_model, log_to_db=not args.no_log_db)
+    results = run(
+        gt, settings, judge_model=args.judge_model,
+        log_to_db=not args.no_log_db, workers=args.workers,
+    )
     write_outputs(results)
 
 
@@ -183,6 +195,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--judge-model", default="gpt-4o")
     parser.add_argument("--no-log-db", action="store_true", help="don't seed monitoring DB")
+    parser.add_argument("--workers", type=int, default=8, help="concurrent API calls")
     return parser.parse_args()
 
 
