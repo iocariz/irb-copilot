@@ -18,5 +18,6 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 
-# OS / editor
+# OS / editor / tooling
 .DS_Store
+.claude/

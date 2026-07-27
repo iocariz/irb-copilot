@@ -1,28 +1,82 @@
 # IRB Copilot
 
-A RAG-based Q&A assistant over public **EU prudential regulation for credit-risk
-modeling** (IRB approach, definition of default, loan origination). Every answer
-is grounded in the corpus and **cites its sources by document + paragraph** —
-uncited answers are unacceptable in this domain.
+A retrieval-augmented (RAG) Q&A assistant over public **EU prudential regulation
+for credit-risk modeling** — the IRB (internal ratings-based) approach, the
+definition of default, and loan origination. It answers questions from analysts
+building or validating credit-risk models and **cites every claim by document +
+paragraph**, because in this domain an uncited answer is worthless.
 
-Example questions:
+> **Live example.** *"How many days past due trigger a default?"* →
+> *"A default is triggered … after 90 consecutive days of material past due
+> amounts [ECB Guide to Internal Models (February 2024, consolidated), para. 66]."*
 
-- *"What does the EBA require regarding margin of conservatism in LGD estimation?"*
-- *"How many days past due trigger default under the definition of default guidelines?"*
-- *"What does the ECB guide say about representativeness of reference datasets?"*
+Built as the final project for the DataTalks.Club **LLM Zoomcamp**.
 
-> Example answer (live): *"A default is triggered … after 90 consecutive days of
-> material past due amounts [ECB Guide to Internal Models (February 2024,
-> consolidated), para. 66]."*
+---
+
+## Table of contents
+
+- [Problem](#problem) · [Features](#features) · [Tech stack](#tech-stack)
+- [Architecture](#architecture) · [How it works](#how-it-works) · [Project structure](#project-structure)
+- [Dataset](#dataset) · [Quick start](#quick-start-clone--first-answer) · [Running the app](#running-the-app)
+- [Configuration](#configuration) · [Evaluation](#evaluation) · [Monitoring](#monitoring)
+- [Deployment](#deployment) · [Development](#development) · [Design decisions](#design-decisions--trade-offs)
+- [Rubric mapping](#rubric-mapping)
+
+---
 
 ## Problem
 
 Credit-risk analysts building IRB models must comply with dense, overlapping EU
-regulation spread across thousands of numbered paragraphs (EBA guidelines, the
-ECB Guide to Internal Models, the Basel framework). Finding the exact provision
-that governs a modeling choice — and citing it precisely — is slow and
-error-prone. IRB Copilot retrieves the relevant paragraphs and produces a
-grounded, **citation-first** answer, so every claim can be traced to its source.
+regulation spread across thousands of numbered paragraphs — EBA guidelines, the
+ECB Guide to Internal Models, and the Basel framework. Finding the exact
+provision that governs a modeling choice, and citing it precisely, is slow and
+error-prone; the wording of "margin of conservatism", "downturn LGD" or
+"days past due" is scattered across several documents that cross-reference each
+other.
+
+IRB Copilot retrieves the relevant paragraphs from a vetted corpus and produces a
+grounded, **citation-first** answer, so every statement can be traced back to its
+source paragraph — and the app tells you when it *can't* answer from the corpus
+rather than guessing.
+
+## Features
+
+- **Grounded, cited answers** — every factual sentence ends with `[doc_title, para. X]`.
+- **Answer-time citation self-check** — flags citations that don't map to a
+  retrieved source as possible hallucinations.
+- **Four retrieval modes** — `bm25`, `vector`, `hybrid` (reciprocal rank fusion),
+  `hybrid_rerank` (cross-encoder), all swappable by env var; the default is the
+  one a rigorous (de-biased) evaluation found best.
+- **Streaming UI** — answers stream token-by-token, with expandable source
+  snippets, 👍/👎 feedback, and follow-up questions (short conversation memory).
+- **Automated ingestion** — `download → parse → chunk → index`, orchestrated with
+  Prefect; docling extracts real document structure (headings, numbered
+  paragraphs as citation anchors, tables).
+- **Full evaluation harness** — retrieval (hit-rate@5, MRR@5) and RAG
+  (LLM-as-a-judge relevance + citation support), with a de-biasing analysis.
+- **Monitoring** — every question + feedback logged to Postgres, visualised in a
+  6-panel Grafana dashboard.
+- **Containerised & deployable** — one `docker compose` for everything, plus a
+  hardened VM deployment behind a Caddy TLS proxy.
+
+## Tech stack
+
+| Layer | Choice |
+|-------|--------|
+| Language / packaging | Python 3.12, [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`) |
+| Vector store | Qdrant (cosine) |
+| Lexical index | `bm25s` (persisted to disk) |
+| LLM + embeddings | OpenAI (`gpt-4o-mini`, `text-embedding-3-small`) via a thin provider module |
+| Reranker | `BAAI/bge-reranker-base` cross-encoder (sentence-transformers, CPU) |
+| PDF parsing | docling (native structure) with a pymupdf fallback |
+| API / UI | FastAPI + Streamlit |
+| Monitoring | Postgres (SQLAlchemy) + Grafana |
+| Orchestration | Prefect (ingestion flow) |
+| Tests / lint | pytest, ruff |
+
+Every model call goes through [`app/providers.py`](app/providers.py), so the
+provider or model is a one-line env change.
 
 ## Architecture
 
@@ -37,11 +91,11 @@ flowchart LR
     IX --> BM[(BM25<br/>lexical index)]
 
     subgraph Serving
-        UI[Streamlit UI] -->|/ask| API[FastAPI]
-        API --> RAG[rag.answer<br/>rewrite? → retrieve → prompt → LLM]
+        UI[Streamlit UI] -->|/ask, /ask/stream| API[FastAPI]
+        API --> RAG[rag.answer<br/>rewrite? → retrieve → prompt → LLM → self-check]
         RAG --> QD
         RAG --> BM
-        RAG --> LLM[(OpenAI<br/>gpt-4o-mini)]
+        RAG --> LLM[(OpenAI)]
     end
 
     API -->|log| PG[(Postgres<br/>conversations, feedback)]
@@ -54,16 +108,135 @@ flowchart LR
     end
 ```
 
-**Retrieval** offers four modes — `bm25`, `vector` (Qdrant cosine), `hybrid`
-(reciprocal rank fusion), `hybrid_rerank` (cross-encoder) — all selectable by
-env var. The app default (`hybrid_rerank`) is the one the de-biased evaluation
-found best (see Evaluation).
+## How it works
+
+### 1. Ingestion (`python -m ingestion.flow`)
+
+A four-stage pipeline; each stage reads the previous stage's on-disk artifacts,
+so stages are independently runnable, resumable (`--from-stage`, `--to-stage`)
+and idempotent. Prefect wraps each stage as a task (retries, logging); the same
+stages run standalone via `python -m ingestion`.
+
+1. **download** ([`ingestion/download.py`](ingestion/download.py)) — fetches each
+   PDF listed in [`data/sources.yaml`](data/sources.yaml), verifies its SHA-256
+   (pinning it on first download), and is idempotent. A 404 fails loudly with the
+   document id — nothing is silently skipped. PDFs are never committed.
+2. **parse** ([`ingestion/parse.py`](ingestion/parse.py)) — docling recovers real
+   structure: section headings, **numbered list-item markers** (the citation
+   anchors, e.g. `26.`), tables (kept as markdown), and footnotes (dropped as
+   noise). Sub-points (`a.`, `ii.`) are folded into their parent paragraph. If
+   docling is unavailable or fails on a document, a pymupdf text extraction +
+   regex fallback kicks in.
+3. **chunk** ([`ingestion/chunk.py`](ingestion/chunk.py)) — **structure-aware**:
+   one chunk per numbered paragraph; consecutive paragraphs in the same
+   subsection are merged while under ~250 tokens; any chunk over ~1000 tokens is
+   split at sentence boundaries. Each chunk keeps `{doc_id, doc_title,
+   section_path, para_ids, pages, text}`. Chunk ids are deterministic
+   (`uuid5(doc_id + para_ids + ordinal)`) so re-runs upsert instead of
+   duplicating — the ordinal is needed because regulatory docs restart paragraph
+   numbering in every section. A **naive** fixed-window chunker (500 tokens, 50
+   overlap) exists as the evaluation baseline.
+4. **index** ([`ingestion/index.py`](ingestion/index.py)) — embeds chunk text and
+   upserts into the Qdrant collection `irb_chunks`, and builds a persistent BM25
+   index (+ a chunk manifest) on disk. A guardrail warns if the collection holds
+   more points than were just indexed (orphans from an earlier run) and suggests
+   `--recreate`.
+
+### 2. Retrieval ([`app/retrieval.py`](app/retrieval.py))
+
+Four modes, selected by `RETRIEVAL_MODE`, all returning the top-k chunks with
+scores + metadata and supporting an optional `doc_ids` filter:
+
+- **`bm25`** — lexical (exact-term) search over the persisted BM25 index.
+- **`vector`** — Qdrant cosine similarity over OpenAI embeddings.
+- **`hybrid`** — **reciprocal rank fusion** (RRF, k=60) of the bm25 and vector
+  rankings: `score = Σ 1/(k + rank)`.
+- **`hybrid_rerank`** — take the hybrid top-20, then re-order with a
+  cross-encoder (`BAAI/bge-reranker-base`) that scores each `(query, chunk)` pair
+  directly, and keep the top-k. This is the **default** (see [Evaluation](#evaluation)).
+
+### 3. Query rewriting ([`app/rewrite.py`](app/rewrite.py))
+
+Optional (`ENABLE_REWRITE`, default off). A cheap step that (a) expands domain
+acronyms (PD, LGD, EAD, MoC, DoD, CCF, CRR, RDS…) from a hard-coded glossary,
+then (b) optionally calls the LLM to reformulate conversational phrasing into a
+search query. The evaluation found it *hurts* retrieval on this corpus (it
+paraphrases away the exact regulatory terms), so it's off by default — but it's
+implemented and evaluated.
+
+### 4. RAG flow ([`app/rag.py`](app/rag.py))
+
+`answer(question, doc_ids=None, history=None)` runs:
+
+1. **rewrite** (if enabled) → 2. **retrieve** top-k → 3. **build prompt** (context
+block with citation headers + optional conversation history) → 4. **LLM** →
+5. **parse citations** from the response → 6. **self-check** grounding.
+
+The prompt ([`app/prompts.py`](app/prompts.py)) comes in two variants: `v1`
+(plain) and `v2` (few-shot example + stricter citation format). Both instruct the
+model to answer **only** from the provided context, to say so when the context is
+insufficient, and to cite inline as `[doc_title, para. X]`.
+
+The **citation self-check** (`check_citation_grounding`) verifies every parsed
+citation maps to a retrieved source (same document title + an overlapping
+paragraph number). Citations that don't are surfaced as
+`ungrounded_citations` and shown in the UI as a "possible hallucination" warning.
+
+The returned `Answer` carries: `text`, parsed `citations`, `chunks_used` (with
+scores + full text for the UI), `citations_grounded` / `ungrounded_citations`,
+the `rewritten_query`, `retrieval_mode`, `prompt_version`, `model`,
+`tokens_in/out`, `cost_usd`, and `latency_ms`.
+
+### 5. API ([`app/api.py`](app/api.py)) & UI ([`app/ui.py`](app/ui.py))
+
+- `POST /ask` → full `Answer` JSON (+ an `answer_id`); logs the conversation.
+- `POST /ask/stream` → server-sent events: `sources`, then `token` deltas, then
+  a `done` event with the full answer.
+- `POST /feedback` → records 👍/👎 (+ optional comment) for a prior `answer_id`.
+- `GET /health` → checks Qdrant + Postgres connectivity.
+
+Conversation logging is **best-effort** — a monitoring outage never blocks an
+answer. The Streamlit UI is a single page: question box, document filter,
+streaming cited answer, expandable source snippets, feedback buttons, follow-ups,
+and a sidebar showing the last answer's model / cost / latency.
+
+## Project structure
+
+```
+irb-copilot/
+├── ingestion/            # the pipeline
+│   ├── flow.py           #   Prefect orchestration (make ingest)
+│   ├── pipeline.py       #   the 4 stages as reusable functions
+│   ├── download.py  parse.py  chunk.py  index.py
+│   ├── models.py         #   Paragraph / ParsedDoc / Chunk + deterministic ids
+│   └── tokens.py         #   tiktoken helpers, text normalization
+├── app/                  # the application
+│   ├── config.py         #   pydantic-settings; single source of config
+│   ├── providers.py      #   OpenAI client, chat + streaming + cost accounting
+│   ├── retrieval.py      #   4 retrieval modes + RRF
+│   ├── rewrite.py  prompts.py
+│   ├── rag.py            #   answer() / answer_stream() orchestration
+│   ├── api.py            #   FastAPI
+│   └── ui.py             #   Streamlit
+├── evaluation/           # ground truth + retrieval/RAG evaluation
+│   ├── generate_ground_truth.py   metrics.py   sampling.py   corpus.py
+│   ├── eval_retrieval.py   eval_rag.py   judge.py
+│   └── results/          #   committed CSVs + PNG plots
+├── monitoring/
+│   ├── db.py  schema.sql            #   conversations + feedback
+│   └── grafana/provisioning/        #   datasource + 6-panel dashboard
+├── deploy/               # VM deployment (compose overlay, Caddy, scripts)
+├── data/sources.yaml     # corpus registry (URLs + sha256); PDFs gitignored
+├── notebooks/experiments.ipynb
+├── docker-compose.yml   Dockerfile   Makefile   pyproject.toml   uv.lock
+└── tests/                # 84 tests
+```
 
 ## Dataset
 
-Public regulatory PDFs, registered in [`data/sources.yaml`](data/sources.yaml)
-(official URLs + pinned sha256). PDFs are **not** committed; the pipeline
-downloads and verifies them.
+Seven public regulatory PDFs, registered in
+[`data/sources.yaml`](data/sources.yaml) with official URLs + pinned SHA-256. PDFs
+are **not** committed; the pipeline downloads and verifies them.
 
 | id | Document |
 |----|----------|
@@ -75,12 +248,7 @@ downloads and verifies them.
 | `ebagl_2019_03` | EBA Guidelines on downturn LGD estimation |
 | `ebagl_2020_05` | EBA Guidelines on credit risk mitigation for A-IRB institutions |
 
-Parsed with **docling** (native structure: section headings, numbered
-list-item markers as citation anchors, tables, footnotes dropped), yielding
-**~1,600 structure-aware chunks** across the 7 documents. The pipeline (download → parse → chunk →
-index) is **orchestrated with Prefect** (`ingestion/flow.py`) — each stage is a
-task with retries/logging; stages are also runnable standalone via
-`python -m ingestion`.
+docling parsing yields **~1,600 structure-aware chunks** across the seven docs.
 
 ## Quick start (clone → first answer)
 
@@ -115,7 +283,7 @@ Two ways to run it — **don't run both at once**, they both bind ports 8000/850
 
 Then open:
 - **UI** → http://localhost:8501 — type a question, optionally restrict to specific
-  documents, and the cited answer **streams in** with expandable source snippets,
+  documents; the cited answer **streams in** with expandable source snippets,
   👍/👎 feedback, and follow-up questions (a short conversation history is kept).
 - **Grafana** → http://localhost:3000 (`admin` / `admin`) — the monitoring dashboard.
 
@@ -140,32 +308,48 @@ Restrict retrieval to specific documents by passing `"doc_ids": ["ebagl_2016_07"
 The image is multi-stage (uv, non-root) with **CPU-only torch**; ingest inside the
 Docker stack with `docker compose exec api python -m ingestion.flow`.
 
+## Configuration
+
+All behaviour is env-driven via [`.env.example`](.env.example) → `.env`
+([`app/config.py`](app/config.py) is the single source of truth). Defaults encode
+the evaluation winners, so the app is sensible out of the box.
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | — | OpenAI key (required at runtime; empty is fine for tests) |
+| `OPENAI_BASE_URL` | — | point at an OpenAI-compatible endpoint |
+| `LLM_MODEL` | `gpt-4o-mini` | chat model for answers/rewrite |
+| `EMBEDDING_MODEL` / `EMBEDDING_DIM` | `text-embedding-3-small` / `1536` | embeddings (dim must match) |
+| `EVAL_MODELS` | `gpt-4o-mini,gpt-4o` | models compared by `eval_rag` |
+| `RETRIEVAL_MODE` | `hybrid_rerank` | `bm25` \| `vector` \| `hybrid` \| `hybrid_rerank` |
+| `ENABLE_REWRITE` | `false` | query rewriting / acronym expansion |
+| `PROMPT_VERSION` | `v2` | `v1` (plain) \| `v2` (few-shot, stricter citations) |
+| `CHUNKER` | `structure` | `structure` \| `naive` (eval baseline) |
+| `TOP_K` / `RRF_K` | `5` / `60` | results returned / RRF constant |
+| `RERANK_MODEL` | `BAAI/bge-reranker-base` | cross-encoder for `hybrid_rerank` |
+| `QDRANT_URL` / `QDRANT_COLLECTION` | `http://localhost:6333` / `irb_chunks` | vector store |
+| `POSTGRES_DSN` | `postgresql+psycopg://irb:irb@localhost:5432/irb` | monitoring DB |
+| `API_PORT` / `UI_PORT` / `GRAFANA_PORT` | `8000` / `8501` / `3000` | service ports |
+| `API_URL` | `http://localhost:8000` | where the UI calls the API |
+| `BIND_HOST` / `SITE_ADDRESS` | `0.0.0.0` / `:80` | production deploy (see [deploy/](deploy/README.md)) |
+
 ## Evaluation
 
-Reproducible; artifacts committed under [`evaluation/results/`](evaluation/results/).
+Reproducible; artifacts committed under
+[`evaluation/results/`](evaluation/results/). The ground truth is LLM-generated
+questions whose answer sits in a sampled chunk (stratified by document).
 
-### Retrieval (`eval_retrieval.py`) — hit-rate@5 / MRR@5, 800 questions
+### Retrieval (`eval_retrieval.py`) — hit-rate@5 / MRR@5
 
-16 configs = {bm25, vector, hybrid, hybrid_rerank} × {structure, naive} × {rewrite off/on}.
-Top configs ([full CSV](evaluation/results/retrieval_eval.csv),
-[chart](evaluation/results/retrieval_eval.png)):
+16 configs = {bm25, vector, hybrid, hybrid_rerank} × {structure, naive} ×
+{rewrite off/on}, over 800 questions. On the standard ground truth
+([CSV](evaluation/results/retrieval_eval.csv)) `bm25/structure/raw` wins (0.950).
 
-| mode | chunks | rewrite | hit@5 | MRR@5 |
-|------|--------|---------|-------|-------|
-| **bm25** | **structure** | **off** | **0.950** | **0.852** |
-| hybrid_rerank | naive | off | 0.948 | 0.842 |
-| hybrid_rerank | structure | off | 0.936 | 0.835 |
-| hybrid | structure | off | 0.923 | 0.813 |
-| vector | structure | off | 0.835 | 0.681 |
-
-**Findings:** query rewriting *hurt* every config (it paraphrases away exact
-regulatory terms) → `ENABLE_REWRITE=false`.
-
-*The BM25 win was a measurement artifact.* LLM-generated questions reuse the
-source's vocabulary (mean lexical overlap **0.83**), which flatters lexical
-search. A **de-biased** ground truth (`--style hard`) paraphrases the questions
-(overlap **0.46**) and flips the result — BM25 collapses while the semantic
-methods hold up (structure chunks, no rewrite):
+**But that win is a measurement artifact.** LLM-generated questions reuse the
+source's vocabulary (mean question↔chunk lexical overlap **0.83**), which flatters
+lexical search. A **de-biased** ground truth (`--style hard`) paraphrases the
+questions (overlap **0.46**) and flips the result — BM25 collapses while the
+semantic methods hold up (structure chunks, no rewrite):
 
 | mode | standard hit@5 | **de-biased** hit@5 |
 |------|:---:|:---:|
@@ -174,17 +358,18 @@ methods hold up (structure chunks, no rewrite):
 | hybrid | 0.923 | 0.615 |
 | **hybrid_rerank** | 0.936 | **0.636** |
 
-**Chosen default: `hybrid_rerank` + structure + no rewrite** — it leads on the
-realistic (paraphrased) queries a user would actually type. It adds an embedding
-+ cross-encoder step, so it's slower than BM25 (a deliberate quality-for-latency
-trade; set `RETRIEVAL_MODE=bm25` for the fast lexical path). Reproduce with
+Query rewriting hurt every config on both sets. **Chosen default:
+`hybrid_rerank` + structure + no rewrite** — it leads on realistic (paraphrased)
+queries a user would actually type. It adds an embedding + cross-encoder step, so
+it's slower than BM25 (a deliberate quality-for-latency trade; set
+`RETRIEVAL_MODE=bm25` for the fast lexical path). Reproduce with
 `make ground-truth-hard && make eval-retrieval-hard`.
 
-### RAG (`eval_rag.py`) — LLM-as-judge, 100 questions × 4 configs
+### RAG (`eval_rag.py`) — LLM-as-a-judge, 100 questions × 4 configs
 
-Judge (gpt-4o) labels each answer RELEVANT / PARTLY / NON and checks citation
-support ([CSV](evaluation/results/rag_eval.csv),
-[chart](evaluation/results/rag_eval.png)):
+A judge (gpt-4o) labels each answer RELEVANT / PARTLY / NON given the question +
+the ground-truth passage, and separately checks citation support
+([CSV](evaluation/results/rag_eval.csv)):
 
 | model | prompt | RELEVANT | cite-ok | cost/q | latency |
 |-------|--------|----------|---------|--------|---------|
@@ -193,16 +378,25 @@ support ([CSV](evaluation/results/rag_eval.csv),
 | gpt-4o | v1 | 0.81 | 0.78 | $0.0063 | 4.0 s |
 | gpt-4o | v2 | 0.79 | 0.79 | $0.0067 | 9.9 s |
 
-**Chosen default: `gpt-4o-mini` + prompt `v2`** — tied with gpt-4o on quality at
-**1/16th the cost** and ~2× faster. The stricter few-shot prompt (`v2`) clearly
-beats the plain one (`v1`) on the default model.
+**Chosen default: `gpt-4o-mini` + prompt `v2`** — statistically tied with gpt-4o
+on quality at **1/16th the cost** and ~2× faster. The stricter few-shot prompt
+(`v2`) clearly beats the plain one on the default model. The RAG eval also seeds
+the monitoring DB with judged conversations so the Grafana judge panel has data.
+
+Both evals run their hundreds of API calls concurrently (`--workers`, default 8).
 
 ## Monitoring
 
-Every `/ask` is logged to Postgres (`conversations`), and 👍/👎 to `feedback`.
-Grafana is auto-provisioned (datasource + dashboard) with 6 panels: questions
-per day, thumbs up/down ratio, cost over time, latency p50/p95, retrieval-mode
-usage, and judge-relevance distribution (seeded by the RAG eval).
+Every `/ask` is logged to Postgres (`conversations`: question, rewritten query,
+answer, model, prompt/retrieval mode, chunk ids, tokens, cost, latency,
+`judge_relevance`), and every 👍/👎 to `feedback`. Grafana is auto-provisioned
+(datasource + dashboard) with six panels:
+
+1. questions per day · 2. thumbs up/down ratio · 3. cost over time ·
+4. latency p50/p95 · 5. retrieval-mode usage · 6. judge-relevance distribution.
+
+Schema in [`monitoring/schema.sql`](monitoring/schema.sql); it's applied on first
+Postgres init and idempotently by `monitoring.db` at API startup.
 
 ## Screenshots
 
@@ -210,15 +404,16 @@ usage, and judge-relevance distribution (seeded by the RAG eval).
 |--------------|-------------------|
 | ![UI](docs/screenshots/ui.png) | ![Grafana](docs/screenshots/grafana.png) |
 
-> To capture: run `make run`, ask a question, screenshot the answer +
-> sources → `docs/screenshots/ui.png`; open Grafana → the "IRB Copilot —
-> Monitoring" dashboard → `docs/screenshots/grafana.png`.
+> To capture: run `make run`, ask a question, screenshot the answer + sources →
+> `docs/screenshots/ui.png`; open Grafana → "IRB Copilot — Monitoring" →
+> `docs/screenshots/grafana.png`.
 
 ## Deployment
 
 Deploy the whole stack to a single VM with docker-compose behind a **Caddy**
 reverse proxy (automatic HTTPS; only 80/443 exposed — Qdrant/Postgres/Grafana
-stay on the internal network). See **[deploy/README.md](deploy/README.md)**.
+stay on the internal network). Full runbook in
+**[deploy/README.md](deploy/README.md)**.
 
 ```bash
 sudo bash deploy/provision.sh   # install Docker + firewall (once)
@@ -227,40 +422,54 @@ bash deploy/deploy.sh           # build, start, ingest
 # -> UI at https://<domain>/, API at /api, Grafana at /grafana
 ```
 
-## Configuration
-
-All behaviour is env-driven; see [`.env.example`](.env.example) for every
-variable. Defaults encode the evaluation winners (bm25 / structure / no rewrite /
-gpt-4o-mini / prompt v2). Model access goes through `app/providers.py`, so
-swapping providers/models is an env change.
-
 ## Development
 
 ```bash
-make test     # pytest (73 tests)
+make test     # pytest (84 tests: chunker, parser, retrieval, RAG, API, eval, pipeline)
 make lint     # ruff
 make fmt      # ruff format
 ```
 
-Layout: `ingestion/` (pipeline stages + Prefect `flow.py`), `app/` (config,
-providers, retrieval, rewrite, prompts, rag, api, ui), `evaluation/` (ground
-truth + retrieval/RAG eval), `monitoring/` (db + Grafana provisioning).
-Notebook: `notebooks/experiments.ipynb`.
+Conventions: type hints on public functions; pydantic models at boundaries
+(API, config); no hard-coded secrets or model names (everything via `config.py`);
+fail loudly (no bare `except`, no silent skips); every LLM call goes through
+`providers.py` and is returned with token counts + cost. Tests avoid external
+services by injecting counters, using fake docling items, and mocking the RAG/DB
+layers, so the suite runs offline in ~1 s.
 
-## Rubric mapping (SPEC §15)
+## Design decisions & trade-offs
+
+- **Deterministic chunk ids include an ordinal.** Regulatory docs restart
+  paragraph numbering per section, so `hash(doc_id + para_ids)` collides; the
+  ordinal makes ids unique yet stable across re-runs (upsert, don't duplicate).
+- **docling + reranker are default dependency *groups*, not extras.** `uv run`
+  re-syncs to the default set and would uninstall optional extras every
+  invocation; groups (installed by default) avoid that footgun.
+- **CPU-only torch in Docker.** docling/sentence-transformers pull CUDA torch
+  (~2 GB of nvidia packages) by default; the lockfile pins `torch+cpu` on Linux,
+  halving the image.
+- **`hybrid_rerank` as the default** despite BM25 winning the naive eval — the
+  de-biased evaluation showed BM25's edge was lexical-overlap bias; on realistic
+  queries the reranker leads. Latency is the trade (set `bm25` for speed).
+- **Config paths are anchored to the repo root**, so the app works from any cwd
+  (CLI, notebook, container, API).
+- **`Answer` is a pydantic model** (a boundary type serialized by the API and
+  consumed by the UI), superseding the plain dataclass in the original spec.
+
+## Rubric mapping
 
 | Criterion | Where |
 |-----------|-------|
-| Problem described | This README (Problem) |
+| Problem described | [Problem](#problem) |
 | RAG flow: knowledge base + LLM | `app/rag.py` (retrieve → prompt → LLM) |
-| Retrieval: multiple approaches evaluated, best used | `app/retrieval.py` (4 modes), `evaluation/eval_retrieval.py`, default = winner |
+| Retrieval: multiple approaches evaluated, best used | `app/retrieval.py` (4 modes), `evaluation/eval_retrieval.py`, default = de-biased winner |
 | LLM: multiple prompts/models evaluated, best used | `app/prompts.py` (v1/v2), `evaluation/eval_rag.py`, default = winner |
-| Interface: UI + API | `app/ui.py` (Streamlit) + `app/api.py` (FastAPI) |
+| Interface: UI + API | `app/ui.py` (Streamlit) + `app/api.py` (FastAPI, incl. streaming) |
 | Ingestion: automated pipeline (special tool) | **Prefect** flow `ingestion/flow.py` (`make ingest`); stages in `ingestion/pipeline.py` |
 | Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (6 panels) |
-| Containerization | full `docker-compose.yml` (qdrant, postgres, grafana, api, ui) + multi-stage `Dockerfile` (uv, non-root, CPU-only torch); build verified end-to-end |
-| Deployment | VM deploy via `deploy/` — production compose overlay behind a Caddy TLS proxy, provisioning + deploy scripts, [runbook](deploy/README.md) |
+| Containerization | full `docker-compose.yml` + multi-stage `Dockerfile` (uv, non-root, CPU-only torch); build verified |
+| Deployment | VM deploy via `deploy/` — production overlay behind a Caddy TLS proxy, [runbook](deploy/README.md) |
 | Reproducibility | `make setup`, auto-download + sha256, `uv.lock` pins all versions, committed eval results |
 | Best practices: hybrid search / re-ranking / query rewriting | all implemented (`retrieval.py`, `rewrite.py`) and evaluated |
 
-See [SPEC.md](SPEC.md) for the full specification.
+See [SPEC.md](SPEC.md) for the full original specification.
