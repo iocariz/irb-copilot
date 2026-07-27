@@ -1,0 +1,35 @@
+# Corpus registry (SPEC §4).
+#
+# URLs point at the official publishers (eba.europa.eu, bankingsupervision.europa.eu,
+# bis.org). `sha256: null` means "not yet pinned" — the download stage computes the
+# hash on first successful fetch and prints it here for you to paste back in, after
+# which downloads are verified against it. A 404 fails loudly with the document id.
+#
+# Note: the ECB guide and the Basel text are downloaded in full; SPEC's "IRB chapters
+# only" / "consolidated" scoping is handled downstream by parsing/chunking, not here.
+
+documents:
+  - id: ebagl_2017_16
+    title: "EBA Guidelines on PD estimation, LGD estimation and treatment of defaulted exposures (EBA/GL/2017/16)"
+    url: "https://www.eba.europa.eu/sites/default/files/documents/10180/2033363/6b062012-45d6-4655-af04-801d26493ed0/Guidelines%20on%20PD%20and%20LGD%20estimation%20(EBA-GL-2017-16).pdf"
+    sha256: "f306218f0eb94d0d3a9e452d156b5ea7b8500b0807f303a2e5a606536a3dda01"
+
+  - id: ebagl_2020_06
+    title: "EBA Guidelines on loan origination and monitoring (EBA/GL/2020/06)"
+    url: "https://www.eba.europa.eu/sites/default/files/document_library/Publications/Guidelines/2020/Guidelines%20on%20loan%20origination%20and%20monitoring/884283/EBA%20GL%202020%2006%20Final%20Report%20on%20GL%20on%20loan%20origination%20and%20monitoring.pdf"
+    sha256: "1a61938f0fccf8bff502c90cdf182d784aab058c50c9e5d0df4b932d0d19fa3e"
+
+  - id: ebagl_2016_07
+    title: "EBA Guidelines on the application of the definition of default under Article 178 CRR (EBA/GL/2016/07)"
+    url: "https://www.eba.europa.eu/sites/default/files/documents/10180/1597103/004d3356-a9dc-49d1-aab1-3591f4d42cbb/Final%20Report%20on%20Guidelines%20on%20default%20definition%20(EBA-GL-2016-07).pdf"
+    sha256: "7c383c36300548657466f9aa032621ea5737b36527fbd7e6c7e0cdf9bb0eec6e"
+
+  - id: ecb_gim_2024
+    title: "ECB Guide to Internal Models (February 2024, consolidated)"
+    url: "https://www.bankingsupervision.europa.eu/ecb/pub/pdf/ssm.supervisory_guides202402_internalmodels.en.pdf"
+    sha256: "811ff29d962110ea4991e576523f85b9cd249031b01aa61949c8554d49d2bdee"
+
+  - id: bcbs_d424_irb
+    title: "Basel III: Finalising post-crisis reforms (BCBS d424, IRB chapters)"
+    url: "https://www.bis.org/bcbs/publ/d424.pdf"
+    sha256: "32afd37cade34f8439bdc16f606d5520d4612b7339ef1cf8c44ebb706df6bac4"
