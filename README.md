@@ -74,7 +74,10 @@ downloads and verifies them.
 
 Parsed with **docling** (native structure: section headings, numbered
 list-item markers as citation anchors, tables, footnotes dropped), yielding
-**1,384 structure-aware chunks**.
+**1,384 structure-aware chunks**. The pipeline (download → parse → chunk →
+index) is **orchestrated with Prefect** (`ingestion/flow.py`) — each stage is a
+task with retries/logging; stages are also runnable standalone via
+`python -m ingestion`.
 
 ## Quick start (clone → first answer)
 
@@ -86,8 +89,9 @@ make setup
 # 2. Start backing services (qdrant + postgres + grafana)
 make up
 
-# 3. Ingest the corpus (download → parse → chunk → index). ~a few minutes.
-uv run python -m ingestion            # or: docker compose exec api python -m ingestion
+# 3. Ingest the corpus (download → parse → chunk → index), orchestrated by Prefect.
+make ingest                           # = uv run python -m ingestion.flow (~a few minutes)
+#   in Docker: docker compose exec api python -m ingestion.flow
 
 # 4a. Run the API + UI locally
 make run                              # API :8000, Streamlit UI :8501
@@ -191,7 +195,7 @@ prompts, rag, api, ui), `evaluation/` (ground truth + retrieval/RAG eval),
 | Retrieval: multiple approaches evaluated, best used | `app/retrieval.py` (4 modes), `evaluation/eval_retrieval.py`, default = winner |
 | LLM: multiple prompts/models evaluated, best used | `app/prompts.py` (v1/v2), `evaluation/eval_rag.py`, default = winner |
 | Interface: UI + API | `app/ui.py` (Streamlit) + `app/api.py` (FastAPI) |
-| Ingestion: automated pipeline | `python -m ingestion` (`ingestion/`) |
+| Ingestion: automated pipeline (special tool) | **Prefect** flow `ingestion/flow.py` (`make ingest`); stages in `ingestion/pipeline.py` |
 | Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (6 panels) |
 | Containerization | `docker-compose.yml` (qdrant, postgres, grafana, api, ui) + `Dockerfile` |
 | Reproducibility | `make setup`, auto-download + sha256, `uv.lock`, committed eval results |

@@ -18,8 +18,8 @@ up: ## Start backing services (qdrant + postgres + grafana)
 down: ## Stop backing services
 	docker compose down
 
-ingest: ## Run the full ingestion pipeline (download -> parse -> chunk -> index)
-	uv run python -m ingestion
+ingest: ## Run the full ingestion pipeline via Prefect (download -> parse -> chunk -> index)
+	uv run python -m ingestion.flow
 
 ground-truth: ## Generate evaluation ground truth (LLM; writes evaluation/ground_truth.csv)
 	uv run python -m evaluation.generate_ground_truth

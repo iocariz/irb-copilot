@@ -45,6 +45,8 @@ dev = [
 #   rerank -> RETRIEVAL_MODE=hybrid_rerank (cross-encoder)
 parse = ["docling>=2.7"]
 rerank = ["sentence-transformers>=3.0"]
+# Prefect orchestrates the ingestion pipeline (ingestion/flow.py).
+orchestration = ["prefect>=3.0"]
 
 [tool.ruff]
 line-length = 100
@@ -67,4 +69,4 @@ addopts = "-q"
 package = false
 # Install these groups by default (incl. on `uv run`) so docling/reranker stay
 # present. Lighter installs can opt out with `uv sync --no-group parse` etc.
-default-groups = ["dev", "parse", "rerank"]
+default-groups = ["dev", "parse", "rerank", "orchestration"]
