@@ -1,0 +1,61 @@
+[project]
+name = "irb-copilot"
+version = "0.1.0"
+description = "RAG-based Q&A assistant over EU prudential regulation for credit risk (IRB / DoD / loan origination)."
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    # config / boundaries
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    # api / ui
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "streamlit>=1.38",
+    "httpx>=0.27",
+    # llm + embeddings (default provider)
+    "openai>=1.40",
+    "tiktoken>=0.7",
+    # vector store + retrieval. Client minor version is pinned to the server
+    # image (qdrant/qdrant:v1.12.4 in docker-compose) — a wider skew triggers a
+    # compatibility warning, and a major-version jump breaks on-disk storage.
+    "qdrant-client>=1.12,<1.13",
+    "bm25s>=0.2",
+    # monitoring
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    # ingestion (light parser / fallback)
+    "pymupdf>=1.24",
+    # plotting for evaluation
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+]
+
+[project.optional-dependencies]
+# Heavy, torch-backed deps. Not needed for the default app path
+# (bm25 | vector | hybrid retrieval + OpenAI API). Pulled in per phase:
+#   parse  -> ingestion `parse` stage (docling)              [phase 2]
+#   rerank -> RETRIEVAL_MODE=hybrid_rerank (cross-encoder)    [phase 3]
+parse = ["docling>=2.7"]
+rerank = ["sentence-transformers>=3.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.uv]
+package = false

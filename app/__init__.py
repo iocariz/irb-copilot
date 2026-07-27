@@ -1,0 +1,1 @@
+"""IRB Copilot application package."""
