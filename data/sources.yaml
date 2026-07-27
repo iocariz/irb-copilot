@@ -33,3 +33,13 @@ documents:
     title: "Basel III: Finalising post-crisis reforms (BCBS d424, IRB chapters)"
     url: "https://www.bis.org/bcbs/publ/d424.pdf"
     sha256: "32afd37cade34f8439bdc16f606d5520d4612b7339ef1cf8c44ebb706df6bac4"
+
+  - id: ebagl_2019_03
+    title: "EBA Guidelines for the estimation of LGD appropriate for an economic downturn (EBA/GL/2019/03)"
+    url: "https://www.eba.europa.eu/sites/default/documents/files/documents/10180/2551996/f892da33-5cb2-44f8-ae5d-68251b9bab8f/Final%20Report%20on%20Guidelines%20on%20LGD%20estimates%20under%20downturn%20conditions.pdf"
+    sha256: "2cb600d1ddfa4ad1cb6819b49a8bf16905c1d4faceb0bf8058fed59dc58444fd"
+
+  - id: ebagl_2020_05
+    title: "EBA Guidelines on credit risk mitigation for institutions applying the IRB approach with own estimates of LGD (EBA/GL/2020/05)"
+    url: "https://www.eba.europa.eu/sites/default/files/document_library/Publications/Guidelines/2020/Guidelines%20on%20Credit%20Risk%20Mitigation%20for%20institutions%20applying%20the%20IRB%20approach%20with%20own%20estimates%20of%20LGDs/883366/Guidelines%20on%20CRM%20for%20A-IRB%20institutions.pdf"
+    sha256: "d384a61f344a63556b73e3309caffa3a0c14006b85fe6d08259c1384db5eb596"

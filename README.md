@@ -71,10 +71,12 @@ downloads and verifies them.
 | `ebagl_2016_07` | EBA Guidelines on the application of the definition of default (Art. 178 CRR) |
 | `ecb_gim_2024` | ECB Guide to Internal Models (Feb 2024, consolidated) |
 | `bcbs_d424_irb` | Basel III: Finalising post-crisis reforms (IRB chapters) |
+| `ebagl_2019_03` | EBA Guidelines on downturn LGD estimation |
+| `ebagl_2020_05` | EBA Guidelines on credit risk mitigation for A-IRB institutions |
 
 Parsed with **docling** (native structure: section headings, numbered
 list-item markers as citation anchors, tables, footnotes dropped), yielding
-**1,384 structure-aware chunks**. The pipeline (download → parse → chunk →
+**~1,600 structure-aware chunks** across the 7 documents. The pipeline (download → parse → chunk →
 index) is **orchestrated with Prefect** (`ingestion/flow.py`) — each stage is a
 task with retries/logging; stages are also runnable standalone via
 `python -m ingestion`.
