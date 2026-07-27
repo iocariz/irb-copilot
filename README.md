@@ -28,7 +28,7 @@ grounded, **citation-first** answer, so every claim can be traced to its source.
 
 ```mermaid
 flowchart LR
-    subgraph Ingestion["Ingestion (python -m ingestion)"]
+    subgraph Ingestion["Ingestion — Prefect flow"]
         DL[download<br/>sha256-verified] --> PA[parse<br/>docling → paragraphs]
         PA --> CH[chunk<br/>structure-aware]
         CH --> IX[index]
@@ -96,9 +96,14 @@ make ingest                           # = uv run python -m ingestion.flow (~a fe
 # 4a. Run the API + UI locally
 make run                              # API :8000, Streamlit UI :8501
 
-# 4b. …or run everything in containers
+# 4b. …or run everything in containers (first build ~3.3 GB: CPU torch + docling)
 docker compose up -d                  # adds api + ui services
 ```
+
+The image is multi-stage (uv, non-root) and installs **CPU-only torch** — no
+CUDA/nvidia packages. `docker compose` brings up all five services (qdrant,
+postgres, grafana, api, ui); ingest inside the stack with
+`docker compose exec api python -m ingestion.flow`.
 
 Ask a question:
 
@@ -177,14 +182,15 @@ swapping providers/models is an env change.
 ## Development
 
 ```bash
-make test     # pytest (68 tests)
+make test     # pytest (73 tests)
 make lint     # ruff
 make fmt      # ruff format
 ```
 
-Layout: `ingestion/` (pipeline), `app/` (config, providers, retrieval, rewrite,
-prompts, rag, api, ui), `evaluation/` (ground truth + retrieval/RAG eval),
-`monitoring/` (db + Grafana provisioning). Notebook: `notebooks/experiments.ipynb`.
+Layout: `ingestion/` (pipeline stages + Prefect `flow.py`), `app/` (config,
+providers, retrieval, rewrite, prompts, rag, api, ui), `evaluation/` (ground
+truth + retrieval/RAG eval), `monitoring/` (db + Grafana provisioning).
+Notebook: `notebooks/experiments.ipynb`.
 
 ## Rubric mapping (SPEC §15)
 
@@ -197,8 +203,8 @@ prompts, rag, api, ui), `evaluation/` (ground truth + retrieval/RAG eval),
 | Interface: UI + API | `app/ui.py` (Streamlit) + `app/api.py` (FastAPI) |
 | Ingestion: automated pipeline (special tool) | **Prefect** flow `ingestion/flow.py` (`make ingest`); stages in `ingestion/pipeline.py` |
 | Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (6 panels) |
-| Containerization | `docker-compose.yml` (qdrant, postgres, grafana, api, ui) + `Dockerfile` |
-| Reproducibility | `make setup`, auto-download + sha256, `uv.lock`, committed eval results |
+| Containerization | full `docker-compose.yml` (qdrant, postgres, grafana, api, ui) + multi-stage `Dockerfile` (uv, non-root, CPU-only torch); build verified end-to-end |
+| Reproducibility | `make setup`, auto-download + sha256, `uv.lock` pins all versions, committed eval results |
 | Best practices: hybrid search / re-ranking / query rewriting | all implemented (`retrieval.py`, `rewrite.py`) and evaluated |
 
 See [SPEC.md](SPEC.md) for the full specification.
