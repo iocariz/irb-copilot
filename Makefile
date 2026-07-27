@@ -2,7 +2,7 @@
 # All Python runs through `uv run` so the pinned environment (uv.lock) is used.
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down prod-up prod-down ingest ground-truth ground-truth-hard eval-retrieval eval-retrieval-hard eval-rag run api ui test lint fmt
+.PHONY: help setup up up-all down prod-up prod-down ingest ground-truth ground-truth-hard eval-retrieval eval-retrieval-hard eval-rag run api ui test lint fmt
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -12,10 +12,13 @@ setup: ## Install deps (dev + parse + rerank are default groups) and create .env
 	uv sync
 	@test -f .env || cp .env.example .env
 
-up: ## Start backing services (qdrant + postgres + grafana)
+up: ## Start backing services only (qdrant + postgres + grafana) — pair with `make run`
+	docker compose up -d qdrant postgres grafana
+
+up-all: ## Start everything in Docker (backing services + api + ui)
 	docker compose up -d
 
-down: ## Stop backing services
+down: ## Stop all services
 	docker compose down
 
 prod-up: ## Start the full production stack (Caddy + all services) — see deploy/README.md
