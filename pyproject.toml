@@ -55,6 +55,10 @@ extend-exclude = ["notebooks"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# ui.py inserts the repo root on sys.path before importing app.* (streamlit run).
+"app/ui.py" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

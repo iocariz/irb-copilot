@@ -8,6 +8,13 @@ holds no chat history (single-turn).
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# `streamlit run app/ui.py` puts app/ (not the repo root) on sys.path, so
+# `import app.*` would fail; add the repo root before importing app modules.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import httpx
 import streamlit as st
 import yaml
