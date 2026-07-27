@@ -43,7 +43,9 @@ dev = [
 # [tool.uv] default-groups below; opt out with e.g. `uv sync --no-group parse`.
 #   parse  -> ingestion `parse` stage (docling)
 #   rerank -> RETRIEVAL_MODE=hybrid_rerank (cross-encoder)
-parse = ["docling>=2.7"]
+# torch/torchvision are declared directly (not just transitively via docling /
+# sentence-transformers) so the CPU-index source override below applies to them.
+parse = ["docling>=2.7", "torch>=2.10", "torchvision>=0.19"]
 rerank = ["sentence-transformers>=3.0"]
 # Prefect orchestrates the ingestion pipeline (ingestion/flow.py).
 orchestration = ["prefect>=3.0"]
@@ -70,3 +72,14 @@ package = false
 # Install these groups by default (incl. on `uv run`) so docling/reranker stay
 # present. Lighter installs can opt out with `uv sync --no-group parse` etc.
 default-groups = ["dev", "parse", "rerank", "orchestration"]
+
+# Pull CPU-only torch on Linux (Docker) to avoid ~2GB of CUDA packages; macOS
+# keeps the default PyPI wheel (already CPU-only). Inference here is CPU.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
