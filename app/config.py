@@ -59,9 +59,11 @@ class Settings(BaseSettings):
     eval_models: str = Field(default="gpt-4o-mini,gpt-4o", alias="EVAL_MODELS")
 
     # --- Retrieval / RAG behaviour ---
-    # Defaults are the best config from the retrieval evaluation (§11.2):
-    # bm25 + structure chunks + rewrite off (hit@5=0.95, mrr@5=0.85).
-    retrieval_mode: RetrievalMode = Field(default="bm25", alias="RETRIEVAL_MODE")
+    # Default is the best config on the DE-BIASED eval (paraphrased questions,
+    # §11.2): hybrid_rerank + structure + rewrite off. bm25 wins the naive eval
+    # (0.95) but collapses to 0.53 when questions stop echoing the passage, where
+    # hybrid_rerank leads (0.64); rewrite hurts on both sets.
+    retrieval_mode: RetrievalMode = Field(default="hybrid_rerank", alias="RETRIEVAL_MODE")
     enable_rewrite: bool = Field(default=False, alias="ENABLE_REWRITE")
     prompt_version: PromptVersion = Field(default="v2", alias="PROMPT_VERSION")
     chunker: ChunkerKind = Field(default="structure", alias="CHUNKER")

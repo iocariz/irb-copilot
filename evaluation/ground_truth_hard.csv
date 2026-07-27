@@ -1,0 +1,801 @@
+question,doc_id,chunk_id,para_ids
+What methodology should organizations use to account for uncertainty in their probability of default estimates at the grade or pool level?,ecb_gim_2024,51fd7ad2-32d4-5536-aa4a-7e5734249f40,210
+How does the number of observations and the duration of the time series impact the margin of conservatism for default rate estimates?,ecb_gim_2024,51fd7ad2-32d4-5536-aa4a-7e5734249f40,210
+What considerations should institutions keep in mind regarding the relationship between default rates over time when calculating the margin of conservatism?,ecb_gim_2024,51fd7ad2-32d4-5536-aa4a-7e5734249f40,210
+In what way should the margin of conservatism be determined for loss given default and credit conversion factor estimates?,ecb_gim_2024,51fd7ad2-32d4-5536-aa4a-7e5734249f40,210
+How can institutions utilize historical data to modify loss given default estimates when using unfunded credit support?,ebagl_2020_05,28586028-7d02-53dd-96b0-6b6e0eaf0e2d,35
+What evidence is required for institutions to adjust both probability of default and loss given default estimates simultaneously?,ebagl_2020_05,28586028-7d02-53dd-96b0-6b6e0eaf0e2d,35
+Why is it considered unsuitable to only modify the probability of default estimates in the context of unfunded credit protection?,ebagl_2020_05,28586028-7d02-53dd-96b0-6b6e0eaf0e2d,35
+What potential issues must be avoided when adjusting both the probability of default and loss given default due to unfunded credit support?,ebagl_2020_05,28586028-7d02-53dd-96b0-6b6e0eaf0e2d,35
+What are the basic requirements for an exposure to be considered as not defaulted after undergoing a distressed restructuring?,ecb_gim_2024,41c0e369-2cb1-5b5b-9a52-0d527256d76e,83
+How does the duration of the probation period differ between exposures that have undergone distressed restructuring and those that have not?,ecb_gim_2024,41c0e369-2cb1-5b5b-9a52-0d527256d76e,83
+"When assessing defaults at the obligor level, what must institutions consider for an obligor to revert to a non-defaulted status?",ecb_gim_2024,41c0e369-2cb1-5b5b-9a52-0d527256d76e,83
+"If defaults are evaluated at the facility level, how can institutions manage the timing of facilities returning to a non-defaulted status?",ecb_gim_2024,41c0e369-2cb1-5b5b-9a52-0d527256d76e,83
+What should organizations do if the criteria mentioned in the previous section are not fulfilled regarding the long-term average loss given default for defaulted loans?,ebagl_2017_16,f4b7a5df-5172-51a1-be21-f946547dcd7c,185
+How should financial institutions modify the long-term average loss given default for defaulted loans in light of present economic factors?,ebagl_2017_16,f4b7a5df-5172-51a1-be21-f946547dcd7c,185
+What documentation is required for the long-term average loss given default and its adjustments when current economic circumstances are taken into account?,ebagl_2017_16,f4b7a5df-5172-51a1-be21-f946547dcd7c,185
+"In the absence of meeting specific conditions, what is the recommended approach for institutions to handle the long-term average loss given default for defaulted exposures?",ebagl_2017_16,f4b7a5df-5172-51a1-be21-f946547dcd7c,185
+What is the risk weight applied to the unsecured part of a defaulted loan when the specific provisions are below 20% of the loan amount?,bcbs_d424_irb,0cbe1c46-a762-5a36-9daf-ebe60dc5f5fb,92
+How is the risk weight determined for defaulted residential real estate loans that do not rely on cash flows from the property?,bcbs_d424_irb,0cbe1c46-a762-5a36-9daf-ebe60dc5f5fb,92
+Which types of assets are assigned a risk weight of zero according to the regulations?,bcbs_d424_irb,0cbe1c46-a762-5a36-9daf-ebe60dc5f5fb,92
+What criteria must external credit rating agencies meet to be recognized for regulatory purposes in certain jurisdictions?,bcbs_d424_irb,0cbe1c46-a762-5a36-9daf-ebe60dc5f5fb,92
+How are the total allowable reserves calculated for exposures managed under the IRB method?,bcbs_d424_irb,0c2afa05-c4a8-5716-80db-c6fc656d06bb,147
+What types of reserves can be counted towards the total eligible reserves?,bcbs_d424_irb,0c2afa05-c4a8-5716-80db-c6fc656d06bb,147
+Are there any discounts on overdue assets that can be factored into the total eligible reserves?,bcbs_d424_irb,0c2afa05-c4a8-5716-80db-c6fc656d06bb,147
+Is it permissible to include reserves earmarked for securitisation exposures in the total eligible reserves?,bcbs_d424_irb,0c2afa05-c4a8-5716-80db-c6fc656d06bb,147
+What must organizations establish to evaluate the information used in their statistical models for assessing credit risk?,ecb_gim_2024,0d5471e7-1915-55c9-a150-66616f984697,39
+How should institutions handle the incorporation of external data when determining risk levels or reviewing estimates?,ecb_gim_2024,0d5471e7-1915-55c9-a150-66616f984697,39
+What is required from institutions to ensure they can distinguish between their own data and that obtained from outside sources?,ecb_gim_2024,0d5471e7-1915-55c9-a150-66616f984697,39
+What justification is necessary if an organization alters external data for the purposes of risk assessment or estimation?,ecb_gim_2024,0d5471e7-1915-55c9-a150-66616f984697,39
+What is the maximum duration for M values when dealing with netting sets that only include securities financing transactions?,ecb_gim_2024,bacb3cdf-cb13-5cc7-beef-b86b093606cb,"53,54"
+"How many business days are allowed for M values in netting sets that involve other financial instruments, including derivatives?",ecb_gim_2024,bacb3cdf-cb13-5cc7-beef-b86b093606cb,"53,54"
+What requirements must be met to utilize shorter M values according to the regulations?,ecb_gim_2024,bacb3cdf-cb13-5cc7-beef-b86b093606cb,"53,54"
+What is considered a recommended approach for determining the maturity of physically settled options on derivatives?,ecb_gim_2024,bacb3cdf-cb13-5cc7-beef-b86b093606cb,"53,54"
+What is the frequency required for conducting back-testing on the portfolio's daily value according to the relevant regulation?,ecb_gim_2024,6cc93889-6be5-5b6f-880d-abd9433f321e,72
+How should fluctuations in valuation adjustments be handled if they are not updated daily by some organizations?,ecb_gim_2024,6cc93889-6be5-5b6f-880d-abd9433f321e,72
+What does the ECB recommend regarding the timing of including changes in valuation adjustments in profit and loss calculations?,ecb_gim_2024,6cc93889-6be5-5b6f-880d-abd9433f321e,72
+Are institutions allowed to spread out changes in valuation adjustments over multiple days according to the ECB's guidance?,ecb_gim_2024,6cc93889-6be5-5b6f-880d-abd9433f321e,72
+What elements should be considered during the regulatory back-testing of the risk assessment model?,ecb_gim_2024,40791046-4ba7-5cf2-bddf-ca0c98c4927f,192
+Are the RNIME adjustments factored into the Value at Risk calculations for back-testing purposes?,ecb_gim_2024,40791046-4ba7-5cf2-bddf-ca0c98c4927f,192
+Which components of the risk evaluation system must be included when conducting regulatory back-testing?,ecb_gim_2024,40791046-4ba7-5cf2-bddf-ca0c98c4927f,192
+Is it necessary to include satellite components in the regulatory back-testing of the risk assessment framework?,ecb_gim_2024,40791046-4ba7-5cf2-bddf-ca0c98c4927f,192
+What key areas should organizations focus on when establishing and overseeing their lending and monitoring systems?,ebagl_2020_06,c59cbdbd-71d8-5879-be92-c96c5ffd2dd5,78
+How should institutions approach the evaluation of their credit risk strategies and policies?,ebagl_2020_06,c59cbdbd-71d8-5879-be92-c96c5ffd2dd5,78
+What processes are recommended for assessing the creditworthiness of borrowers and managing potential risks?,ebagl_2020_06,c59cbdbd-71d8-5879-be92-c96c5ffd2dd5,78
+In what ways can institutions ensure the effectiveness of their internal credit rating systems and the quality of credit evaluations?,ebagl_2020_06,c59cbdbd-71d8-5879-be92-c96c5ffd2dd5,78
+What should organizations do to evaluate the impact of a revised default definition on their existing risk data?,ecb_gim_2024,19d692b3-9539-5649-bb32-94ff5f2c5eb1,92
+How can institutions ensure that their historical data aligns with a newly established definition of default?,ecb_gim_2024,19d692b3-9539-5649-bb32-94ff5f2c5eb1,92
+What methods can be used to modify past data to reflect a new definition of default before implementing it?,ecb_gim_2024,19d692b3-9539-5649-bb32-94ff5f2c5eb1,92
+"If historical data adjustments do not encompass the full observation period, what alternatives can institutions consider to fill in the gaps?",ecb_gim_2024,19d692b3-9539-5649-bb32-94ff5f2c5eb1,92
+What measures should organizations take regarding the frequency of property appraisals by the same evaluator?,ebagl_2020_06,80e6f221-2837-5d58-af12-6b7b8f1de73a,235
+How many times can a single appraiser assess the same property before a change is required?,ebagl_2020_06,80e6f221-2837-5d58-af12-6b7b8f1de73a,235
+What happens if the limit on consecutive evaluations by one appraiser is exceeded?,ebagl_2020_06,80e6f221-2837-5d58-af12-6b7b8f1de73a,235
+What options are available for appointing a new appraiser when the evaluation limit is surpassed?,ebagl_2020_06,80e6f221-2837-5d58-af12-6b7b8f1de73a,235
+What data elements should organizations think about incorporating when establishing and managing their data systems?,ebagl_2020_06,9e326994-bc74-57c3-ad8a-bc6e4b6cf07d,62
+Which specific templates from the EBA should be referenced for relevant data fields in this context?,ebagl_2020_06,9e326994-bc74-57c3-ad8a-bc6e4b6cf07d,62
+"When creating and sustaining their data framework, what should institutions take into account regarding data fields?",ebagl_2020_06,9e326994-bc74-57c3-ad8a-bc6e4b6cf07d,62
+What guidelines suggest that financial entities utilize certain data fields for their data infrastructure?,ebagl_2020_06,9e326994-bc74-57c3-ad8a-bc6e4b6cf07d,62
+What is the value of the correlation used for calculating risk weights for certain exposures that are not in default and are backed by residential mortgages?,bcbs_d424_irb,fdda1c1d-839c-538a-847a-434fd486e55f,118
+How is the capital requirement determined for an exposure that has defaulted?,bcbs_d424_irb,fdda1c1d-839c-538a-847a-434fd486e55f,118
+What formula is used to calculate the risk-weighted asset amount for a defaulted exposure?,bcbs_d424_irb,fdda1c1d-839c-538a-847a-434fd486e55f,118
+What factors are considered when determining the capital requirement for a defaulted exposure?,bcbs_d424_irb,fdda1c1d-839c-538a-847a-434fd486e55f,118
+What does the IRC model need to accurately estimate regarding default risk according to the specified regulation?,ecb_gim_2024,a1685110-5afb-5e09-afec-5a1cdac39194,"167,168"
+"How should the change in market value be determined after an issuer defaults, as per the guidelines?",ecb_gim_2024,a1685110-5afb-5e09-afec-5a1cdac39194,"167,168"
+What factors must institutions consider to account for notable basis risks in their hedging approaches?,ecb_gim_2024,a1685110-5afb-5e09-afec-5a1cdac39194,"167,168"
+What aspects should recovery rates take into account to ensure a proper distinction of risk in financial products?,ecb_gim_2024,a1685110-5afb-5e09-afec-5a1cdac39194,"167,168"
+What should be done with information obtained for identifying defaults once it is received?,ebagl_2016_07,e6800a16-6749-50d9-97da-747df222dd85,108
+How should all relevant exposures to a borrower in default be treated in IT systems?,ebagl_2016_07,e6800a16-6749-50d9-97da-747df222dd85,108
+What must be avoided if there are delays in recording a default?,ebagl_2016_07,e6800a16-6749-50d9-97da-747df222dd85,108
+What is crucial for ensuring that both internal and external reports accurately represent exposure classifications?,ebagl_2016_07,e6800a16-6749-50d9-97da-747df222dd85,108
+What should be done if there is not enough loss data to perform the necessary evaluations during a downturn that spans multiple years?,ebagl_2019_03,cebf954c-ac28-580a-b6d6-143c50e3add9,"49,50"
+How does the guideline differentiate between a lack of data due to insufficient coverage versus a lack of data from a distant downturn period?,ebagl_2019_03,cebf954c-ac28-580a-b6d6-143c50e3add9,"49,50"
+What does the policy suggest regarding the combination of data from consecutive years when faced with limited information?,ebagl_2019_03,cebf954c-ac28-580a-b6d6-143c50e3add9,"49,50"
+"What factors should be considered regarding the time gap between a downturn and its effect on loss data, according to the assessment requirements?",ebagl_2019_03,cebf954c-ac28-580a-b6d6-143c50e3add9,"49,50"
+"Is it necessary for institutions to obtain individual legal assessments for each country involved, or can they use one opinion for multiple regions?",ebagl_2020_05,fecfc016-c27f-57fd-a05d-e7165ebde60f,3
+What guidelines exist regarding the jurisdictions that need to be evaluated for the legal validity of physical assets?,ebagl_2020_05,fecfc016-c27f-57fd-a05d-e7165ebde60f,3
+How do the revised principles aim to balance the need for legal assurance with the costs and burdens on financial institutions?,ebagl_2020_05,fecfc016-c27f-57fd-a05d-e7165ebde60f,3
+What changes were made to the requirements for legal opinions concerning physical collateral in the latest guidelines?,ebagl_2020_05,fecfc016-c27f-57fd-a05d-e7165ebde60f,3
+What types of information should lenders gather to evaluate a borrower's ability to repay before finalizing a loan?,ebagl_2020_06,98136da4-f285-5bbd-a4f5-fc44ad7e2af8,"84,85"
+Which factors related to a borrower's financial situation are essential for assessing their creditworthiness?,ebagl_2020_06,98136da4-f285-5bbd-a4f5-fc44ad7e2af8,"84,85"
+What additional evidence might be relevant for creditors when determining the risk associated with a loan application?,ebagl_2020_06,98136da4-f285-5bbd-a4f5-fc44ad7e2af8,"84,85"
+Are there specific data points that institutions should reference when conducting a credit risk evaluation?,ebagl_2020_06,98136da4-f285-5bbd-a4f5-fc44ad7e2af8,"84,85"
+How often should organizations assess overdue amounts related to their borrowers to ensure timely detection of defaults?,ebagl_2016_07,87c76bc0-ff91-5557-b20e-e774b6df79b9,21
+What must institutions do to keep their records on overdue days and defaults current for decision-making and reporting purposes?,ebagl_2016_07,87c76bc0-ff91-5557-b20e-e774b6df79b9,21
+"If an organization does not evaluate overdue days on a daily basis, how should they determine the date of default?",ebagl_2016_07,87c76bc0-ff91-5557-b20e-e774b6df79b9,21
+What is the significance of the materiality threshold set by the regulatory authority in relation to overdue amounts?,ebagl_2016_07,87c76bc0-ff91-5557-b20e-e774b6df79b9,21
+What does the additional validation method involve when assessing guaranteed exposures that have defaulted?,ebagl_2020_05,ee2da620-0fef-55dd-9067-e5d5022b5759,46
+How does this validation tool address gaps left by standard back-testing methods?,ebagl_2020_05,ee2da620-0fef-55dd-9067-e5d5022b5759,46
+What is the purpose of using this extra validation method regarding guarantees and guarantors?,ebagl_2020_05,ee2da620-0fef-55dd-9067-e5d5022b5759,46
+"If the results from this validation tool are unfavorable, what should the institution investigate regarding the guarantee's performance?",ebagl_2020_05,ee2da620-0fef-55dd-9067-e5d5022b5759,46
+What precautions should organizations take when utilizing rating information from external agencies if they employ various rating systems with distinct philosophies?,ebagl_2017_16,389543b0-afe2-5c5c-831f-fc1b290db023,68
+How can institutions ensure that their different rating systems maintain a suitable level of uniformity?,ebagl_2017_16,389543b0-afe2-5c5c-831f-fc1b290db023,68
+What should organizations comprehend about the differences in their rating systems to effectively combine or aggregate the information they generate?,ebagl_2017_16,389543b0-afe2-5c5c-831f-fc1b290db023,68
+Why is it important for institutions to be aware of the assumptions and possible errors when merging data from multiple rating systems?,ebagl_2017_16,389543b0-afe2-5c5c-831f-fc1b290db023,68
+What criteria must multilateral development banks meet to qualify for a risk weight of zero?,bcbs_d424_irb,7d245185-f970-5333-9230-19674b2f76da,14
+How does the committee determine whether a multilateral development bank is eligible for a 0% risk weight?,bcbs_d424_irb,7d245185-f970-5333-9230-19674b2f76da,14
+What factors indicate strong backing from shareholders for a multilateral development bank?,bcbs_d424_irb,7d245185-f970-5333-9230-19674b2f76da,14
+What are the requirements related to capital and liquidity for multilateral development banks seeking a 0% risk weight?,bcbs_d424_irb,7d245185-f970-5333-9230-19674b2f76da,14
+What should organizations establish regarding the assessment of real estate assets according to the specified regulations?,ebagl_2020_06,a4c1fe1c-1016-5496-beba-df0653d6e758,221
+Which factors need to be considered when creating guidelines for evaluating property used as collateral?,ebagl_2020_06,a4c1fe1c-1016-5496-beba-df0653d6e758,221
+How often should institutions review the value of real estate collateral based on the outlined recommendations?,ebagl_2020_06,a4c1fe1c-1016-5496-beba-df0653d6e758,221
+What aspects of the property and loan should be taken into account when developing monitoring policies for collateral?,ebagl_2020_06,a4c1fe1c-1016-5496-beba-df0653d6e758,221
+How should the significance of a payment delay on a specific loan be evaluated?,ebagl_2016_07,153fb258-c189-5de1-b9cc-bd739f04f4f3,"105,10"
+What criteria must be used to determine if a payment delay is substantial for an individual borrower?,ebagl_2016_07,153fb258-c189-5de1-b9cc-bd739f04f4f3,"105,10"
+"When assessing a borrower's payment issues, which types of credit obligations should be considered?",ebagl_2016_07,153fb258-c189-5de1-b9cc-bd739f04f4f3,"105,10"
+What happens if the established threshold for payment delays is exceeded for an individual borrower?,ebagl_2016_07,153fb258-c189-5de1-b9cc-bd739f04f4f3,"105,10"
+What types of evaluations should be included in the validation process to ensure the reliability of the model and its foundational assumptions?,ecb_gim_2024,89a531d8-4531-575e-8e29-3e242a16828d,"72,73"
+"According to the ECB, what are the significant assumptions in the modeling process that should be regularly analyzed?",ecb_gim_2024,89a531d8-4531-575e-8e29-3e242a16828d,"72,73"
+How often does the ECB recommend conducting and documenting back-testing to meet regulatory requirements?,ecb_gim_2024,89a531d8-4531-575e-8e29-3e242a16828d,"72,73"
+What specific aspects of margining and collateral valuation should be considered in the model's validation framework?,ecb_gim_2024,89a531d8-4531-575e-8e29-3e242a16828d,"72,73"
+What criteria must an entity meet to be classified as in default without needing further expert assessment?,ebagl_2016_07,93bc59af-4287-5b01-8146-1dd18b7fa930,22
+Under what circumstances can an institution treat exposures to a borrower as not defaulted despite them being past due?,ebagl_2016_07,93bc59af-4287-5b01-8146-1dd18b7fa930,22
+What is one condition that allows for the classification of retail exposures at the level of individual credit agreements?,ebagl_2016_07,93bc59af-4287-5b01-8146-1dd18b7fa930,22
+What situation might be classified as a 'technical past due' according to the guidelines?,ebagl_2016_07,93bc59af-4287-5b01-8146-1dd18b7fa930,22
+How should a financial institution determine the relevant downturn period for estimating loss given default for different types of credit facilities?,ebagl_2019_03,f1759016-5f2d-5503-8180-a01da9f0a89b,21
+What economic indicators are essential for assessing the impact of downturn periods on various exposure categories?,ebagl_2019_03,f1759016-5f2d-5503-8180-a01da9f0a89b,21
+"In the context of estimating downturn loss given default, how should an institution handle periods where it lacks data for certain downturns?",ebagl_2019_03,f1759016-5f2d-5503-8180-a01da9f0a89b,21
+What is the rationale for selecting the downturn period that yields the highest average loss given default estimate for a specific calibration segment?,ebagl_2019_03,f1759016-5f2d-5503-8180-a01da9f0a89b,21
+What steps should institutions take to measure the margin of conservatism for specific shortcomings mentioned in earlier sections?,ebagl_2017_16,0b713757-fe55-552c-8239-9f8c5fb5f8f3,43
+How should the margin of conservatism be adjusted to reflect any increased uncertainty from modifications made to the estimation process?,ebagl_2017_16,0b713757-fe55-552c-8239-9f8c5fb5f8f3,43
+In what way should the margin of conservatism relate to the level of uncertainty regarding adjustments made to risk parameter estimates?,ebagl_2017_16,0b713757-fe55-552c-8239-9f8c5fb5f8f3,43
+What is the approach for determining the overall estimation error for category C in relation to the estimation technique used?,ebagl_2017_16,0b713757-fe55-552c-8239-9f8c5fb5f8f3,43
+What conditions must be met for a lender to determine that a borrower has defaulted on their obligations?,ecb_gim_2024,9dff8a3c-112d-523f-8424-d824dda41214,59
+How does an institution assess whether a borrower is unlikely to fulfill their debt responsibilities?,ecb_gim_2024,9dff8a3c-112d-523f-8424-d824dda41214,59
+What is the significance of being overdue by more than 90 days on a significant loan for a borrower?,ecb_gim_2024,9dff8a3c-112d-523f-8424-d824dda41214,59
+What criteria define a material credit obligation in relation to a borrower's overdue payments?,ecb_gim_2024,9dff8a3c-112d-523f-8424-d824dda41214,59
+What should organizations evaluate to understand the impact of missing data on the volatility of their financial positions?,ecb_gim_2024,0471091c-4249-5064-94dd-b07437f29231,121
+Under what circumstances should institutions be cautious about using previous day's values to fill in gaps in their data?,ecb_gim_2024,0471091c-4249-5064-94dd-b07437f29231,121
+When is it acceptable for a financial institution to filter out data or disregard certain data points in their analysis?,ecb_gim_2024,0471091c-4249-5064-94dd-b07437f29231,121
+What does the ECB recommend regarding the documentation of any data exclusions in the calculations of risk measures like VaR and sVaR?,ecb_gim_2024,0471091c-4249-5064-94dd-b07437f29231,121
+Which methodologies are addressed by these guidelines regarding credit risk assessment?,ebagl_2016_07,579f97f8-e8a6-50d4-a0b5-d8b8e3f1f688,"6,7"
+What should institutions authorized to use the IRB method do with respect to the guidelines outlined?,ebagl_2016_07,579f97f8-e8a6-50d4-a0b5-d8b8e3f1f688,"6,7"
+Under what circumstances can institutions apply the guidelines for the Standardised method?,ebagl_2016_07,579f97f8-e8a6-50d4-a0b5-d8b8e3f1f688,"6,7"
+What permissions must institutions have to utilize the Standardised Approach in accordance with the specified regulation?,ebagl_2016_07,579f97f8-e8a6-50d4-a0b5-d8b8e3f1f688,"6,7"
+What percentage of models consider exposures with recoveries that happened during economic downturns?,ebagl_2019_03,28405f1b-715f-5fb5-b09e-96c940e08bb3,"239,240"
+How do some institutions determine which defaulted exposures to include when assessing recovery during a downturn?,ebagl_2019_03,28405f1b-715f-5fb5-b09e-96c940e08bb3,"239,240"
+What method did one institution use to identify downturn periods based on real estate values?,ebagl_2019_03,28405f1b-715f-5fb5-b09e-96c940e08bb3,"239,240"
+What approach do certain institutions take regarding unsecured and secured exposures during downturn recovery evaluations?,ebagl_2019_03,28405f1b-715f-5fb5-b09e-96c940e08bb3,"239,240"
+What should organizations check to confirm that their sample data accurately reflects their overall portfolio in terms of geography and product categories?,ecb_gim_2024,cbacf387-5652-5c53-9432-534020d73245,145
+How should firms adjust loss figures obtained from market valuations to account for additional expenses?,ecb_gim_2024,cbacf387-5652-5c53-9432-534020d73245,145
+What is the potential issue that may arise when institutions incorporate market data from defaulted assets into their loss estimates?,ecb_gim_2024,cbacf387-5652-5c53-9432-534020d73245,145
+What guidelines should institutions refer to for increasing loss estimates based on market prices to include indirect costs?,ecb_gim_2024,cbacf387-5652-5c53-9432-534020d73245,145
+What should be done before excluding data with extreme returns from analysis?,ecb_gim_2024,18bea013-4e8f-50a1-a9d8-b15359f10ba1,122
+Is it acceptable to automatically filter out data with very high or very low returns without additional review?,ecb_gim_2024,18bea013-4e8f-50a1-a9d8-b15359f10ba1,122
+What is required in terms of analysis and record-keeping when deciding to exclude certain data points?,ecb_gim_2024,18bea013-4e8f-50a1-a9d8-b15359f10ba1,122
+How should one approach the removal of data that shows significant returns in a systematic manner?,ecb_gim_2024,18bea013-4e8f-50a1-a9d8-b15359f10ba1,122
+How should collateral be allocated when a margin agreement involves both IMM and non-IMM transactions?,ecb_gim_2024,07e7017a-1e72-56cc-bfcd-836ec44eb839,35
+What is required to ensure that the distribution of actual collateral aligns with the current exposures of different synthetic netting sets?,ecb_gim_2024,07e7017a-1e72-56cc-bfcd-836ec44eb839,35
+"If an institution opts to assign all collateral to a single synthetic netting set, what must it provide to support this decision?",ecb_gim_2024,07e7017a-1e72-56cc-bfcd-836ec44eb839,35
+What considerations must be taken into account to avoid miscounting collateral in the context of synthetic netting sets?,ecb_gim_2024,07e7017a-1e72-56cc-bfcd-836ec44eb839,35
+How do yearly and comprehensive evaluations of estimates relate to the ongoing assessments conducted by the CRCU as outlined in the regulations?,ebagl_2017_16,75968f30-728a-5bb5-8dca-0267e770afff, model 
+What role does the validation function play in the review process of estimates by the CRCU?,ebagl_2017_16,75968f30-728a-5bb5-8dca-0267e770afff, model 
+What actions should be taken if weaknesses are found during the review of models?,ebagl_2017_16,75968f30-728a-5bb5-8dca-0267e770afff, model 
+What regulations govern the classification and approval of modifications made to the models?,ebagl_2017_16,75968f30-728a-5bb5-8dca-0267e770afff, model 
+What evidence must an organization submit when seeking initial approval for the IRB method or its own estimates of loss given default and credit conversion factor?,ecb_gim_2024,047c41e9-df6c-5619-a9f3-751524d34c06,97
+How long must an institution have utilized rating systems that align with the IRB standards for them to be considered for initial permission?,ecb_gim_2024,047c41e9-df6c-5619-a9f3-751524d34c06,97
+Which regulatory articles outline the prior experience requirements for institutions applying for the IRB approach?,ecb_gim_2024,047c41e9-df6c-5619-a9f3-751524d34c06,97
+In what context is prior experience with risk management and credit approval processes evaluated for institutions applying for the IRB approach?,ecb_gim_2024,047c41e9-df6c-5619-a9f3-751524d34c06,97
+What factors are considered to assess the effects of a downturn on credit risk estimates?,ebagl_2019_03,45b4d91d-ef6c-5620-8efa-c520b4f8adcb,48
+How does the duration of default influence the calculation of loss given default during economic downturns?,ebagl_2019_03,45b4d91d-ef6c-5620-8efa-c520b4f8adcb,48
+In what way does the return of facilities to a non-defaulted state factor into the evaluation of credit risk in adverse conditions?,ebagl_2019_03,45b4d91d-ef6c-5620-8efa-c520b4f8adcb,48
+Why is it important to analyze the extended period of default when estimating potential losses during a downturn?,ebagl_2019_03,45b4d91d-ef6c-5620-8efa-c520b4f8adcb,48
+How is the sensitivity to changes in commodity prices determined for a specific group of commodities?,bcbs_d424_irb,6643cf2f-fb03-59b3-a7ac-7d430b4a20c6,75
+What types of commodities are classified under the first category related to energy solid fuels?,bcbs_d424_irb,6643cf2f-fb03-59b3-a7ac-7d430b4a20c6,75
+Which group of commodities includes items like crude oil and various types of biofuels?,bcbs_d424_irb,6643cf2f-fb03-59b3-a7ac-7d430b4a20c6,75
+What percentage risk weight is assigned to the category that encompasses precious metals?,bcbs_d424_irb,6643cf2f-fb03-59b3-a7ac-7d430b4a20c6,75
+What conditions must be met for a third party's rating to be included in a probability of default model?,ebagl_2017_16,bf2a4b97-4e88-52e8-849d-b32a23146548,63
+How should the model account for other important risk factors related to the borrower and the transaction?,ebagl_2017_16,bf2a4b97-4e88-52e8-849d-b32a23146548,63
+What guidelines must be followed to prevent significant bias when using third party ratings in the model?,ebagl_2017_16,bf2a4b97-4e88-52e8-849d-b32a23146548,63
+What should be avoided to ensure that the impact of relationships with third parties is not counted more than once?,ebagl_2017_16,bf2a4b97-4e88-52e8-849d-b32a23146548,63
+How should organizations determine the average loss given default based on historical data according to the EBA guidelines?,ecb_gim_2024,ab1a1527-0626-553a-b1fa-03d239f707ba,184
+What method is recommended for calculating the average loss given default when multiple loans from the same borrower are involved?,ecb_gim_2024,ab1a1527-0626-553a-b1fa-03d239f707ba,184
+"What precautions should institutions take to ensure the accuracy of loss given default estimates, especially when some values are very low?",ecb_gim_2024,ab1a1527-0626-553a-b1fa-03d239f707ba,184
+What approach should be taken regarding exceptionally high loss given default values to maintain data integrity and accuracy?,ecb_gim_2024,ab1a1527-0626-553a-b1fa-03d239f707ba,184
+What should organizations do if they lack enough relevant loss information to evaluate the effects of the downturn period but can still adjust the downturn loss given default?,ebagl_2019_03,4809c5d0-49d6-530c-95d2-395e7c80aadc,"24,25"
+"In the absence of adequate loss data to measure the downturn period's effects, what is the recommended method for institutions to adjust the downturn loss given default if the first approach is not applicable?",ebagl_2019_03,4809c5d0-49d6-530c-95d2-395e7c80aadc,"24,25"
+"If an institution cannot find sufficient loss data to assess the downturn period's impact, what guidelines should they follow to adjust the downturn loss given default when the first calibration method is not feasible?",ebagl_2019_03,4809c5d0-49d6-530c-95d2-395e7c80aadc,"24,25"
+What steps should be taken by financial entities to determine the downturn loss given default when they do not have enough relevant data for the downturn period and cannot use the initial calibration approach?,ebagl_2019_03,4809c5d0-49d6-530c-95d2-395e7c80aadc,"24,25"
+What section of the guidelines specifies how to adjust loss given default during economic downturns when relevant loss data is available?,ebagl_2019_03,15f01f61-4040-57df-a748-8e28021f82e0,51
+How should the final estimation of loss given default reflect the effects of a downturn on various factors such as realized losses and recovery rates?,ebagl_2019_03,15f01f61-4040-57df-a748-8e28021f82e0,51
+What considerations should institutions keep in mind when selecting a method for estimating downturn loss given default based on their impact analysis results?,ebagl_2019_03,15f01f61-4040-57df-a748-8e28021f82e0,51
+Which methodology mentioned in the guidelines allows for a specific adjustment approach when estimating downturn loss given default?,ebagl_2019_03,15f01f61-4040-57df-a748-8e28021f82e0,51
+How can organizations categorize exposures that share the same probability of default model?,ebagl_2017_16,a7d66bb9-8231-506e-a4c3-e1b0c767559f,97
+What criteria should be used to determine different risk levels among subsets of exposures?,ebagl_2017_16,a7d66bb9-8231-506e-a4c3-e1b0c767559f,97
+What is required from institutions when they create and define calibration segments for risk assessment?,ebagl_2017_16,a7d66bb9-8231-506e-a4c3-e1b0c767559f,97
+Why is it important for institutions to provide justification and documentation for their segmentation choices?,ebagl_2017_16,a7d66bb9-8231-506e-a4c3-e1b0c767559f,97
+What are the risk weight percentages assigned to various categories of non-HVCRE SL exposures?,bcbs_d424_irb,d692ed56-d022-562a-a997-c1b2eaa3faa4,145
+How do the risk weights for strong and good HVCRE exposures compare to those for non-HVCRE exposures?,bcbs_d424_irb,d692ed56-d022-562a-a997-c1b2eaa3faa4,145
+What is the expected EL risk weight for strong and good exposures if banks are permitted to apply favorable risk weights to HVCRE?,bcbs_d424_irb,d692ed56-d022-562a-a997-c1b2eaa3faa4,145
+"In the context of non-HVCRE SL, what risk weight is applied to exposures categorized as satisfactory, weak, and in default?",bcbs_d424_irb,d692ed56-d022-562a-a997-c1b2eaa3faa4,145
+What types of adverse scenarios should be evaluated during the assessment of a borrower's financial reliability?,ebagl_2020_06,2f402303-0dbc-510c-a361-0b5a56635e83,113
+Which factors related to the loan's terms and the borrower's situation should be analyzed for potential negative impacts?,ebagl_2020_06,2f402303-0dbc-510c-a361-0b5a56635e83,113
+How might changes in the housing market affect the evaluation of a loan's risk?,ebagl_2020_06,2f402303-0dbc-510c-a361-0b5a56635e83,113
+What currency-related risks should be taken into account if they are applicable to the loan assessment?,ebagl_2020_06,2f402303-0dbc-510c-a361-0b5a56635e83,113
+What must organizations do if they utilize outside data that doesn't align with their internal definition of default for assessing risk?,ecb_gim_2024,7bf4123a-2ec8-51ff-b0af-d00a2eeeae02,87
+Under what circumstances can institutions continue using external data without making modifications in their risk assessment processes?,ecb_gim_2024,7bf4123a-2ec8-51ff-b0af-d00a2eeeae02,87
+What is recommended for institutions to manage the increased uncertainty that comes with using external data for risk evaluation?,ecb_gim_2024,7bf4123a-2ec8-51ff-b0af-d00a2eeeae02,87
+How should organizations adjust their risk quantification methods when the definitions of default differ significantly?,ecb_gim_2024,7bf4123a-2ec8-51ff-b0af-d00a2eeeae02,87
+What is the correlation value for pairs of buckets numbered 1 to 10 regarding commodity delta and vega risks?,bcbs_d424_irb,1dd429f6-7289-512a-82b2-aa4395d9edbf,"73,74"
+How is the correlation treated for any pairs that involve bucket number 11 in the context of commodity risks?,bcbs_d424_irb,1dd429f6-7289-512a-82b2-aa4395d9edbf,"73,74"
+What percentage represents the correlation between different buckets for commodity delta and vega risks when they are within the first ten buckets?,bcbs_d424_irb,1dd429f6-7289-512a-82b2-aa4395d9edbf,"73,74"
+What correlation value applies to cross-bucket pairs that include bucket 11 in relation to commodity risk assessment?,bcbs_d424_irb,1dd429f6-7289-512a-82b2-aa4395d9edbf,"73,74"
+What clarification is needed regarding the term 'own debt' in the context of this guide?,ecb_gim_2024,69f22dd5-22c9-5af9-bfa1-ce62a3aae5cf,29
+How does the CRR define the term 'consolidated situation'?,ecb_gim_2024,69f22dd5-22c9-5af9-bfa1-ce62a3aae5cf,29
+What does the term 'sub-consolidated basis' refer to according to the CRR?,ecb_gim_2024,69f22dd5-22c9-5af9-bfa1-ce62a3aae5cf,29
+What approach does the ECB suggest for institutions using an IRC model when assessing their own debt positions?,ecb_gim_2024,69f22dd5-22c9-5af9-bfa1-ce62a3aae5cf,29
+What changes in the default rate and loss given default are anticipated when a wider definition of overdue situations is applied by institutions?,ebagl_2016_07,e9549a75-974a-53fc-8fa5-3b5e9b0d09d6,114
+How does the capital adequacy ratio shift for standard approach institutions compared to internal ratings-based institutions based on the findings from the quantitative impact study?,ebagl_2016_07,e9549a75-974a-53fc-8fa5-3b5e9b0d09d6,114
+What specific adjustments were made in the final guidelines regarding the definition of overdue situations compared to the earlier consultation document?,ebagl_2016_07,e9549a75-974a-53fc-8fa5-3b5e9b0d09d6,114
+How do the results of the quantitative impact study reflect the practices of institutions regarding the sale of credit obligations and the assessment of credit-related losses?,ebagl_2016_07,e9549a75-974a-53fc-8fa5-3b5e9b0d09d6,114
+What should be included in the IRC calculation for significant defaulted debt positions in the regulatory trading portfolio?,ecb_gim_2024,1dc5d75d-886a-5489-a401-2fa1d6dc472e,35
+How must the IRC model account for unique characteristics of similar positions when assessing risk?,ecb_gim_2024,1dc5d75d-886a-5489-a401-2fa1d6dc472e,35
+What specific adjustments should institutions make to recovery rates when evaluating the risk of price fluctuations in defaulted debt?,ecb_gim_2024,1dc5d75d-886a-5489-a401-2fa1d6dc472e,35
+"If an institution lacks the ability to model price changes for defaulted debt, what alternative method can be used to reflect those differences?",ecb_gim_2024,1dc5d75d-886a-5489-a401-2fa1d6dc472e,35
+What type of confirmation is necessary for institutions to ensure the legal validity of UFCP arrangements?,ebagl_2020_05,f9f3eb68-09c9-53ca-ad97-7790eafe4d81,23
+How should institutions approach obtaining legal opinions for different UFCP contracts?,ebagl_2020_05,f9f3eb68-09c9-53ca-ad97-7790eafe4d81,23
+Who should provide the legal opinion regarding the enforceability of UFCP agreements?,ebagl_2020_05,f9f3eb68-09c9-53ca-ad97-7790eafe4d81,23
+"Is it possible to use a single legal opinion for multiple UFCP contracts, and under what condition?",ebagl_2020_05,f9f3eb68-09c9-53ca-ad97-7790eafe4d81,23
+What is the significance of the value associated with goodwill in acquisitions?,ebagl_2020_06,69025b27-c19c-5043-8571-d0f2452b9229,"33,34,35,36,37,38"
+How does the practice of isolating certain assets or liabilities impact financial assessments?,ebagl_2020_06,69025b27-c19c-5043-8571-d0f2452b9229,"33,34,35,36,37,38"
+What does the term LTV refer to in the context of lending?,ebagl_2020_06,69025b27-c19c-5043-8571-d0f2452b9229,"33,34,35,36,37,38"
+Why is it important for a financial institution to follow its established business strategy?,ebagl_2020_06,69025b27-c19c-5043-8571-d0f2452b9229,"33,34,35,36,37,38"
+How should the significance level be determined for individual borrowers when assessing default for consumer loans?,ebagl_2016_07,f2693a40-d777-5886-8ed6-8f2da0d3f6a5,103
+What should organizations include in their internal guidelines regarding the handling of shared credit responsibilities in relation to the significance level?,ebagl_2016_07,f2693a40-d777-5886-8ed6-8f2da0d3f6a5,103
+"In the context of consumer credit, where should the materiality standard be applied according to the guidelines?",ebagl_2016_07,f2693a40-d777-5886-8ed6-8f2da0d3f6a5,103
+What is expected from institutions in terms of documenting their approach to joint credit commitments when applying the materiality threshold?,ebagl_2016_07,f2693a40-d777-5886-8ed6-8f2da0d3f6a5,103
+What should organizations think about when allowing veto authority for credit approvals to the head of risk management?,ebagl_2020_06,5c33ac33-0b15-56aa-9d36-141ef85101b5,69
+How can institutions ensure that veto powers are available at various levels of the credit decision-making process?,ebagl_2020_06,5c33ac33-0b15-56aa-9d36-141ef85101b5,69
+What elements should be defined regarding the veto rights and the procedures for raising concerns or appeals?,ebagl_2020_06,5c33ac33-0b15-56aa-9d36-141ef85101b5,69
+In what way should the management team be included in the process of exercising veto rights for credit decisions?,ebagl_2020_06,5c33ac33-0b15-56aa-9d36-141ef85101b5,69
+What is the minimum frequency for the evaluation of an institution's rating systems by an independent auditing body?,ecb_gim_2024,b256aac2-b37f-5da3-a3af-23a000ab723f,"87,88"
+What does the ECB require for an institution to meet the standards of Article 191 of the CRR regarding internal audits?,ecb_gim_2024,b256aac2-b37f-5da3-a3af-23a000ab723f,"87,88"
+What type of assessment must be conducted annually to inform the internal audit work strategy for rating systems?,ecb_gim_2024,b256aac2-b37f-5da3-a3af-23a000ab723f,"87,88"
+Which aspects must be included in the review process of the rating systems according to the regulatory guidelines?,ecb_gim_2024,b256aac2-b37f-5da3-a3af-23a000ab723f,"87,88"
+Under what circumstances can regulators opt not to implement the specified reductions for certain transactions?,bcbs_d424_irb,79a3dff5-87b4-5ed6-b037-57d8d5fc7d57,82
+What type of market participant must be involved for the alternative treatment to be considered?,bcbs_d424_irb,79a3dff5-87b4-5ed6-b037-57d8d5fc7d57,82
+What happens to a netting set if it includes transactions that fail to satisfy the outlined criteria?,bcbs_d424_irb,79a3dff5-87b4-5ed6-b037-57d8d5fc7d57,82
+What is the approach for handling groups of collateral in this context?,bcbs_d424_irb,79a3dff5-87b4-5ed6-b037-57d8d5fc7d57,82
+What kind of numerical thresholds should organizations establish to handle concentration risk in their overall credit exposure?,ebagl_2020_06,99bb4529-08a2-5cd8-b84d-b756eb92e35f,33
+How should credit limits be determined for groups of borrowers with similar risk profiles?,ebagl_2020_06,99bb4529-08a2-5cd8-b84d-b756eb92e35f,33
+"When dealing with connected clients, what additional factors should be considered in setting credit limits?",ebagl_2020_06,99bb4529-08a2-5cd8-b84d-b756eb92e35f,33
+"In the context of group entities, what levels of assessment are necessary for determining credit risk limits?",ebagl_2020_06,99bb4529-08a2-5cd8-b84d-b756eb92e35f,33
+How should the methods for estimating losses align with the institution's policies on collecting and recovering funds?,ebagl_2017_16,33b7432f-b088-5ed5-bab9-a00e1b86f177,221
+"What are the different ways collateral can be utilized beyond just selling it off, according to the guidelines?",ebagl_2017_16,33b7432f-b088-5ed5-bab9-a00e1b86f177,221
+"Why is it important to consider the current value of collateral when estimating potential losses, especially after a default occurs?",ebagl_2017_16,33b7432f-b088-5ed5-bab9-a00e1b86f177,221
+"What should be the reference point for assessing collateral value in relation to loss estimates, particularly before a default happens?",ebagl_2017_16,33b7432f-b088-5ed5-bab9-a00e1b86f177,221
+What should institutions focus on to accurately evaluate transaction features as per the specified regulation?,ecb_gim_2024,6abf5b8d-842c-5207-b8fe-58377f9ec134,207
+How can organizations address the challenges associated with estimating credit conversion factors for nearly fully utilized facilities?,ecb_gim_2024,6abf5b8d-842c-5207-b8fe-58377f9ec134,207
+Under what conditions can institutions use judgment to determine credit conversion factor values according to the regulatory framework?,ecb_gim_2024,6abf5b8d-842c-5207-b8fe-58377f9ec134,207
+What steps must an institution take to ensure that its credit conversion factor estimates remain conservative over time?,ecb_gim_2024,6abf5b8d-842c-5207-b8fe-58377f9ec134,207
+What types of expenses should not be counted when calculating total losses in the loss data set?,bcbs_d424_irb,7cc020f0-a9dd-5140-a685-0127b221d463,24
+When should a bank record losses associated with legal issues in its loss data collection?,bcbs_d424_irb,7cc020f0-a9dd-5140-a685-0127b221d463,24
+How should losses from a recurring operational risk incident be recorded if they are accounted for over multiple years?,bcbs_d424_irb,7cc020f0-a9dd-5140-a685-0127b221d463,24
+What conditions must be met for a bank to seek permission to disregard certain operational loss incidents from its records?,bcbs_d424_irb,7cc020f0-a9dd-5140-a685-0127b221d463,24
+What types of external sources should organizations consider when assessing a borrower's payment reliability?,ebagl_2016_07,029a22f2-4275-5f73-9303-2d88e3d16305,60
+Which factors related to payment history might indicate a borrower's potential inability to meet their obligations?,ebagl_2016_07,029a22f2-4275-5f73-9303-2d88e3d16305,60
+How can the economic condition of a borrower's industry influence their creditworthiness?,ebagl_2016_07,029a22f2-4275-5f73-9303-2d88e3d16305,60
+What information might suggest that a borrower is facing financial challenges based on third-party actions?,ebagl_2016_07,029a22f2-4275-5f73-9303-2d88e3d16305,60
+What conditions must be met for a different method of assessing impact to be considered acceptable by the ECB?,ecb_gim_2024,fac05af0-cf5a-5504-a027-3a4094b0177c,109
+How should an institution ensure that its estimation of the impact from a specific risk source does not consistently undervalue the incremental exposure?,ecb_gim_2024,fac05af0-cf5a-5504-a027-3a4094b0177c,109
+What approach does the ECB recommend for including missing cash flows in the calculation of expected risk exposure related to non-standard risk sources?,ecb_gim_2024,fac05af0-cf5a-5504-a027-3a4094b0177c,109
+"In the context of calculating expected spike exposure, what factors should be taken into account regarding cash flow payments to a counterparty that may not be reflected in the standard exposure calculations?",ecb_gim_2024,fac05af0-cf5a-5504-a027-3a4094b0177c,109
+Who are the intended recipients of these recommendations according to the specified regulations?,ebagl_2017_16,57f5cdc5-7f36-542d-abd0-92dcfbe3becd,7
+Which entities are mentioned in the guidelines as being relevant to the regulations outlined in the document?,ebagl_2017_16,57f5cdc5-7f36-542d-abd0-92dcfbe3becd,7
+What types of organizations are the focus of these instructions as per the referenced legal framework?,ebagl_2017_16,57f5cdc5-7f36-542d-abd0-92dcfbe3becd,7
+To whom do these guidelines apply based on the definitions provided in the relevant EU regulation?,ebagl_2017_16,57f5cdc5-7f36-542d-abd0-92dcfbe3becd,7
+What factors should organizations consider when evaluating their approach to categorizing borrowers or assets into different risk levels?,ebagl_2017_16,93368aa7-74c0-56ed-8862-51439de5d671,67
+How often should institutions review the effectiveness of their rating approach over time?,ebagl_2017_16,93368aa7-74c0-56ed-8862-51439de5d671,67
+What aspects related to risk indicators should be assessed when determining the suitability of a rating strategy?,ebagl_2017_16,93368aa7-74c0-56ed-8862-51439de5d671,67
+Which elements related to the movement of borrowers between different risk categories should be taken into account during the evaluation process?,ebagl_2017_16,93368aa7-74c0-56ed-8862-51439de5d671,67
+What adjustments must financial institutions make to their risk parameter estimates to mitigate the capital effects of an economic downturn?,ebagl_2019_03,4978b233-5eb1-586d-bd31-79c3fe15b00a,26
+How does the EBA suggest handling changes in portfolio composition over time due to economic conditions?,ebagl_2019_03,4978b233-5eb1-586d-bd31-79c3fe15b00a,26
+"In the context of a retail mortgage portfolio, which risk factor is used to define the pools for estimating loss given default?",ebagl_2019_03,4978b233-5eb1-586d-bd31-79c3fe15b00a,26
+What is the significance of the LTV buckets in relation to the estimated loss given default during an economic downturn?,ebagl_2019_03,4978b233-5eb1-586d-bd31-79c3fe15b00a,26
+What factors should lenders evaluate to determine the viability of a borrower's financial situation and their ability to repay under challenging circumstances?,ebagl_2020_06,ab1d1671-eea9-5ea8-9b9e-e9077f60c441,"156,157"
+What type of analysis is recommended for assessing the impact of various events on a borrower's creditworthiness?,ebagl_2020_06,ab1d1671-eea9-5ea8-9b9e-e9077f60c441,"156,157"
+Which elements should be included in the sensitivity analysis to ensure a comprehensive understanding of the borrower's risk profile?,ebagl_2020_06,ab1d1671-eea9-5ea8-9b9e-e9077f60c441,"156,157"
+How should institutions approach the evaluation of potential risks that could affect a borrower's ability to meet loan obligations?,ebagl_2020_06,ab1d1671-eea9-5ea8-9b9e-e9077f60c441,"156,157"
+What factors must banks consider when estimating the loss given default for their lending facilities?,bcbs_d424_irb,f29fa0a8-afe3-56f1-affe-c640228fc422,150
+How should banks approach the estimation of expected exposure for their credit facilities under the advanced method?,bcbs_d424_irb,f29fa0a8-afe3-56f1-affe-c640228fc422,150
+"What data sources can banks use to support their internal estimates of probability of default, loss given default, and expected exposure?",bcbs_d424_irb,f29fa0a8-afe3-56f1-affe-c640228fc422,150
+What criteria determine when a borrower is deemed to have defaulted on their obligations to a bank?,bcbs_d424_irb,f29fa0a8-afe3-56f1-affe-c640228fc422,150
+What should organizations evaluate in relation to their defined risk tolerance and policies when considering financial indicators?,ebagl_2020_06,69412c44-522c-51d3-8d29-c2f17c7aa768,"154,155"
+How should lenders analyze the financial status of holding firms when making loan decisions?,ebagl_2020_06,69412c44-522c-51d3-8d29-c2f17c7aa768,"154,155"
+In what circumstances should the financial assessment of a holding company be conducted separately from its subsidiaries?,ebagl_2020_06,69412c44-522c-51d3-8d29-c2f17c7aa768,"154,155"
+What factors should be taken into account if a holding company does not operate as a business or lacks guarantees from its subsidiaries?,ebagl_2020_06,69412c44-522c-51d3-8d29-c2f17c7aa768,"154,155"
+How should organizations determine the minimum risk weight when multiple guarantees cover the same portion of a loan?,ebagl_2020_05,1d93433e-48a1-5d17-aa87-5a3231244cf4,53
+What process should be followed to assess the risk weight for each guarantor involved in securing an exposure?,ebagl_2020_05,1d93433e-48a1-5d17-aa87-5a3231244cf4,53
+"When evaluating the risk weight for a specific part of an exposure, what should institutions take into account regarding other guarantees?",ebagl_2020_05,1d93433e-48a1-5d17-aa87-5a3231244cf4,53
+What is the approach for calculating the risk weight floor when there are several financial guarantees for the same exposure?,ebagl_2020_05,1d93433e-48a1-5d17-aa87-5a3231244cf4,53
+What is the process for ensuring that probability of default estimates align with the long-term average default rate for different rating segments?,ebagl_2017_16,9d5126a9-6429-545f-b8e1-dc3a4300acbb, model 
+How does the two-step calibration method differ from other approaches in terms of time points used for estimating default rates?,ebagl_2017_16,9d5126a9-6429-545f-b8e1-dc3a4300acbb, model 
+In what scenario would a credit-risk analyst need to rely on expert assessments for rating grades when historical data is incomplete?,ebagl_2017_16,9d5126a9-6429-545f-b8e1-dc3a4300acbb, model 
+What are the implications of using migration matrices in the estimation of default rates for specific grades or pools?,ebagl_2017_16,9d5126a9-6429-545f-b8e1-dc3a4300acbb, model 
+What is the reasoning behind the first principle regarding different calibration segments for credit exposures?,ebagl_2019_03,5729a1f2-791c-5ad3-872c-e2674e65f863,20
+Why are estimates derived from type 3 methods considered to be less trustworthy?,ebagl_2019_03,5729a1f2-791c-5ad3-872c-e2674e65f863,20
+How does the third principle determine which downturn period should be used for estimating loss given default?,ebagl_2019_03,5729a1f2-791c-5ad3-872c-e2674e65f863,20
+What should an institution do if it cannot determine downturn loss estimates using type 1 or type 2 methods?,ebagl_2019_03,5729a1f2-791c-5ad3-872c-e2674e65f863,20
+What guidelines should institutions follow to determine realized loss given defaults for overdue accounts?,ebagl_2017_16,4a48b8b0-0bc0-5ee3-aee2-ac8bfc116ddb, model 
+How should incomplete recovery efforts be treated when calculating the long-term average loss given default for overdue accounts?,ebagl_2017_16,4a48b8b0-0bc0-5ee3-aee2-ac8bfc116ddb, model 
+What is the significance of using only certain reference dates when assessing incomplete recovery processes in the estimation?,ebagl_2017_16,4a48b8b0-0bc0-5ee3-aee2-ac8bfc116ddb, model 
+In what circumstances can specific information about partial debt write-offs influence the risk parameter calculations?,ebagl_2017_16,4a48b8b0-0bc0-5ee3-aee2-ac8bfc116ddb, model 
+What steps should organizations take to ensure that their loss given default estimates during economic downturns are not overly influenced by economic fluctuations?,ebagl_2019_03,0d3685a6-907a-5c49-9bcb-74280fe7f384,"17,18"
+How should institutions evaluate the variations in their current portfolio compared to the expected distribution during a downturn?,ebagl_2019_03,0d3685a6-907a-5c49-9bcb-74280fe7f384,"17,18"
+What action is required if a significant discrepancy is found in the analysis of the portfolio's distribution during a downturn?,ebagl_2019_03,0d3685a6-907a-5c49-9bcb-74280fe7f384,"17,18"
+In what way should institutions validate any notable differences between their final loss given default estimates and the benchmark values?,ebagl_2019_03,0d3685a6-907a-5c49-9bcb-74280fe7f384,"17,18"
+What types of market risks should be factored into the profit and loss calculations for positions in the banking book under the internal model approach?,ecb_gim_2024,5c4a1189-02e5-530f-a1cb-2a44b4e1bbf1,52
+Under what circumstances can an institution consider changes in market values from various risk categories in their P&L assessments?,ecb_gim_2024,5c4a1189-02e5-530f-a1cb-2a44b4e1bbf1,52
+What must institutions provide to support their decision to include all risk categories in their profit and loss calculations?,ecb_gim_2024,5c4a1189-02e5-530f-a1cb-2a44b4e1bbf1,52
+Is it considered difficult to isolate the impact of foreign exchange risk when calculating actual and hypothetical profit and loss?,ecb_gim_2024,5c4a1189-02e5-530f-a1cb-2a44b4e1bbf1,52
+Under what conditions can a financial institution utilize the loss given default estimation from the time of default for a specific date?,ebagl_2019_03,c8c71244-102f-5535-ba24-2506e9880d86,"36,37"
+What must an organization demonstrate to justify using the downturn LGD from the default moment for a particular reference date?,ebagl_2019_03,c8c71244-102f-5535-ba24-2506e9880d86,"36,37"
+How does the occurrence of partial write-offs at the time of default affect the calculation of downturn LGD for both defaulted and non-defaulted exposures?,ebagl_2019_03,c8c71244-102f-5535-ba24-2506e9880d86,"36,37"
+"Why is there a rationale for allowing institutions to estimate downturn LGD from the time of default, considering that the potential losses tend to approach a maximum over time?",ebagl_2019_03,c8c71244-102f-5535-ba24-2506e9880d86,"36,37"
+What types of information should organizations gather and maintain regarding borrowers and their financial performance for estimating default probabilities?,ebagl_2020_05,1dff12ed-7865-50ed-8d36-1d31a3247a5e,38
+How should institutions approach the assessment of risk when dealing with guaranteed versus direct exposures to a borrower?,ebagl_2020_05,1dff12ed-7865-50ed-8d36-1d31a3247a5e,38
+What is the significance of separately calculating risk weights for guaranteed portions of exposures compared to direct exposures?,ebagl_2020_05,1dff12ed-7865-50ed-8d36-1d31a3247a5e,38
+In what circumstances can different risk weights be applied to parts of an exposure due to the presence of a guarantee?,ebagl_2020_05,1dff12ed-7865-50ed-8d36-1d31a3247a5e,38
+What is the method for determining the impact of changes in foreign currency exchange rates on a bank's domestic currency?,bcbs_d424_irb,e6cce16f-ed78-5b6d-9157-b08ebde674f9,60
+How is the sensitivity to fluctuations in the foreign exchange spot rate calculated?,bcbs_d424_irb,e6cce16f-ed78-5b6d-9157-b08ebde674f9,60
+What approach is used to adjust foreign currency rates when a specific foreign-domestic exchange rate is modified?,bcbs_d424_irb,e6cce16f-ed78-5b6d-9157-b08ebde674f9,60
+What are the established risk weights for the various foreign-domestic currency exchange rates?,bcbs_d424_irb,e6cce16f-ed78-5b6d-9157-b08ebde674f9,60
+What can institutions do with identified weaknesses in categories A and B when calculating the Margin of Conservatism?,ebagl_2017_16,7af4d26f-2d3d-55c9-89f9-964c29196be4,"44,45,46"
+How is the overall Margin of Conservatism determined according to the guidelines?,ebagl_2017_16,7af4d26f-2d3d-55c9-89f9-964c29196be4,"44,45,46"
+What components make up the total Margin of Conservatism that institutions need to consider?,ebagl_2017_16,7af4d26f-2d3d-55c9-89f9-964c29196be4,"44,45,46"
+Where should institutions incorporate the final Margin of Conservatism in relation to their risk parameter estimates?,ebagl_2017_16,7af4d26f-2d3d-55c9-89f9-964c29196be4,"44,45,46"
+How should an organization's approach to credit risk be connected to its overall risk management framework?,ebagl_2020_06,c2c47fb1-3c37-5b68-b41f-9671e94fa9b1,"30,31,32"
+What elements should be included in an institution's credit risk appetite to define its focus and portfolio structure?,ebagl_2020_06,c2c47fb1-3c37-5b68-b41f-9671e94fa9b1,"30,31,32"
+"What types of indicators should be used to assess credit risk, and how should they relate to the institution's operational model?",ebagl_2020_06,c2c47fb1-3c37-5b68-b41f-9671e94fa9b1,"30,31,32"
+In what manner should the guidelines for credit risk and their associated measures be communicated throughout the organization?,ebagl_2020_06,c2c47fb1-3c37-5b68-b41f-9671e94fa9b1,"30,31,32"
+What adjustments were made to clarify the analysis of delinquency status in the guidelines?,ebagl_2017_16,e34c7beb-0ffd-5ae4-b696-f3597f89256f,221
+How should the analysis be conducted regarding the entire application portfolio according to the updated guidelines?,ebagl_2017_16,e34c7beb-0ffd-5ae4-b696-f3597f89256f,221
+What clarifications were provided concerning the treatment of loss given default estimates and back-testing requirements?,ebagl_2017_16,e34c7beb-0ffd-5ae4-b696-f3597f89256f,221
+"What concerns were raised by respondents about the annual review of estimates, and what is the minimum scope required for these reviews?",ebagl_2017_16,e34c7beb-0ffd-5ae4-b696-f3597f89256f,221
+What is the main purpose of the Basel Committee's recent updates to the Basel III guidelines?,bcbs_d424_irb,795f47ba-7851-527d-bbbb-9dc907b74042,"1,2"
+How does the revised Basel III framework aim to enhance the stability of the banking sector?,bcbs_d424_irb,795f47ba-7851-527d-bbbb-9dc907b74042,"1,2"
+What issue regarding risk-weighted assets did the Committee identify during the financial crisis?,bcbs_d424_irb,795f47ba-7851-527d-bbbb-9dc907b74042,"1,2"
+Which groups expressed concerns about the accuracy of banks' reported capital ratios during the crisis?,bcbs_d424_irb,795f47ba-7851-527d-bbbb-9dc907b74042,"1,2"
+What criteria must a selected group of counterparties meet to be considered representative of the entire set?,ecb_gim_2024,0de2d569-0eb1-5180-bbc8-44bece1c361f,3
+How does the document define the term that encompasses risks not included in effective expected positive exposure?,ecb_gim_2024,0de2d569-0eb1-5180-bbc8-44bece1c361f,3
+What does the term 'current date' signify in relation to the simulation time grid and the calculation of expected positive exposure?,ecb_gim_2024,0de2d569-0eb1-5180-bbc8-44bece1c361f,3
+What responsibilities does the team have regarding the validation of the counterparty credit risk exposure model?,ecb_gim_2024,0de2d569-0eb1-5180-bbc8-44bece1c361f,3
+What timeframe should organizations examine when assessing the factors that contribute to risk prior to a default event?,ebagl_2017_16,bb869828-0a6a-5241-ba57-9d559addd722,"122,123"
+How should institutions determine the reference point for evaluating risk factors leading up to a default?,ebagl_2017_16,bb869828-0a6a-5241-ba57-9d559addd722,"122,123"
+What considerations should be made regarding the stability of risk factors when selecting a reference date?,ebagl_2017_16,bb869828-0a6a-5241-ba57-9d559addd722,"122,123"
+In what manner should organizations approach the assessment of risk factors for loss given default estimates?,ebagl_2017_16,bb869828-0a6a-5241-ba57-9d559addd722,"122,123"
+What steps should organizations take to evaluate and record the effects of significant modifications to their rating systems?,ecb_gim_2024,5d485604-334b-521d-a2d6-2b1ee1c0094f,"126,127,128"
+How should institutions handle the re-evaluation of exposures when qualitative factors or expert opinions are involved in the rating process?,ecb_gim_2024,5d485604-334b-521d-a2d6-2b1ee1c0094f,"126,127,128"
+What is the expectation regarding the analysis and documentation of feedback from users after implementing changes to the rating system?,ecb_gim_2024,5d485604-334b-521d-a2d6-2b1ee1c0094f,"126,127,128"
+"Are there circumstances under which minor changes to the rating system necessitate the creation of a test sample, and what would those circumstances be?",ecb_gim_2024,5d485604-334b-521d-a2d6-2b1ee1c0094f,"126,127,128"
+What does Article 500 of the CRR permit organizations to do regarding their loss given default calculations?,ecb_gim_2024,118916be-007c-5a50-bf06-ea8601cc4d63,155
+Under what circumstances can institutions modify their LGD assessments according to the regulations?,ecb_gim_2024,118916be-007c-5a50-bf06-ea8601cc4d63,155
+How can the impact of significant sales of defaulted assets on realized LGDs be mitigated according to the guidelines?,ecb_gim_2024,118916be-007c-5a50-bf06-ea8601cc4d63,155
+What is the relationship between estimated LGDs for similar defaulted assets and the realized LGDs when considering adjustments?,ecb_gim_2024,118916be-007c-5a50-bf06-ea8601cc4d63,155
+What type of organization is formed by multiple nations to support economic and social development initiatives?,bcbs_d424_irb,2350b832-9bfc-5a91-bbb6-7359605a7000,13
+Who are the typical members of these organizations that focus on development financing?,bcbs_d424_irb,2350b832-9bfc-5a91-bbb6-7359605a7000,13
+Do these institutions operate under a unified legal framework or do they have their own distinct legal and operational structures?,bcbs_d424_irb,2350b832-9bfc-5a91-bbb6-7359605a7000,13
+What is the common purpose shared by these organizations despite their independent statuses?,bcbs_d424_irb,2350b832-9bfc-5a91-bbb6-7359605a7000,13
+What type of interest rate should be applied to exposures in currencies other than the euro for historical observations?,ebagl_2017_16,15b8243f-ae93-5de4-b02c-d55926662979, model 
+How should institutions account for costs related to credit quality deterioration prior to default in their economic loss calculations?,ebagl_2017_16,15b8243f-ae93-5de4-b02c-d55926662979, model 
+What is the recommended approach for determining the historical observation period for calculating long-run average loss given default?,ebagl_2017_16,15b8243f-ae93-5de4-b02c-d55926662979, model 
+Which data should be included when calculating the long-run average loss given default to ensure accuracy?,ebagl_2017_16,15b8243f-ae93-5de4-b02c-d55926662979, model 
+When do these recommendations become effective for financial institutions?,ebagl_2020_05,7956ebee-4bbd-5550-8539-c1b5e146bfa4,10
+By what date are organizations expected to integrate these guidelines into their evaluation systems?,ebagl_2020_05,7956ebee-4bbd-5550-8539-c1b5e146bfa4,10
+Can regulatory bodies choose to implement these changes sooner than the specified date?,ebagl_2020_05,7956ebee-4bbd-5550-8539-c1b5e146bfa4,10
+What flexibility do authorities have regarding the implementation schedule of these guidelines?,ebagl_2020_05,7956ebee-4bbd-5550-8539-c1b5e146bfa4,10
+What type of financial risk is associated with fluctuations in the values of CVA due to variations in credit spreads and market factors?,bcbs_d424_irb,b870459f-adae-5320-a4c2-6e3cbaeccb1b,"2,3,4,5"
+"Which types of transactions are required to have a capital reserve for CVA risk, and are there any exceptions?",bcbs_d424_irb,b870459f-adae-5320-a4c2-6e3cbaeccb1b,"2,3,4,5"
+How is the capital requirement for CVA risk determined for a bank's collection of relevant transactions?,bcbs_d424_irb,b870459f-adae-5320-a4c2-6e3cbaeccb1b,"2,3,4,5"
+"What methods can banks employ to compute the capital needed for CVA risk, and which method is generally mandatory unless special permission is granted?",bcbs_d424_irb,b870459f-adae-5320-a4c2-6e3cbaeccb1b,"2,3,4,5"
+What steps should organizations take when they acquire new insights regarding a risk factor or evaluation standard?,ebagl_2017_16,34c93112-3153-57aa-8433-99083c670ac4,194
+How quickly should the relevant technology systems be modified after receiving new information?,ebagl_2017_16,34c93112-3153-57aa-8433-99083c670ac4,194
+What should be done to the probability of default for a borrower if new data indicates they have defaulted?,ebagl_2017_16,34c93112-3153-57aa-8433-99083c670ac4,194
+Which regulatory guidelines should be followed when adjusting default definitions in response to new information?,ebagl_2017_16,34c93112-3153-57aa-8433-99083c670ac4,194
+How should the variations between general and specific credit risk adjustments and the anticipated loss be classified in terms of IRB shortfall or excess?,ebagl_2017_16,e8d56615-39f1-5bd5-8993-bf30cf1a8bb2,"211,212"
+What can institutions do if their calculation of the non-defaulted portfolio leads to an IRB excess?,ebagl_2017_16,e8d56615-39f1-5bd5-8993-bf30cf1a8bb2,"211,212"
+In what situation would the difference between credit risk adjustments and expected loss be considered an IRB shortfall?,ebagl_2017_16,e8d56615-39f1-5bd5-8993-bf30cf1a8bb2,"211,212"
+How can an IRB excess from the non-defaulted portfolio be utilized in relation to an IRB shortfall from the defaulted portfolio?,ebagl_2017_16,e8d56615-39f1-5bd5-8993-bf30cf1a8bb2,"211,212"
+What factors should organizations consider when selecting a calibration approach for their models?,ebagl_2017_16,7bd7111b-26d1-5e91-ac3a-45dea3bb8935,91
+Which calibration methods are available for institutions dealing with corporate and government exposures under the specified regulations?,ebagl_2017_16,7bd7111b-26d1-5e91-ac3a-45dea3bb8935,91
+How can institutions calibrate their models for retail exposures according to the relevant regulations?,ebagl_2017_16,7bd7111b-26d1-5e91-ac3a-45dea3bb8935,91
+What calibration options exist for organizations handling corporate receivables in relation to expected losses?,ebagl_2017_16,7bd7111b-26d1-5e91-ac3a-45dea3bb8935,91
+What level of detail should be used when evaluating the effectiveness of probability of default models?,ecb_gim_2024,5c2b5d90-dd94-5f37-98e7-d6e2fe61f58e,213
+How should institutions assess the predictive accuracy of their models according to the guidelines on default rates?,ecb_gim_2024,5c2b5d90-dd94-5f37-98e7-d6e2fe61f58e,213
+What factors should be taken into account when analyzing the impact of recent data on credit conversion factors?,ecb_gim_2024,5c2b5d90-dd94-5f37-98e7-d6e2fe61f58e,213
+What steps should organizations take if their internal data is insufficient for setting performance benchmarks for their probability of default models?,ecb_gim_2024,5c2b5d90-dd94-5f37-98e7-d6e2fe61f58e,213
+Will further acknowledgment from regulators for credit risk mitigation be permitted on exposures that already account for such mitigation in their risk weight?,bcbs_d424_irb,95b1976a-8e78-5295-8be7-4a38befff4d1,3
+Are ratings that focus solely on the principal permitted within the credit risk mitigation guidelines?,bcbs_d424_irb,95b1976a-8e78-5295-8be7-4a38befff4d1,3
+Is it possible to receive additional regulatory approval for credit risk mitigation on exposures that have their risk weight adjusted accordingly?,bcbs_d424_irb,95b1976a-8e78-5295-8be7-4a38befff4d1,3
+Does the framework allow for the inclusion of ratings that consider only the principal amount in the context of credit risk mitigation?,bcbs_d424_irb,95b1976a-8e78-5295-8be7-4a38befff4d1,3
+What must organizations consider before assigning their responsibilities to an external party?,ecb_gim_2024,167bae48-81c7-5964-ba9e-0fe9d887bb11,"136,137"
+"If a financial entity intends to outsource specific validation or audit functions to a provider located outside the EU, what should they do beforehand?",ecb_gim_2024,167bae48-81c7-5964-ba9e-0fe9d887bb11,"136,137"
+Who maintains accountability for the tasks that have been outsourced by a financial institution?,ecb_gim_2024,167bae48-81c7-5964-ba9e-0fe9d887bb11,"136,137"
+Where can one find additional guidelines regarding the outsourcing of tasks by financial organizations?,ecb_gim_2024,167bae48-81c7-5964-ba9e-0fe9d887bb11,"136,137"
+How should institutions handle instances of technical delays that are not classified as defaults under the relevant regulation?,ebagl_2016_07,3779c399-109e-5eb5-9450-cf2e57c316b3,24
+What actions are required from institutions when they identify errors resulting in technical overdue situations?,ebagl_2016_07,3779c399-109e-5eb5-9450-cf2e57c316b3,24
+"For organizations employing the Internal Ratings-Based method, what should be done with technical overdue cases in relation to their data on defaulted exposures?",ebagl_2016_07,3779c399-109e-5eb5-9450-cf2e57c316b3,24
+What timeframe is recommended for institutions to correct errors that cause technical overdue situations?,ebagl_2016_07,3779c399-109e-5eb5-9450-cf2e57c316b3,24
+What adjustments can institutions make when modeling credit risk parameters?,ebagl_2020_05,27b148d9-b96a-5a79-90eb-4008452ffaa0,35
+Under what conditions can both the probability of default and loss given default be modified simultaneously?,ebagl_2020_05,27b148d9-b96a-5a79-90eb-4008452ffaa0,35
+Why is it prohibited to adjust only the probability of default in any situation?,ebagl_2020_05,27b148d9-b96a-5a79-90eb-4008452ffaa0,35
+How should past experiences with the use of financial guarantees be incorporated into the loss estimation for borrowers?,ebagl_2020_05,27b148d9-b96a-5a79-90eb-4008452ffaa0,35
+Is there a specific guideline in the CRR on managing netting arrangements when certain transactions must be excluded from the IMM?,ecb_gim_2024,c3a0f79d-ff1a-585a-81a5-2687cd82fade,8
+Does the CRR provide clear instructions on what to do with netting sets when transactions are removed from the IMM for any reason?,ecb_gim_2024,c3a0f79d-ff1a-585a-81a5-2687cd82fade,8
+Are there any explicit rules in the CRR about the treatment of netting sets when an institution has to switch from the IMM to another method?,ecb_gim_2024,c3a0f79d-ff1a-585a-81a5-2687cd82fade,8
+What does the CRR say about handling netting sets in situations where transactions need to be treated differently from the IMM?,ecb_gim_2024,c3a0f79d-ff1a-585a-81a5-2687cd82fade,8
+What was the EBA's stance on establishing distinct regulations for portfolios with infrequent defaults?,ebagl_2017_16,16f39b88-5407-59a1-b21a-cf92b12a73c4,221
+How does the EBA view the use of human judgment in developing models for portfolios with low default rates?,ebagl_2017_16,16f39b88-5407-59a1-b21a-cf92b12a73c4,221
+What concerns did respondents raise regarding the measurement and combination of the Margin of Conservatism in the guidelines?,ebagl_2017_16,16f39b88-5407-59a1-b21a-cf92b12a73c4,221
+What adjustments did the EBA make to the guidelines based on feedback regarding the estimation of loss given default?,ebagl_2017_16,16f39b88-5407-59a1-b21a-cf92b12a73c4,221
+What are the options available for substituting the risk parameters of a guarantor under the advanced internal ratings-based method?,ebagl_2020_05,85c15cdc-c217-5651-9913-653d7ffef6ae,47
+How should cash flows and expenses be allocated when an exposure is divided into parts covered and not covered by a guarantee?,ebagl_2020_05,85c15cdc-c217-5651-9913-653d7ffef6ae,47
+Is it permissible to consider multiple credit protection providers when applying the substitution method for risk parameters?,ebagl_2020_05,85c15cdc-c217-5651-9913-653d7ffef6ae,47
+What does the regulation state about the consistency requirements for collateral valuation and legal certainty in relation to internal policies?,ebagl_2020_05,85c15cdc-c217-5651-9913-653d7ffef6ae,47
+What should organizations do if they change their scoring approach regarding the evaluation of borrowers or assets?,ebagl_2017_16,823e9747-9c46-531f-8a15-29ec90fe2f95,"98,99"
+How should institutions handle the recalibration of risk scores when previous scoring methods are no longer applicable?,ebagl_2017_16,823e9747-9c46-531f-8a15-29ec90fe2f95,"98,99"
+In what circumstances are average probability of default calculations considered sufficient for specific risk categories according to the regulations?,ebagl_2017_16,823e9747-9c46-531f-8a15-29ec90fe2f95,"98,99"
+What is the impact of calibration on the ranking of borrowers or assets within their respective risk categories?,ebagl_2017_16,823e9747-9c46-531f-8a15-29ec90fe2f95,"98,99"
+What percentage of credit conversion factor is assigned to specific transaction-related contingent items like performance guarantees and bid securities?,bcbs_d424_irb,d6dd8f55-b40c-59e5-9567-395fd1687bd8,"81,82,83,84"
+"How is the credit conversion factor determined for commitments, regardless of how long the associated facility lasts?",bcbs_d424_irb,d6dd8f55-b40c-59e5-9567-395fd1687bd8,"81,82,83,84"
+What CCF percentage is designated for both the issuing and confirming banks involved in short-term trade letters of credit linked to the shipment of goods?,bcbs_d424_irb,d6dd8f55-b40c-59e5-9567-395fd1687bd8,"81,82,83,84"
+Under what circumstances is a lower CCF applied to commitments that can be canceled by the bank at any time without notice?,bcbs_d424_irb,d6dd8f55-b40c-59e5-9567-395fd1687bd8,"81,82,83,84"
+What aspects of data quality should be included in the management framework?,ecb_gim_2024,ba0f889e-dfb9-5a9b-b589-91ffb0cd58f0,"21,22"
+What stages of data handling should the quality management framework address?,ecb_gim_2024,ba0f889e-dfb9-5a9b-b589-91ffb0cd58f0,"21,22"
+What is recommended for organizations when relying on external data sources?,ecb_gim_2024,ba0f889e-dfb9-5a9b-b589-91ffb0cd58f0,"21,22"
+What qualities should third-party data possess according to best practices?,ecb_gim_2024,ba0f889e-dfb9-5a9b-b589-91ffb0cd58f0,"21,22"
+What criteria must be met for a loan classified as impaired under IFRS 9 to not be considered in default?,ebagl_2016_07,6fc1dd46-82e7-5ad7-95c5-3183c87e9108,39
+Under what circumstances can a financial institution extend the period for overdue payments from 90 days to 180 days without affecting default status?,ebagl_2016_07,6fc1dd46-82e7-5ad7-95c5-3183c87e9108,39
+What is the significance of the materiality threshold mentioned in the regulations regarding credit impairment?,ebagl_2016_07,6fc1dd46-82e7-5ad7-95c5-3183c87e9108,39
+How does the classification of an exposure as technically overdue influence its default status according to the guidelines?,ebagl_2016_07,6fc1dd46-82e7-5ad7-95c5-3183c87e9108,39
+What factors can the ECB consider when determining the extent of an alpha increase beyond the minimum thresholds?,ecb_gim_2024,d4eaf259-b985-57c5-aae2-5f478f804891,91
+How does the ECB evaluate the effect of model shortcomings on the expected exposure profile without the noted issues?,ecb_gim_2024,d4eaf259-b985-57c5-aae2-5f478f804891,91
+"What are some scenarios where model flaws might lead to a rise in alpha, according to the document?",ecb_gim_2024,d4eaf259-b985-57c5-aae2-5f478f804891,91
+What is the minimum increment for any adjustments to alpha that the ECB allows when an increase is warranted?,ecb_gim_2024,d4eaf259-b985-57c5-aae2-5f478f804891,91
+What does the process of validating rating systems involve in terms of evaluating risk differentiation?,ecb_gim_2024,a76d4226-d683-5c8c-a3e5-05d0d73543b0,"72,73"
+What is the primary responsibility of the team in charge of validation regarding internal rating and risk assessment tools?,ecb_gim_2024,a76d4226-d683-5c8c-a3e5-05d0d73543b0,"72,73"
+Which individuals are included in the group tasked with carrying out the validation process?,ecb_gim_2024,a76d4226-d683-5c8c-a3e5-05d0d73543b0,"72,73"
+How do the activities associated with validation contribute to the understanding of risk parameters?,ecb_gim_2024,a76d4226-d683-5c8c-a3e5-05d0d73543b0,"72,73"
+How should the probability of default for each category or group be determined for calibration according to the guidelines?,ecb_gim_2024,37e7d414-181d-50d9-be03-ed472b233bf6,131
+What is the relationship between the LRA default rate and the probability of default for each grade or pool?,ecb_gim_2024,37e7d414-181d-50d9-be03-ed472b233bf6,131
+"In the context of calibration, what is the ECB's view on aligning the probability of default with the LRA default rate?",ecb_gim_2024,37e7d414-181d-50d9-be03-ed472b233bf6,131
+What guidelines dictate the consideration of default rates at the level of grades or pools for calibration purposes?,ecb_gim_2024,37e7d414-181d-50d9-be03-ed472b233bf6,131
+What should organizations do to ensure that the downturn loss given default figures are more cautious than the long-term average loss figures?,ebagl_2019_03,a4fc3b74-9bcf-5f0c-9696-76f2b8c1031e,16
+How should firms approach the comparison of their downturn loss estimates with their long-term average loss estimates when using different calculation methods?,ebagl_2019_03,a4fc3b74-9bcf-5f0c-9696-76f2b8c1031e,16
+"In cases where a single loss estimate is created that includes both long-term averages and downturn modifications, what should be considered regarding the uncertainties involved?",ebagl_2019_03,a4fc3b74-9bcf-5f0c-9696-76f2b8c1031e,16
+What is the significance of the margin of conservatism in relation to both downturn loss estimates and long-term average loss estimates?,ebagl_2019_03,a4fc3b74-9bcf-5f0c-9696-76f2b8c1031e,16
+What obligations do organizations have when they adopt a rating system from an external supplier according to the specified regulation?,ecb_gim_2024,21439f24-897c-51e2-b90d-ba7c50382da2,43
+Which internal data elements must be included when developing and fine-tuning a model for assessing credit risk?,ecb_gim_2024,21439f24-897c-51e2-b90d-ba7c50382da2,43
+"How should institutions approach the calculation of default rates, loss given default, and credit conversion factors when relying on internal data?",ecb_gim_2024,21439f24-897c-51e2-b90d-ba7c50382da2,43
+Who holds accountability for the effectiveness of a purchased rating model or system within an organization?,ecb_gim_2024,21439f24-897c-51e2-b90d-ba7c50382da2,43
+What are the requirements for a loan to be considered non-defaulted if it has overdue payments and is not undergoing a troubled restructuring?,ecb_gim_2024,4be099c3-c88a-58a0-a59f-6b33a62f0c85,85
+"In cases where a troubled restructuring is in place, what is the expectation regarding overdue payments for a loan to be reclassified as non-defaulted?",ecb_gim_2024,4be099c3-c88a-58a0-a59f-6b33a62f0c85,85
+How does the treatment of overdue amounts differ for loans that are undergoing distressed restructuring compared to those that are not?,ecb_gim_2024,4be099c3-c88a-58a0-a59f-6b33a62f0c85,85
+What guidelines dictate the conditions under which a defaulted loan can revert to a non-defaulted status after a restructuring?,ecb_gim_2024,4be099c3-c88a-58a0-a59f-6b33a62f0c85,85
+What is the recommended method for simulating IMM transactions to meet regulatory standards?,ecb_gim_2024,cdf7e593-1e54-5144-b563-0d0df9b48975,17
+What should institutions ensure when using alternative methods for exposure calculations if full simulations are not possible?,ecb_gim_2024,cdf7e593-1e54-5144-b563-0d0df9b48975,17
+How should correlations with other risk factors be handled when determining exposures using different calculation methods?,ecb_gim_2024,cdf7e593-1e54-5144-b563-0d0df9b48975,17
+What criteria must be met regarding the total value of certain transactions when applying a specific exposure calculation approach?,ecb_gim_2024,cdf7e593-1e54-5144-b563-0d0df9b48975,17
+What type of confirmation should organizations secure regarding their collateral agreements across different legal areas?,ebagl_2020_05,56e076a7-12b6-5082-8128-8e4061078a38,20
+How often should a legal assessment be conducted for various collateral types?,ebagl_2020_05,56e076a7-12b6-5082-8128-8e4061078a38,20
+Who is responsible for providing the written legal assessment regarding collateral arrangements?,ebagl_2020_05,56e076a7-12b6-5082-8128-8e4061078a38,20
+What is the requirement for the independence of the legal advisor if they are part of the institution's staff?,ebagl_2020_05,56e076a7-12b6-5082-8128-8e4061078a38,20
+What is the main focus of the guidelines regarding the measurement of loss given default during a specific economic decline?,ebagl_2019_03,bd340c24-c805-5e95-aae9-eadd60151522,10
+"If multiple economic downturns are recognized, what is required for the loss given default calculation for each of those periods?",ebagl_2019_03,bd340c24-c805-5e95-aae9-eadd60151522,10
+How should the final loss given default figures be determined for capital requirement calculations?,ebagl_2019_03,bd340c24-c805-5e95-aae9-eadd60151522,10
+Which downturn period should be used to derive the loss given default estimates for a current non-defaulted portfolio?,ebagl_2019_03,bd340c24-c805-5e95-aae9-eadd60151522,10
+What qualifications and standards must a person conducting property assessments possess?,ebagl_2020_06,5aba6d3c-c11e-532c-b3d5-ac4fa8dece89,"231,232,233"
+How should the compensation of a property appraiser be structured to avoid conflicts of interest?,ebagl_2020_06,5aba6d3c-c11e-532c-b3d5-ac4fa8dece89,"231,232,233"
+What criteria should be used to evaluate the effectiveness of property appraisers in their valuation tasks?,ebagl_2020_06,5aba6d3c-c11e-532c-b3d5-ac4fa8dece89,"231,232,233"
+What specific knowledge is required for someone to accurately assess the value of a property?,ebagl_2020_06,5aba6d3c-c11e-532c-b3d5-ac4fa8dece89,"231,232,233"
+What should institutions consider if determining the default status of a borrower is overly complex?,ebagl_2016_07,0e0b8e07-2567-5728-818c-5eb2a3641c56,82
+Under what circumstances can organizations avoid implementing a centralized system for tracking client defaults?,ebagl_2016_07,0e0b8e07-2567-5728-818c-5eb2a3641c56,82
+When is it acceptable for a financial institution to bypass certain verification processes regarding client status?,ebagl_2016_07,0e0b8e07-2567-5728-818c-5eb2a3641c56,82
+What factors might allow a group of companies to disregard compliance measures related to client default identification?,ebagl_2016_07,0e0b8e07-2567-5728-818c-5eb2a3641c56,82
+How do internal assessments and predictions of defaults and losses contribute to a financial institution's governance practices?,ecb_gim_2024,0cb75882-2aa3-590c-afbb-70e51593a014,102
+In what ways should organizations incorporate their internal assessments and loss predictions into their management reporting and risk monitoring?,ecb_gim_2024,0cb75882-2aa3-590c-afbb-70e51593a014,102
+What is the significance of internal evaluations and loss forecasts in the context of an institution's internal guidelines?,ecb_gim_2024,0cb75882-2aa3-590c-afbb-70e51593a014,102
+Why is it important for financial entities to integrate their internal ratings and loss estimates into their credit risk oversight processes?,ecb_gim_2024,0cb75882-2aa3-590c-afbb-70e51593a014,102
+What criteria should be considered when evaluating potential customers for loans?,ebagl_2020_06,68b5dc78-815c-5206-9f6b-ba2a0fc4d900,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+What are the baseline expectations for a borrower's financial health and future earnings?,ebagl_2020_06,68b5dc78-815c-5206-9f6b-ba2a0fc4d900,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+What guidelines exist regarding the amount of collateral required for securing a loan?,ebagl_2020_06,68b5dc78-815c-5206-9f6b-ba2a0fc4d900,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+What standards are in place to manage risks related to environmental factors in lending?,ebagl_2020_06,68b5dc78-815c-5206-9f6b-ba2a0fc4d900,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+What guidelines clarify how to handle guarantees related to residual values?,ebagl_2020_05,0b85db1c-220e-5194-b8c3-1219c086b906,3
+How should institutions approach modeling a hypothetical exposure to a guarantor that mirrors the original obligor's exposure?,ebagl_2020_05,0b85db1c-220e-5194-b8c3-1219c086b906,3
+What considerations should be made when selecting a single funded credit protection from multiple options?,ebagl_2020_05,0b85db1c-220e-5194-b8c3-1219c086b906,3
+What is the recommended method for determining the risk weight floor when multiple funded credit protections are involved?,ebagl_2020_05,0b85db1c-220e-5194-b8c3-1219c086b906,3
+What factors should be examined by institutions when evaluating the reasons behind the disposal of credit assets?,ecb_gim_2024,607b124e-2adf-5833-975b-94d652c47309,77
+How should an organization assess the significance of a loss related to the sale of credit assets to determine if a default has occurred?,ecb_gim_2024,607b124e-2adf-5833-975b-94d652c47309,77
+Which specific price should be utilized when applying the calculation method for assessing losses from credit asset sales?,ecb_gim_2024,607b124e-2adf-5833-975b-94d652c47309,77
+Are traditional securitization transactions that involve substantial risk transfer regarded as credit asset sales for evaluating payment unlikeliness?,ecb_gim_2024,607b124e-2adf-5833-975b-94d652c47309,77
+What are the specific articles in the regulation that mandate the ECB to authorize the use of internal models for various types of risk?,ecb_gim_2024,40d67087-c0b1-5ce9-bb99-9de0bea448f3,"1,2"
+How does the ECB's guide clarify its interpretation and application of the rules regarding internal models?,ecb_gim_2024,40d67087-c0b1-5ce9-bb99-9de0bea448f3,"1,2"
+What is the purpose of the guide for internal models in relation to the supervisory teams within the ECB?,ecb_gim_2024,40d67087-c0b1-5ce9-bb99-9de0bea448f3,"1,2"
+"When evaluating institutions, what factors does the ECB consider in addition to the established regulatory framework?",ecb_gim_2024,40d67087-c0b1-5ce9-bb99-9de0bea448f3,"1,2"
+"What is the classification process for adding a specific RNIEPE to the EEPE, regardless of its previous status?",ecb_gim_2024,d2bb39e2-784d-555a-bc96-705136d83516,124
+How should an individual RNIEPE be treated if it is close to being classified for further investigation?,ecb_gim_2024,d2bb39e2-784d-555a-bc96-705136d83516,124
+What should be excluded when assessing the effects of including an RNIEPE in the EEPE?,ecb_gim_2024,d2bb39e2-784d-555a-bc96-705136d83516,124
+What does the integration of an RNIEPE into the EEPE signify in terms of model changes?,ecb_gim_2024,d2bb39e2-784d-555a-bc96-705136d83516,124
+What is the method for adjusting the value of credit protection when there is a mismatch in maturity?,bcbs_d424_irb,80c05edb-9c65-5b8d-9511-d15b4841cd4c,129
+How should the effective maturity of the underlying exposure and the hedge be determined?,bcbs_d424_irb,80c05edb-9c65-5b8d-9511-d15b4841cd4c,129
+Are there any restrictions on currency mismatches in credit-risk management approaches?,bcbs_d424_irb,80c05edb-9c65-5b8d-9511-d15b4841cd4c,129
+What defines a transaction as collateralized in the context of credit exposure?,bcbs_d424_irb,80c05edb-9c65-5b8d-9511-d15b4841cd4c,129
+What should not be considered when evaluating the estimated exposure in accordance with specific regulatory guidelines?,ecb_gim_2024,4b1b2622-a2b5-5a9b-b1cd-a3d69d936acc,125
+How is the error associated with the estimated exposure calculated at the level of individual netting sets?,ecb_gim_2024,4b1b2622-a2b5-5a9b-b1cd-a3d69d936acc,125
+What distinguishes the pseudo Monte Carlo simulation method from the quasi Monte Carlo simulation method in this context?,ecb_gim_2024,4b1b2622-a2b5-5a9b-b1cd-a3d69d936acc,125
+What type of analysis must institutions conduct to ensure the accuracy of their estimated exposure approach as per regulatory requirements?,ecb_gim_2024,4b1b2622-a2b5-5a9b-b1cd-a3d69d936acc,125
+How does the CVA standardized method differ from the market risk standardized method?,bcbs_d424_irb,6d82d25d-38cc-586a-8449-6de426a64119,"25,26"
+What are the key characteristics that set the CVA standardized approach apart from the market risk approach?,bcbs_d424_irb,6d82d25d-38cc-586a-8449-6de426a64119,"25,26"
+What is the reporting frequency required for the CVA standardized calculations?,bcbs_d424_irb,6d82d25d-38cc-586a-8449-6de426a64119,"25,26"
+What obligation do banks have regarding the production of CVA standardized calculations for their regulators?,bcbs_d424_irb,6d82d25d-38cc-586a-8449-6de426a64119,"25,26"
+What type of assessments are required for internal model validation according to the CRR?,ecb_gim_2024,e7bd4c4e-a45b-5f4b-a123-6748ee0e41c2,93
+Which specific statistical evaluations are recommended for testing overshooting in internal models?,ecb_gim_2024,e7bd4c4e-a45b-5f4b-a123-6748ee0e41c2,93
+What should be analyzed regarding the distribution of p-values in daily profit and loss forecasts?,ecb_gim_2024,e7bd4c4e-a45b-5f4b-a123-6748ee0e41c2,93
+How does a profit and loss figure relate to the value at risk at a 99% confidence level?,ecb_gim_2024,e7bd4c4e-a45b-5f4b-a123-6748ee0e41c2,93
+What guidelines should be followed to determine the worth of non-funded credit safeguards when applying the risk parameter substitution method?,ebagl_2020_05,cc52dada-6689-5e55-96a9-54d4f6bbb27f,44
+How should institutions adjust the value of non-funded credit protection in relation to any differences in maturity between the guarantor and the borrower?,ebagl_2020_05,cc52dada-6689-5e55-96a9-54d4f6bbb27f,44
+In what manner should the value of non-funded credit protection be estimated if it addresses the remaining exposure after attempting to recover from the borrower?,ebagl_2020_05,cc52dada-6689-5e55-96a9-54d4f6bbb27f,44
+What is the maximum value that can be assigned to non-funded credit protection according to specific articles of the EU regulation related to credit risk?,ebagl_2020_05,cc52dada-6689-5e55-96a9-54d4f6bbb27f,44
+How should statistical evaluations be modified when testing models with overlapping forecast periods?,ecb_gim_2024,e5dde0b5-e951-5703-9908-c7d8decc245b,"77,78"
+What does the ECB suggest to prevent violations related to specific articles of the CRR during model assessments?,ecb_gim_2024,e5dde0b5-e951-5703-9908-c7d8decc245b,"77,78"
+Why is it crucial to focus on the evaluation of IMM pricing methods when only these functions are used for both predictions and actual outcomes?,ecb_gim_2024,e5dde0b5-e951-5703-9908-c7d8decc245b,"77,78"
+What recommendations does the ECB provide regarding the validation of IMM pricing functions in light of certain regulatory requirements?,ecb_gim_2024,e5dde0b5-e951-5703-9908-c7d8decc245b,"77,78"
+What are some economic or legislative factors that could indicate a decline in the creditworthiness of a borrower or industry?,ebagl_2020_06,a3e8c422-d1ea-5b5d-a93e-1153ee5fd941,274
+How might a significant rise in a borrower's debt levels affect their financial stability?,ebagl_2020_06,a3e8c422-d1ea-5b5d-a93e-1153ee5fd941,274
+"What signs might suggest that a borrower's cash flow is under pressure, potentially impacting their ability to repay loans?",ebagl_2020_06,a3e8c422-d1ea-5b5d-a93e-1153ee5fd941,274
+What could be the implications of a borrower facing delays in their business plans or a drop in their expected earnings?,ebagl_2020_06,a3e8c422-d1ea-5b5d-a93e-1153ee5fd941,274
+What is the requirement for organizations regarding the internal ratings-based method for their exposures according to the specified regulation?,ecb_gim_2024,e7f33e29-785b-51b7-8a65-c2bd787c13cf,27
+Under what circumstances can financial institutions opt for the standardized method instead of the internal ratings-based approach for certain types of exposures?,ecb_gim_2024,e7f33e29-785b-51b7-8a65-c2bd787c13cf,27
+What must institutions obtain from the relevant authority to use the standardized approach for specific exposure categories?,ecb_gim_2024,e7f33e29-785b-51b7-8a65-c2bd787c13cf,27
+Which regulatory article outlines the necessity for firms to adopt the internal ratings-based strategy for all their exposures?,ecb_gim_2024,e7f33e29-785b-51b7-8a65-c2bd787c13cf,27
+What must an institution demonstrate when seeking approval for a new model or implementing the IRB method?,ecb_gim_2024,cd915926-6b51-5454-b873-9920445470d1,7
+Which assessments must be completed by the institution to show readiness for the model's application?,ecb_gim_2024,cd915926-6b51-5454-b873-9920445470d1,7
+How should the institution utilize the model in terms of its internal risk evaluation and management?,ecb_gim_2024,cd915926-6b51-5454-b873-9920445470d1,7
+What type of reporting obligations must the institution fulfill related to the risk estimates generated by the model?,ecb_gim_2024,cd915926-6b51-5454-b873-9920445470d1,7
+What percentage of financial entities utilize a numerical benchmark related to troubled restructuring?,ebagl_2016_07,ed42264a-706e-561c-9e6f-79a2f2f034ee,114
+How do most organizations participating in the QIS approach the sale of credit assets?,ebagl_2016_07,ed42264a-706e-561c-9e6f-79a2f2f034ee,114
+What is the range of probation periods observed for exposures that have defaulted due to being past due?,ebagl_2016_07,ed42264a-706e-561c-9e6f-79a2f2f034ee,114
+How do institutions determine when to initiate the probation period for exposures that have undergone distressed restructuring?,ebagl_2016_07,ed42264a-706e-561c-9e6f-79a2f2f034ee,114
+What is the standard for determining the Loss Given Default for different types of credit facilities according to the regulations?,ecb_gim_2024,fc4ff3eb-b4f8-5f6c-8e8f-e0d70fe3c6b7,183
+Which sections of the EBA Guidelines should be referenced for estimating Loss Given Default values?,ecb_gim_2024,fc4ff3eb-b4f8-5f6c-8e8f-e0d70fe3c6b7,183
+What steps should organizations take to meet the requirements for calculating Loss Given Default by facility type?,ecb_gim_2024,fc4ff3eb-b4f8-5f6c-8e8f-e0d70fe3c6b7,183
+What guidance is provided for institutions when estimating Loss Given Default figures?,ecb_gim_2024,fc4ff3eb-b4f8-5f6c-8e8f-e0d70fe3c6b7,183
+What does this section explain regarding the assessment of risk factors for corporate and financial institution exposures?,bcbs_d424_irb,98125603-98e9-5027-8e84-d68d2fa6e91f,66
+How are the minimum thresholds for risk components affected when an exposure is backed by a government guarantee?,bcbs_d424_irb,98125603-98e9-5027-8e84-d68d2fa6e91f,66
+"In situations where a sovereign guarantee is present, which portions of the exposure are exempt from the established risk component limits?",bcbs_d424_irb,98125603-98e9-5027-8e84-d68d2fa6e91f,66
+What happens to the part of an exposure that is not secured by a sovereign guarantee in terms of risk component requirements?,bcbs_d424_irb,98125603-98e9-5027-8e84-d68d2fa6e91f,66
+What is the standard duration assigned to exposures in the absence of a clear definition?,bcbs_d424_irb,0322095e-9959-5b61-8d55-fda5df180afc,114
+How long is the maturity period for exposures if not stated differently in the specified section?,bcbs_d424_irb,0322095e-9959-5b61-8d55-fda5df180afc,114
+"In cases where a definition is not provided, what is the default maturity period for all exposures?",bcbs_d424_irb,0322095e-9959-5b61-8d55-fda5df180afc,114
+"Unless indicated otherwise, what is the maturity length that is typically applied to exposures?",bcbs_d424_irb,0322095e-9959-5b61-8d55-fda5df180afc,114
+What is the method for determining the haircut when the collateral is in a different currency than the exposure?,bcbs_d424_irb,e94facb9-610c-5d62-b68e-26c3e7ada698,76
+What two types of risks must banks assess when they lend securities or provide collateral?,bcbs_d424_irb,e94facb9-610c-5d62-b68e-26c3e7ada698,76
+How can banks potentially lower their counterparty credit risk in repo transactions?,bcbs_d424_irb,e94facb9-610c-5d62-b68e-26c3e7ada698,76
+"What formula should be used to calculate the exposure for the counterparty credit risk charge, considering collateral received?",bcbs_d424_irb,e94facb9-610c-5d62-b68e-26c3e7ada698,76
+What steps should organizations take to evaluate the information fed into their models?,ecb_gim_2024,275af5aa-91c5-5537-86f0-571cf9426c89,16
+How should a financial institution ensure the reliability and quality of the data utilized for assessing credit risk?,ecb_gim_2024,275af5aa-91c5-5537-86f0-571cf9426c89,16
+What type of framework is recommended for managing data quality in relation to internal rating-based processes?,ecb_gim_2024,275af5aa-91c5-5537-86f0-571cf9426c89,16
+Why is it important for institutions to have trustworthy risk data for evaluating their risk situation and making informed choices?,ecb_gim_2024,275af5aa-91c5-5537-86f0-571cf9426c89,16
+What types of details should organizations gather to evaluate the creditworthiness of businesses of various sizes?,ebagl_2020_06,3cd00c55-29e7-5512-b711-43db5b37ce2c,"86,87"
+Which aspects of a borrower's financial situation are essential for assessing their ability to repay a loan?,ebagl_2020_06,3cd00c55-29e7-5512-b711-43db5b37ce2c,"86,87"
+How can lenders utilize existing data about current clients when assessing new credit applications?,ebagl_2020_06,3cd00c55-29e7-5512-b711-43db5b37ce2c,"86,87"
+What specific evidence might be required to support the assessment of a business's loan application?,ebagl_2020_06,3cd00c55-29e7-5512-b711-43db5b37ce2c,"86,87"
+What aspects should be included in the documentation regarding the validation process for data and portfolios?,bcbs_d424_irb,22096a9d-c9dc-5598-801c-b2579a81cbee,28
+How should pricing models for options be evaluated in relation to market risk factors?,bcbs_d424_irb,22096a9d-c9dc-5598-801c-b2579a81cbee,28
+What is required for the assessment of exposure models and their inputs within a bank's policies?,bcbs_d424_irb,22096a9d-c9dc-5598-801c-b2579a81cbee,28
+What measures must be taken to ensure that transaction details are accurately reflected in the exposure models?,bcbs_d424_irb,22096a9d-c9dc-5598-801c-b2579a81cbee,28
+What is the frequency of internal validation required for internal models according to the guidelines?,ecb_gim_2024,e5d3b825-7e48-5759-9522-6e5eee976cfc,"14,15,16"
+What does the term 'initial validation' encompass in the context of model assessment?,ecb_gim_2024,e5d3b825-7e48-5759-9522-6e5eee976cfc,"14,15,16"
+What are the suggested organizational structures to maintain independence in the validation process?,ecb_gim_2024,e5d3b825-7e48-5759-9522-6e5eee976cfc,"14,15,16"
+How should the choice of organizational structure for validation be determined in relation to an institution's characteristics?,ecb_gim_2024,e5d3b825-7e48-5759-9522-6e5eee976cfc,"14,15,16"
+What are the concerns raised regarding the governance and credit granting requirements in the guidelines?,ebagl_2020_06,5e7f5a9d-5b93-524a-b18d-4c890577ce1d,44
+How does the BSG suggest the guidelines should prioritize consumer protection in lending practices?,ebagl_2020_06,5e7f5a9d-5b93-524a-b18d-4c890577ce1d,44
+What flexibility and simplification did the BSG request regarding the monitoring framework in the draft guidelines?,ebagl_2020_06,5e7f5a9d-5b93-524a-b18d-4c890577ce1d,44
+What issues did respondents highlight about the proportionality and detail of the guidelines in relation to different types of loans?,ebagl_2020_06,5e7f5a9d-5b93-524a-b18d-4c890577ce1d,44
+What conditions must be met for organizations to be allowed to determine their capital needs for market risk using their own models?,ecb_gim_2024,3425d41a-076c-54e3-abd3-8baf537b6250,44
+Which entities within a group are allowed to utilize internal models for assessing their capital requirements related to market risk?,ecb_gim_2024,3425d41a-076c-54e3-abd3-8baf537b6250,44
+What types of permissions can be granted regarding the use of internal models for calculating capital needs?,ecb_gim_2024,3425d41a-076c-54e3-abd3-8baf537b6250,44
+What is necessary for institutions to assess their capital requirements at the group level using their own models?,ecb_gim_2024,3425d41a-076c-54e3-abd3-8baf537b6250,44
+What guidelines should an organization establish to determine when a borrower can be moved back to a non-default status?,ebagl_2016_07,d08c2775-9597-5ae8-8ca0-b764d277f990,"75,76"
+Under what circumstances can it be deemed that a borrower's financial recovery is adequate for them to repay their debt on time?,ebagl_2016_07,d08c2775-9597-5ae8-8ca0-b764d277f990,"75,76"
+How often should institutions evaluate the effectiveness of their policies related to borrower classification?,ebagl_2016_07,d08c2775-9597-5ae8-8ca0-b764d277f990,"75,76"
+What specific factors should be analyzed to assess the influence of policies on the rates of borrowers returning to good standing?,ebagl_2016_07,d08c2775-9597-5ae8-8ca0-b764d277f990,"75,76"
+What methods can a financial institution employ to account for the impact of margining when determining exposure values?,ecb_gim_2024,eea645b8-3121-59f1-9f9a-1edcee5aa069,"37,38"
+"According to the ECB, what is the recommended approach for using both margining options in compliance with the relevant regulations?",ecb_gim_2024,eea645b8-3121-59f1-9f9a-1edcee5aa069,"37,38"
+How does the ECB suggest handling foreign exchange risk when applying different margining techniques for collateral?,ecb_gim_2024,eea645b8-3121-59f1-9f9a-1edcee5aa069,"37,38"
+What does the ECB indicate about the use of partial FX volatility adjustments in conjunction with fully modeled FX rates for collateral assessment?,ecb_gim_2024,eea645b8-3121-59f1-9f9a-1edcee5aa069,"37,38"
+How should a group of individuals with a shared responsibility to a financial institution be viewed in terms of their credit obligations?,ebagl_2016_07,2cc09090-16a1-5cbe-ae82-1afaedf0ce4b,104
+What criteria should be used to evaluate the significance of a payment delay for a collective credit responsibility?,ebagl_2016_07,2cc09090-16a1-5cbe-ae82-1afaedf0ce4b,104
+"When assessing the default status of a group of borrowers, what exposures should be excluded from consideration?",ebagl_2016_07,2cc09090-16a1-5cbe-ae82-1afaedf0ce4b,104
+What happens if the significance threshold for a group of borrowers is exceeded regarding their collective credit responsibilities?,ebagl_2016_07,2cc09090-16a1-5cbe-ae82-1afaedf0ce4b,104
+When did the authorities need to start using these guidelines in their oversight activities?,ebagl_2020_06,7db7299e-343f-55e2-81f2-521d669d967a,"18,19"
+What is the deadline for financial institutions to adopt these guidelines into their operations?,ebagl_2020_06,7db7299e-343f-55e2-81f2-521d669d967a,"18,19"
+"Are there any specific requirements for addressing data deficiencies related to existing loans, and if so, until when do these apply?",ebagl_2020_06,7db7299e-343f-55e2-81f2-521d669d967a,"18,19"
+Do the rules for new loan origination also apply to existing loans if their terms are modified after the guidelines were issued?,ebagl_2020_06,7db7299e-343f-55e2-81f2-521d669d967a,"18,19"
+What does a single identified RNIEPE signify in terms of risk assessment?,ecb_gim_2024,438e429a-8a0c-59e0-95b4-48c38110b753,101
+What are some specific situations that can lead to the emergence of RNIEPE?,ecb_gim_2024,438e429a-8a0c-59e0-95b4-48c38110b753,101
+How can the inability to accurately model certain risk factors impact the joint distribution under the CRR?,ecb_gim_2024,438e429a-8a0c-59e0-95b4-48c38110b753,101
+What issues might arise with cash flows related to a defaulting counterparty in margined transactions?,ecb_gim_2024,438e429a-8a0c-59e0-95b4-48c38110b753,101
+What transactions are included under the RNIEPE framework in relation to the IMM?,ecb_gim_2024,3dbe5f71-cc13-53c8-9ff1-186c91e7040a,"97,98,99"
+Who is tasked with creating and executing the credit risk management strategies within an institution?,ecb_gim_2024,3dbe5f71-cc13-53c8-9ff1-186c91e7040a,"97,98,99"
+What is required for the RNIEPE framework and its methodologies in terms of evaluation and oversight?,ecb_gim_2024,3dbe5f71-cc13-53c8-9ff1-186c91e7040a,"97,98,99"
+How is backtesting viewed in the context of RNIEPE enhancements?,ecb_gim_2024,3dbe5f71-cc13-53c8-9ff1-186c91e7040a,"97,98,99"
+What is the requirement for financial institutions regarding the computation of long-term average loss given default for different categories of loans?,ebagl_2017_16,f8b51a77-9af8-5d60-8689-51d044258976,"149,150"
+How should organizations approach the calculation of long-term average loss given default at the portfolio level?,ebagl_2017_16,f8b51a77-9af8-5d60-8689-51d044258976,"149,150"
+What data should be included when determining the long-term average loss given default according to the guidelines?,ebagl_2017_16,f8b51a77-9af8-5d60-8689-51d044258976,"149,150"
+"Are institutions allowed to use yearly averages of loss given default when calculating the long-term average, and under what conditions?",ebagl_2017_16,f8b51a77-9af8-5d60-8689-51d044258976,"149,150"
+How often should reports on data quality be created and presented to top management?,ecb_gim_2024,d1ee7036-b759-5459-8e28-677709e2d300,31
+What is the purpose of submitting data quality assessments to senior leaders regularly?,ecb_gim_2024,d1ee7036-b759-5459-8e28-677709e2d300,31
+Which article of the CRR pertains to the proper functioning of rating systems?,ecb_gim_2024,d1ee7036-b759-5459-8e28-677709e2d300,31
+What is the minimum frequency for management to review the performance of rating systems?,ecb_gim_2024,d1ee7036-b759-5459-8e28-677709e2d300,31
+How should the future exposure for derivative positions be determined according to the specified guidelines?,bcbs_d424_irb,ea38ba7f-26db-5a91-8151-2240cafdc2c4,3
+What is the fixed value of the multiplier when assessing the leverage ratio?,bcbs_d424_irb,ea38ba7f-26db-5a91-8151-2240cafdc2c4,3
+Which factor can be utilized for the additional component calculation in margined transactions?,bcbs_d424_irb,ea38ba7f-26db-5a91-8151-2240cafdc2c4,3
+What is the requirement for including written options in the leverage ratio exposure calculation?,bcbs_d424_irb,ea38ba7f-26db-5a91-8151-2240cafdc2c4,3
+What do the regulations state about the treatment of margin agreements in relation to exposure changes during the margin period of risk?,ecb_gim_2024,45255c72-eca0-553f-a661-4ce01a8befdc,20
+How should an institution handle trade-related cash flows received after the start of the margin period of risk according to the guidelines?,ecb_gim_2024,45255c72-eca0-553f-a661-4ce01a8befdc,20
+What assumptions should be made regarding the payment of cash flows due to a counterparty that defaults during the margin period of risk?,ecb_gim_2024,45255c72-eca0-553f-a661-4ce01a8befdc,20
+Under what circumstances can a different modelling approach be accepted if it diverges from the standard expectations outlined in the guidelines?,ecb_gim_2024,45255c72-eca0-553f-a661-4ce01a8befdc,20
+What must organizations obtain to verify the legality of the collateral arrangement?,ebagl_2020_05,6b8d59aa-fe4c-5fab-a823-faba5a431317,23
+In which areas should the legal validity of the collateral be confirmed?,ebagl_2020_05,6b8d59aa-fe4c-5fab-a823-faba5a431317,23
+What factors determine the jurisdictions relevant to the collateral's enforceability?,ebagl_2020_05,6b8d59aa-fe4c-5fab-a823-faba5a431317,23
+Which locations are important to consider for the potential execution of the collateral?,ebagl_2020_05,6b8d59aa-fe4c-5fab-a823-faba5a431317,23
+How should the Monte Carlo error for the overall estimator of expected exposure be determined when all risk factors are analyzed together?,ecb_gim_2024,fd611793-c1af-529d-90e2-5a8e1283eeec,3
+What is the approach to calculating the Monte Carlo error for expected exposure when risk factors are assessed separately by asset class?,ecb_gim_2024,fd611793-c1af-529d-90e2-5a8e1283eeec,3
+"In the context of a portfolio with multiple netting sets, how is the variance of the expected exposure estimator calculated?",ecb_gim_2024,fd611793-c1af-529d-90e2-5a8e1283eeec,3
+What factors influence the calculation of the Monte Carlo error when using different methods for estimating expected exposure?,ecb_gim_2024,fd611793-c1af-529d-90e2-5a8e1283eeec,3
+What conditions must a financial institution meet to combine obligations for the same currency and date under the leverage ratio exposure measure?,bcbs_d424_irb,22398857-e211-5bcb-9d7c-84eecb8bbb30,4
+Which types of agreements are excluded from netting when calculating the leverage ratio exposure?,bcbs_d424_irb,22398857-e211-5bcb-9d7c-84eecb8bbb30,4
+What criteria must netting agreements satisfy to be recognized for transactions involving securities financing?,bcbs_d424_irb,22398857-e211-5bcb-9d7c-84eecb8bbb30,4
+How are off-balance-sheet items treated in relation to credit exposures for the leverage ratio calculation?,bcbs_d424_irb,22398857-e211-5bcb-9d7c-84eecb8bbb30,4
+What methodology must banks follow to account for master netting agreements in their capital calculations for repo transactions?,bcbs_d424_irb,ef0eeef2-4395-5e67-9ed5-29172eb5cb65,89
+"For institutions employing the advanced method, what type of loss estimates can they use for unsecured amounts in counterparty credit risk assessments?",bcbs_d424_irb,ef0eeef2-4395-5e67-9ed5-29172eb5cb65,89
+"Besides counterparty credit risk, what other capital requirements must banks evaluate related to the securities involved in master netting agreements?",bcbs_d424_irb,ef0eeef2-4395-5e67-9ed5-29172eb5cb65,89
+What risks must banks consider when calculating capital requirements linked to transactions covered by master netting agreements?,bcbs_d424_irb,ef0eeef2-4395-5e67-9ed5-29172eb5cb65,89
+What are the main goals of the guidelines issued by the EBA regarding loan practices?,ebagl_2020_06,82eb75ab-f19e-5d02-9362-8eccfd1da056,44
+How do the guidelines aim to address the issue of non-performing loans in the European banking sector?,ebagl_2020_06,82eb75ab-f19e-5d02-9362-8eccfd1da056,44
+What factors contribute to the persistence of non-performing loans on financial institutions' balance sheets?,ebagl_2020_06,82eb75ab-f19e-5d02-9362-8eccfd1da056,44
+What are the two options considered by the EBA regarding the application of the new guidelines to loans?,ebagl_2020_06,82eb75ab-f19e-5d02-9362-8eccfd1da056,44
+What is the minimum risk weight that can be assigned when using certain estimation methods that yield a lower risk weight compared to a similar exposure without credit protection?,ebagl_2020_05,96be3885-fba3-549c-91c7-03f9bf76be83,"42,43"
+"If an institution has not been authorized to utilize its own loss given default estimates for direct exposures to a guarantor, what should it do to determine the loss given default for that exposure?",ebagl_2020_05,96be3885-fba3-549c-91c7-03f9bf76be83,"42,43"
+"In the context of risk assessment, what must institutions ensure regarding the risk weight of exposures when they apply a method that results in a lower risk weight?",ebagl_2020_05,96be3885-fba3-549c-91c7-03f9bf76be83,"42,43"
+What guidelines should institutions follow to calculate the risk weight floor when they lack approval for their own estimates of loss given default?,ebagl_2020_05,96be3885-fba3-549c-91c7-03f9bf76be83,"42,43"
+What factors should authorities and institutions focus on when assessing creditworthiness and monitoring risks instead of the institutions' own characteristics?,ebagl_2020_06,88b19d9e-47d9-5073-8d4f-b991586e0df2,15
+How does the nature and complexity of the credit facilities influence the application of the guidelines for credit assessments?,ebagl_2020_06,88b19d9e-47d9-5073-8d4f-b991586e0df2,15
+In what ways does the relationship between a loan and its collateral affect the evaluation of that collateral?,ebagl_2020_06,88b19d9e-47d9-5073-8d4f-b991586e0df2,15
+What elements determine the level of sophistication and intensity in the monitoring process for borrowers?,ebagl_2020_06,88b19d9e-47d9-5073-8d4f-b991586e0df2,15
+What role does the internal validation team play in assessing modifications made to rating systems based on these guidelines?,ebagl_2019_03,3f7ef914-d219-586e-9c1f-fad8d8ad30b8,"10,11,12"
+Which authorities must institutions consult before making changes to their rating systems for the first time under these guidelines?,ebagl_2019_03,3f7ef914-d219-586e-9c1f-fad8d8ad30b8,"10,11,12"
+What must institutions do to determine appropriate downturn periods for specific exposures before implementing these guidelines?,ebagl_2019_03,3f7ef914-d219-586e-9c1f-fad8d8ad30b8,"10,11,12"
+How will the guidelines be adjusted once the final version of the RTS on economic downturn is released?,ebagl_2019_03,3f7ef914-d219-586e-9c1f-fad8d8ad30b8,"10,11,12"
+Why is it crucial for financial institutions to thoroughly evaluate a borrower's ability to repay a loan at the time of lending?,ebagl_2020_06,fd581218-498b-59d9-8bf3-6e3075fbc94c,8
+What could be the repercussions for both lenders and borrowers if a proper assessment of creditworthiness is not conducted?,ebagl_2020_06,fd581218-498b-59d9-8bf3-6e3075fbc94c,8
+How do the guidelines aim to balance the goals of financial stability and consumer protection in the context of loan issuance?,ebagl_2020_06,fd581218-498b-59d9-8bf3-6e3075fbc94c,8
+What is the significance of addressing credit assessments in the guidelines according to the objectives set by the EBA?,ebagl_2020_06,fd581218-498b-59d9-8bf3-6e3075fbc94c,8
+What should organizations do to comprehend the dynamics of external ratings when they are utilized for risk differentiation in their models?,ecb_gim_2024,5d3e99d7-c279-5cb5-8b9a-3c4e7b80d683,106
+How can institutions maintain their own grade assignment processes when external ratings are used as target variables for risk differentiation?,ecb_gim_2024,5d3e99d7-c279-5cb5-8b9a-3c4e7b80d683,106
+What is required for institutions when aligning their internal ratings with external ratings to utilize external default rates for estimating probability of default?,ecb_gim_2024,5d3e99d7-c279-5cb5-8b9a-3c4e7b80d683,106
+What actions should be taken if there are discrepancies between an institution's internal grade assignment dynamics and those of external ratings?,ecb_gim_2024,5d3e99d7-c279-5cb5-8b9a-3c4e7b80d683,106
+What situation arises when the remaining duration of a credit protection method is shorter than that of the associated risk?,bcbs_d424_irb,edfc0438-2a3f-54df-bbb6-c430bc436e6f,"126,127,128"
+Are there any restrictions on maturity mismatches when using the straightforward method for financial guarantees?,bcbs_d424_irb,edfc0438-2a3f-54df-bbb6-c430bc436e6f,"126,127,128"
+Under what conditions can a credit protection strategy with a maturity mismatch be acknowledged in the alternative methods?,bcbs_d424_irb,edfc0438-2a3f-54df-bbb6-c430bc436e6f,"126,127,128"
+What are the minimum timeframes required for a credit protection arrangement to be considered valid despite a maturity mismatch?,bcbs_d424_irb,edfc0438-2a3f-54df-bbb6-c430bc436e6f,"126,127,128"
+What adjustments are necessary if external data uses a different standard for defining defaults compared to internal assessments?,ebagl_2016_07,2a821e1d-9509-594f-bd10-31aa1061a3ed,114
+How should institutions handle instances where internal and external definitions of default do not align?,ebagl_2016_07,2a821e1d-9509-594f-bd10-31aa1061a3ed,114
+What is the significance of expert judgement in determining technical defaults according to the responses received?,ebagl_2016_07,2a821e1d-9509-594f-bd10-31aa1061a3ed,114
+"Why is it important to maintain a level of flexibility in identifying technical defaults, especially for non-retail activities?",ebagl_2016_07,2a821e1d-9509-594f-bd10-31aa1061a3ed,114
+What guidelines should institutions follow to ensure they do not arbitrarily select methods for credit risk management?,ebagl_2020_05,eb9c50fb-6ff0-5803-a4d4-e93d708755d3,32
+How should organizations define their policies regarding the assessment and acknowledgment of certain credit risk factors?,ebagl_2020_05,eb9c50fb-6ff0-5803-a4d4-e93d708755d3,32
+What is the significance of maintaining uniformity in the application of methods for recognizing credit risk mitigation?,ebagl_2020_05,eb9c50fb-6ff0-5803-a4d4-e93d708755d3,32
+In what way should institutions specify the application of different methodologies for their rating systems?,ebagl_2020_05,eb9c50fb-6ff0-5803-a4d4-e93d708755d3,32
+What does the ECB require from institutions to evaluate the validity of their pricing techniques in risk models?,ecb_gim_2024,a1a557a7-e1f1-551b-8d10-8e9e262ef331,136
+How can institutions demonstrate the effectiveness of their pricing methods used in risk calculations?,ecb_gim_2024,a1a557a7-e1f1-551b-8d10-8e9e262ef331,136
+What specific information is needed to analyze the effect of pricing methods on hypothetical profit and loss?,ecb_gim_2024,a1a557a7-e1f1-551b-8d10-8e9e262ef331,136
+What document will serve as an additional regulatory guideline once it is approved by the European Commission?,ecb_gim_2024,a1a557a7-e1f1-551b-8d10-8e9e262ef331,136
+"What should organizations do when they notice exceptionally high loss given defaults, particularly for loans with minimal outstanding balances at the time of default?",ebagl_2017_16,6eeb810b-271d-574a-bacf-54ce35a714e1,"162,163"
+How can institutions ensure that they accurately categorize exposures that exhibit unique characteristics in their risk assessments?,ebagl_2017_16,6eeb810b-271d-574a-bacf-54ce35a714e1,"162,163"
+What is the approach for institutions using a continuous scale for estimating losses when dealing with specific types of exposures?,ebagl_2017_16,6eeb810b-271d-574a-bacf-54ce35a714e1,"162,163"
+"According to regulatory requirements, what must institutions include in their calculations for loss given defaults during the historical observation period?",ebagl_2017_16,6eeb810b-271d-574a-bacf-54ce35a714e1,"162,163"
+What is the importance of having a clear method for distributing costs within an organization?,ebagl_2020_06,30b05b3b-35ba-5cda-8c89-eb7116fc20e6,"204,205"
+How should institutions connect transaction risk with pricing and anticipated profitability?,ebagl_2020_06,30b05b3b-35ba-5cda-8c89-eb7116fc20e6,"204,205"
+What should be done with significant transactions that do not meet cost expectations?,ebagl_2020_06,30b05b3b-35ba-5cda-8c89-eb7116fc20e6,"204,205"
+In what ways should institutions adjust their pricing strategies to align with risk management objectives?,ebagl_2020_06,30b05b3b-35ba-5cda-8c89-eb7116fc20e6,"204,205"
+What type of data analysis is necessary to back up correlation assumptions in credit-risk models?,ecb_gim_2024,d3e869ac-f333-58db-a8b5-f99175b7b4ad,"148,149"
+Which specific tests must organizations conduct to validate their internal model assumptions?,ecb_gim_2024,d3e869ac-f333-58db-a8b5-f99175b7b4ad,"148,149"
+How should institutions support their correlation modeling assumptions according to the ECB's guidelines?,ecb_gim_2024,d3e869ac-f333-58db-a8b5-f99175b7b4ad,"148,149"
+What information can the ECB request from institutions to evaluate their correlation modeling methods?,ecb_gim_2024,d3e869ac-f333-58db-a8b5-f99175b7b4ad,"148,149"
+What type of data analysis is necessary to support correlation assumptions according to the regulations?,ecb_gim_2024,f86e30bf-9516-5f83-9d27-0fcb4c336b49,153
+What must organizations do during their annual reviews regarding their correlation modeling methods?,ecb_gim_2024,f86e30bf-9516-5f83-9d27-0fcb4c336b49,153
+How should institutions ensure their quantitative validation aligns with regulatory requirements?,ecb_gim_2024,f86e30bf-9516-5f83-9d27-0fcb4c336b49,153
+Why is the selection of copula significant in the context of correlation modeling for risk factors?,ecb_gim_2024,f86e30bf-9516-5f83-9d27-0fcb4c336b49,153
+"If an organization employs both IFRS 9 and a different accounting standard, how should it determine the classification of exposures as defaulted?",ebagl_2016_07,012af322-0718-575f-94bb-acdaaf4d2118,40
+What should an institution consider when deciding between two methods for categorizing defaulted exposures?,ebagl_2016_07,012af322-0718-575f-94bb-acdaaf4d2118,40
+"Once a financial entity makes a decision on how to classify defaulted exposures, what is expected regarding the application of that decision?",ebagl_2016_07,012af322-0718-575f-94bb-acdaaf4d2118,40
+"In the context of using multiple accounting frameworks, what is the importance of consistency in classifying defaulted exposures?",ebagl_2016_07,012af322-0718-575f-94bb-acdaaf4d2118,40
+What should institutions document and justify when they deviate from a complete simulation in their validation process?,ecb_gim_2024,9a220ea0-f181-58b8-8e58-1f66abe05790,83
+How significant should the impact be when using simplified pricing methods compared to established benchmarks?,ecb_gim_2024,9a220ea0-f181-58b8-8e58-1f66abe05790,83
+What is required for the reliability of value changes when using approximated pricing methods in relation to non-approximated ones for the same type of transaction?,ecb_gim_2024,9a220ea0-f181-58b8-8e58-1f66abe05790,83
+What considerations should be made regarding alternative exposure calculation methods in relation to back-testing and netting benefits?,ecb_gim_2024,9a220ea0-f181-58b8-8e58-1f66abe05790,83
+How should organizations determine the longest duration for recovering funds from a specific category of loans after a default occurs?,ebagl_2017_16,3bbaa0c5-8a23-54d8-b28f-b4212f73c5f7,156
+What factors should be considered when establishing the maximum timeframe for recovery efforts?,ebagl_2017_16,3bbaa0c5-8a23-54d8-b28f-b4212f73c5f7,156
+Is it permissible for institutions to pursue recovery actions on loans that exceed the defined maximum recovery period?,ebagl_2017_16,3bbaa0c5-8a23-54d8-b28f-b4212f73c5f7,156
+What documentation is required to support the chosen maximum duration for recovery processes?,ebagl_2017_16,3bbaa0c5-8a23-54d8-b28f-b4212f73c5f7,156
+What market conditions should lenders evaluate when considering financing for a specific type of vessel?,ebagl_2020_06,fba8bd4a-d939-5939-b971-2509e116554d,"185,186"
+What elements should a borrower demonstrate when seeking funding for ship construction?,ebagl_2020_06,fba8bd4a-d939-5939-b971-2509e116554d,"185,186"
+What types of collateral or guarantees might a ship owner need to provide when applying for a loan?,ebagl_2020_06,fba8bd4a-d939-5939-b971-2509e116554d,"185,186"
+What qualifications should a borrower have in terms of planning and resources for a shipbuilding project?,ebagl_2020_06,fba8bd4a-d939-5939-b971-2509e116554d,"185,186"
+What is the minimum sample size that should be considered to ensure proper convergence of the variance estimate?,ecb_gim_2024,2dce2f1c-e5f7-505e-b87e-a856953c82e1,3
+How is the adjustment factor for sample size incorporated into the estimation of variance?,ecb_gim_2024,2dce2f1c-e5f7-505e-b87e-a856953c82e1,3
+What statistical distribution is assumed for the estimation of the expected exposure?,ecb_gim_2024,2dce2f1c-e5f7-505e-b87e-a856953c82e1,3
+What is the difference in the number of Monte Carlo simulations required between the two methods for estimating the error in expected exposure?,ecb_gim_2024,2dce2f1c-e5f7-505e-b87e-a856953c82e1,3
+What was the concern raised by some respondents regarding the connection between the downturn component and expected loss estimation?,ebagl_2017_16,d2b5a170-3f2d-5977-be37-3bd5c7e69c8e,221
+Why do some respondents believe that including a margin of conservatism in expected loss best estimates would lead to inflated risk-weighted assets for defaulted loans?,ebagl_2017_16,d2b5a170-3f2d-5977-be37-3bd5c7e69c8e,221
+What did the guidelines clarify about the nature of implementation deficiencies related to risk parameter models?,ebagl_2017_16,d2b5a170-3f2d-5977-be37-3bd5c7e69c8e,221
+How should institutions handle the removal of additional conservatism once the underlying issues have been addressed according to the guidelines?,ebagl_2017_16,d2b5a170-3f2d-5977-be37-3bd5c7e69c8e,221
+What was the rationale behind setting the add-on as a fixed amount instead of a minimum threshold?,ebagl_2017_16,d0955ba7-340a-5f73-b989-536caf3f6bc6,221
+How did the findings from the IRB survey influence the initial calibration of the add-on?,ebagl_2017_16,d0955ba7-340a-5f73-b989-536caf3f6bc6,221
+What considerations were raised by respondents regarding the proposed fixed add-on percentage?,ebagl_2017_16,d0955ba7-340a-5f73-b989-536caf3f6bc6,221
+What approach did the EBA suggest for determining the historical observation period for estimating loss given default?,ebagl_2017_16,d0955ba7-340a-5f73-b989-536caf3f6bc6,221
+What documentation is needed to demonstrate the intended use of the loan?,ebagl_2020_06,0a9974b4-5a91-50f6-b1e4-7ceb39c235d9,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+Which financial documents should be provided to support the borrower's financial health?,ebagl_2020_06,0a9974b4-5a91-50f6-b1e4-7ceb39c235d9,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+What details must be included regarding any collateral offered for the loan?,ebagl_2020_06,0a9974b4-5a91-50f6-b1e4-7ceb39c235d9,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+What kind of information is necessary about the borrower's compliance with existing agreements?,ebagl_2020_06,0a9974b4-5a91-50f6-b1e4-7ceb39c235d9,"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+What does the regulation state about the integration of exposure distribution into the daily management of counterparty credit risk?,ecb_gim_2024,26d083fd-c5dc-5cbd-bd14-7c98e5a519ec,61
+What are the requirements for institutions regarding the measurement and management of current exposures according to the regulations?,ecb_gim_2024,26d083fd-c5dc-5cbd-bd14-7c98e5a519ec,61
+How should institutions approach the calculation of expected exposure potential under stress conditions as per the guidelines?,ecb_gim_2024,26d083fd-c5dc-5cbd-bd14-7c98e5a519ec,61
+What data considerations must be taken into account when using historical information for the expected positive exposure model?,ecb_gim_2024,26d083fd-c5dc-5cbd-bd14-7c98e5a519ec,61
+What methods can organizations use to assess the downturn loss given default for loans that have already failed during the specified downturn period?,ebagl_2019_03,c4caf8de-e29d-5b2b-8629-6fcd728346c3,21
+Under what circumstances can a financial institution apply the downturn loss estimates from non-defaulted loans to defaulted loans at the time of default?,ebagl_2019_03,c4caf8de-e29d-5b2b-8629-6fcd728346c3,21
+How should institutions approach the estimation of downturn loss for non-defaulted loans when they are using different methods for long-term averages and downturn scenarios?,ebagl_2019_03,c4caf8de-e29d-5b2b-8629-6fcd728346c3,21
+What is the process for determining the downturn component of loss given default based on the difference between downturn estimates and expected loss at the time of default?,ebagl_2019_03,c4caf8de-e29d-5b2b-8629-6fcd728346c3,21
+What type of financial data is utilized for calculations at the overall level in the standardized method?,bcbs_d424_irb,093d0e8d-b22a-5deb-9b98-3b388564ba5e,"14,15"
+How are the financial figures determined for banks that are assessed at a level below the overall consolidation?,bcbs_d424_irb,093d0e8d-b22a-5deb-9b98-3b388564ba5e,"14,15"
+When do banks at a sub-consolidated or individual level need to factor in their loss history for standardized calculations?,bcbs_d424_irb,093d0e8d-b22a-5deb-9b98-3b388564ba5e,"14,15"
+"In the standardized approach, what losses are considered by a sub-consolidated or subsidiary bank when performing their calculations?",bcbs_d424_irb,093d0e8d-b22a-5deb-9b98-3b388564ba5e,"14,15"
+What must banks demonstrate to their regulators to qualify for the internal ratings-based method?,bcbs_d424_irb,7f479bf2-db67-5713-9b31-f9ced5735090,150
+In what situations might a bank be allowed to operate without fully meeting all minimum standards?,bcbs_d424_irb,7f479bf2-db67-5713-9b31-f9ced5735090,150
+What are the two key components that a valid internal rating system should include?,bcbs_d424_irb,7f479bf2-db67-5713-9b31-f9ced5735090,150
+How should a bank document its reasons for assigning a borrower to a specific rating system?,bcbs_d424_irb,7f479bf2-db67-5713-9b31-f9ced5735090,150
+What is the aim of this section regarding the ECB's interpretation of certain principles related to the Internal Model Method?,ecb_gim_2024,0eef440c-0f31-5b50-a930-e16add8e512b,"1,2"
+Which entities are obligated to adhere to the stipulations outlined in the specified section of the CRR when using the Internal Model Method for capital calculations?,ecb_gim_2024,0eef440c-0f31-5b50-a930-e16add8e512b,"1,2"
+"Why is it crucial for entities to meet all outlined requirements, especially when there are differences in the portfolios at various levels?",ecb_gim_2024,0eef440c-0f31-5b50-a930-e16add8e512b,"1,2"
+What specific aspects are highlighted as important for determining stress periods and for validating risk factors and synthetic portfolios?,ecb_gim_2024,0eef440c-0f31-5b50-a930-e16add8e512b,"1,2"
+"What is the minimum duration of data observation required for estimating loss given default, and how does it vary for different types of exposures?",bcbs_d424_irb,765f51ad-da30-5df0-8a59-620d84cf2954,150
+How should banks determine the expected gross exposure for both on-balance and off-balance sheet items in the event of a default?,bcbs_d424_irb,765f51ad-da30-5df0-8a59-620d84cf2954,150
+What considerations must banks take into account when estimating expected exposure for different facility types under the advanced approach?,bcbs_d424_irb,765f51ad-da30-5df0-8a59-620d84cf2954,150
+"How often should banks reassess their expected exposure estimates, and what factors should influence this review process?",bcbs_d424_irb,765f51ad-da30-5df0-8a59-620d84cf2954,150
+"What types of models require oversight approval for determining capital needs related to credit, market, and counterparty risks?",ecb_gim_2024,85bdbb04-e661-5c73-ac35-64b053c2e1c1,1
+Which models are referred to in this section that need regulatory consent for calculating capital requirements?,ecb_gim_2024,85bdbb04-e661-5c73-ac35-64b053c2e1c1,1
+Are there any exceptions mentioned regarding the models that need supervisory endorsement for assessing capital adequacy?,ecb_gim_2024,85bdbb04-e661-5c73-ac35-64b053c2e1c1,1
+What is the focus of the principles outlined in this part concerning internal risk assessment models?,ecb_gim_2024,85bdbb04-e661-5c73-ac35-64b053c2e1c1,1
+What elements should be included in the policy for managing changes to ensure compliance with the relevant EU regulation?,ecb_gim_2024,efdb62c3-210d-56c0-b91e-c03c001025ac,116
+How should an organization determine the responsibilities and procedures for approving modifications within its structure?,ecb_gim_2024,efdb62c3-210d-56c0-b91e-c03c001025ac,116
+What criteria and metrics must be established to assess the significance of changes in rating methodologies according to the guidelines?,ecb_gim_2024,efdb62c3-210d-56c0-b91e-c03c001025ac,116
+"What steps should an institution take to track, report, and seek approval for changes to its credit risk assessment processes?",ecb_gim_2024,efdb62c3-210d-56c0-b91e-c03c001025ac,116
+How is the risk weight determined for a bank's investment in a specific rated financial instrument?,bcbs_d424_irb,872bfe0f-2b29-533a-8e2c-3bd41348e148,3
+What conditions must be met for a bank to apply a high-quality rating from a borrower to its own unrated exposure?,bcbs_d424_irb,872bfe0f-2b29-533a-8e2c-3bd41348e148,3
+"In what scenarios can an issuer's rating be used for risk weighting, particularly regarding senior claims?",bcbs_d424_irb,872bfe0f-2b29-533a-8e2c-3bd41348e148,3
+What limitations exist for using short-term ratings when assessing risk weights for various exposures?,bcbs_d424_irb,872bfe0f-2b29-533a-8e2c-3bd41348e148,3
+Which international financial institutions can be classified with a risk weight of zero?,bcbs_d424_irb,3f1524bd-62c6-5d78-9177-b3b25243cc88,"10,2"
+What is the risk weight assigned to exposures involving certain European financial entities?,bcbs_d424_irb,3f1524bd-62c6-5d78-9177-b3b25243cc88,"10,2"
+How are public sector entities that are not central governments treated in terms of risk weight according to the previous Basel guidelines?,bcbs_d424_irb,3f1524bd-62c6-5d78-9177-b3b25243cc88,"10,2"
+What changes were made regarding the treatment of non-central government public sector entities in the latest Basel framework?,bcbs_d424_irb,3f1524bd-62c6-5d78-9177-b3b25243cc88,"10,2"
+What is the expectation regarding the consistency of risk factors and evaluation criteria during the development and use of models?,ebagl_2017_16,43ea6072-c969-59a0-aee8-c35878c5f125,221
+How should organizations evaluate the reasoning behind categorizing borrowers or assets into specific groups?,ebagl_2017_16,43ea6072-c969-59a0-aee8-c35878c5f125,221
+What considerations were mentioned regarding the influence of economic conditions on the number of risk categories used?,ebagl_2017_16,43ea6072-c969-59a0-aee8-c35878c5f125,221
+What clarification was sought regarding the relationship between the long-term average default rate and the calibration target?,ebagl_2017_16,43ea6072-c969-59a0-aee8-c35878c5f125,221
+What should institutions consider regarding differences between the LRA default rate and the PD value at the grade level during calibration?,ecb_gim_2024,22e16d86-f9c4-5351-97fa-b3ddccf09321,133
+How might an unrepresentative calibration sample affect the accuracy of PD estimates at the grade level?,ecb_gim_2024,22e16d86-f9c4-5351-97fa-b3ddccf09321,133
+In what scenarios could the calibration sample lead to a biased adjustment in PD estimates related to economic conditions?,ecb_gim_2024,22e16d86-f9c4-5351-97fa-b3ddccf09321,133
+What issues may arise if the methodology used for calibration does not align with the actual default rates observed at the grade level?,ecb_gim_2024,22e16d86-f9c4-5351-97fa-b3ddccf09321,133
+How should organizations determine the economic loss and realized loss given default when they have partially eliminated a debt after default?,ebagl_2017_16,4e2baa68-d7a8-5c77-bbcc-177f0f15a8e0,179
+What conditions allow institutions to factor in their regular debt write-off practices when calculating final expected loss and loss given default?,ebagl_2017_16,4e2baa68-d7a8-5c77-bbcc-177f0f15a8e0,179
+"If an institution does not consistently write off portions of debts, how can it incorporate details about a specific write-off into its loss calculations?",ebagl_2017_16,4e2baa68-d7a8-5c77-bbcc-177f0f15a8e0,179
+What steps should be taken to maintain alignment between loss given default estimates and the actual application of those estimates when partial write-offs occur?,ebagl_2017_16,4e2baa68-d7a8-5c77-bbcc-177f0f15a8e0,179
+What level should organizations establish their policies for managing data to meet the requirements outlined in the relevant regulation?,ecb_gim_2024,3a0f58ac-e67b-55dc-aef7-9877f411ade2,"13,14"
+Which aspects of data management need to be defined at the group level according to the ECB's guidance?,ecb_gim_2024,3a0f58ac-e67b-55dc-aef7-9877f411ade2,"13,14"
+What should be formalized to ensure that manual changes to data are properly monitored and documented?,ecb_gim_2024,3a0f58ac-e67b-55dc-aef7-9877f411ade2,"13,14"
+How should agreements regarding data transfers be established to maintain accountability and timeliness?,ecb_gim_2024,3a0f58ac-e67b-55dc-aef7-9877f411ade2,"13,14"
+What is the definition of the ratio that relates the undrawn portion of a commitment to the amount that could be outstanding if a default occurs?,ecb_gim_2024,d72144c2-5266-5cb5-b39c-b3ce6ee17c79,195
+How is the total exposure value determined for certain items according to the specified regulation?,ecb_gim_2024,d72144c2-5266-5cb5-b39c-b3ce6ee17c79,195
+What criteria must be met for a credit limit to be considered unadvised by the institution?,ecb_gim_2024,d72144c2-5266-5cb5-b39c-b3ce6ee17c79,195
+Which types of arrangements qualify as commitments that an institution has offered and the borrower has accepted?,ecb_gim_2024,d72144c2-5266-5cb5-b39c-b3ce6ee17c79,195
+What is the condition under which regulators might set a haircut to zero for certain repo transactions involving key market players?,bcbs_d424_irb,48af2471-8331-5cd5-bbee-32f92998715c,"173,174"
+In what scenario can a regulatory authority make an exception for repo transactions involving securities from their own government?,bcbs_d424_irb,48af2471-8331-5cd5-bbee-32f92998715c,"173,174"
+How might other regulatory bodies respond if one supervisor allows banks in their area to treat specific repo transactions differently?,bcbs_d424_irb,48af2471-8331-5cd5-bbee-32f92998715c,"173,174"
+What type of transactions are mentioned that could potentially have a haircut of zero according to the guidelines?,bcbs_d424_irb,48af2471-8331-5cd5-bbee-32f92998715c,"173,174"
+What steps should organizations take to evaluate the effects of a downturn on their loss data for a specific calibration segment?,ebagl_2019_03,c5689ddf-2788-58cd-a133-ac5082b2d78d,27
+Which factors must be considered when analyzing the impact of a downturn on realized loss rates?,ebagl_2019_03,c5689ddf-2788-58cd-a133-ac5082b2d78d,27
+How should institutions assess the changes in recovery amounts related to defaults during a downturn period?,ebagl_2019_03,c5689ddf-2788-58cd-a133-ac5082b2d78d,27
+What considerations should be made regarding the duration of defaults when analyzing data from a downturn?,ebagl_2019_03,c5689ddf-2788-58cd-a133-ac5082b2d78d,27
+What are the two main methods that financial institutions can select for determining their capital requirements related to credit risk?,bcbs_d424_irb,2b99bb67-567f-5602-9cef-166f61f363a1,"1,2"
+How does the standardized method assign risk levels to different types of financial exposures?,bcbs_d424_irb,2b99bb67-567f-5602-9cef-166f61f363a1,"1,2"
+"In the standardized method, what can banks utilize as a basis for determining risk levels if their jurisdiction permits external evaluations?",bcbs_d424_irb,2b99bb67-567f-5602-9cef-166f61f363a1,"1,2"
+"What is the internal ratings-based approach, and what condition must banks meet to implement it for assessing credit risk?",bcbs_d424_irb,2b99bb67-567f-5602-9cef-166f61f363a1,"1,2"
+What should be excluded from the ELBE according to the specified article of the EU regulation?,ebagl_2017_16,d08dce44-972c-5bed-a591-04b7106441be,182
+Which specific elements are not to be considered in the ELBE as per the guidelines?,ebagl_2017_16,d08dce44-972c-5bed-a591-04b7106441be,182
+"In relation to the mentioned regulation, what is the stance on including certain components in the ELBE?",ebagl_2017_16,d08dce44-972c-5bed-a591-04b7106441be,182
+"According to the guidelines, what is the directive regarding the inclusion of MoC in the ELBE?",ebagl_2017_16,d08dce44-972c-5bed-a591-04b7106441be,182
+How should organizations ensure that their current understanding of default aligns with the definitions used in their risk assessment data?,ebagl_2017_16,448bfc84-3fb4-5f62-b358-87d767e4f7c8,30
+What steps should be taken if the criteria for default have evolved during the time period being analyzed?,ebagl_2017_16,448bfc84-3fb4-5f62-b358-87d767e4f7c8,30
+"In cases where the definition of default has changed multiple times in the historical data, how should institutions approach their analysis?",ebagl_2017_16,448bfc84-3fb4-5f62-b358-87d767e4f7c8,30
+What is the recommended method for evaluating the relevance of past data when the definition of default has been modified?,ebagl_2017_16,448bfc84-3fb4-5f62-b358-87d767e4f7c8,30

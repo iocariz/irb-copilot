@@ -16,7 +16,7 @@ def test_defaults_match_spec() -> None:
     s = Settings(_env_file=None)
     assert s.llm_model == "gpt-4o-mini"
     assert s.embedding_model == "text-embedding-3-small"
-    assert s.retrieval_mode == "bm25"  # eval-chosen default (§11.2)
+    assert s.retrieval_mode == "hybrid_rerank"  # de-biased eval winner (§11.2)
     assert s.enable_rewrite is False
     assert s.prompt_version == "v2"
     assert s.chunker == "structure"

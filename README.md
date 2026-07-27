@@ -56,7 +56,8 @@ flowchart LR
 
 **Retrieval** offers four modes — `bm25`, `vector` (Qdrant cosine), `hybrid`
 (reciprocal rank fusion), `hybrid_rerank` (cross-encoder) — all selectable by
-env var. The app default (`bm25`) is the one the evaluation found best.
+env var. The app default (`hybrid_rerank`) is the one the de-biased evaluation
+found best (see Evaluation).
 
 ## Dataset
 
@@ -136,15 +137,26 @@ Top configs ([full CSV](evaluation/results/retrieval_eval.csv),
 | vector | structure | off | 0.835 | 0.681 |
 
 **Findings:** query rewriting *hurt* every config (it paraphrases away exact
-regulatory terms) → `ENABLE_REWRITE=false`. `bm25` wins on this corpus; note the
-LLM-generated ground truth reuses chunk vocabulary, which favors lexical search.
-**Chosen default: `bm25` + structure + no rewrite.**
+regulatory terms) → `ENABLE_REWRITE=false`.
 
-*De-biased evaluation:* `generate_ground_truth --style hard` writes paraphrased
-questions that avoid the source vocabulary (measured mean lexical overlap drops
-**0.83 → 0.46**); `make eval-retrieval-hard` re-runs the eval on that set
-(`results/retrieval_eval_hard.*`) to check whether `hybrid`/`hybrid_rerank`
-overtake `bm25` when questions don't echo the passage.
+*The BM25 win was a measurement artifact.* LLM-generated questions reuse the
+source's vocabulary (mean lexical overlap **0.83**), which flatters lexical
+search. A **de-biased** ground truth (`--style hard`) paraphrases the questions
+(overlap **0.46**) and flips the result — BM25 collapses while the semantic
+methods hold up (structure chunks, no rewrite):
+
+| mode | standard hit@5 | **de-biased** hit@5 |
+|------|:---:|:---:|
+| bm25 | 0.950 | 0.528 (−0.42) |
+| vector | 0.835 | 0.605 |
+| hybrid | 0.923 | 0.615 |
+| **hybrid_rerank** | 0.936 | **0.636** |
+
+**Chosen default: `hybrid_rerank` + structure + no rewrite** — it leads on the
+realistic (paraphrased) queries a user would actually type. It adds an embedding
++ cross-encoder step, so it's slower than BM25 (a deliberate quality-for-latency
+trade; set `RETRIEVAL_MODE=bm25` for the fast lexical path). Reproduce with
+`make ground-truth-hard && make eval-retrieval-hard`.
 
 ### RAG (`eval_rag.py`) — LLM-as-judge, 100 questions × 4 configs
 
