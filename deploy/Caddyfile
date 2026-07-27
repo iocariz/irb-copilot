@@ -1,0 +1,20 @@
+# Public entry point. SITE_ADDRESS = ":80" (HTTP on the VM IP) or "example.com"
+# (Caddy then obtains a Let's Encrypt certificate automatically).
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# API under /api (prefix stripped before proxying to FastAPI).
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+
+	# Grafana under /grafana (GF_SERVER_SERVE_FROM_SUB_PATH handles the rest).
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	# Everything else -> the Streamlit UI (websockets handled automatically).
+	handle {
+		reverse_proxy ui:8501
+	}
+}

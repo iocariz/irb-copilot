@@ -1,0 +1,45 @@
+# Production overlay for a single VM. Use together with the base compose:
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# In production set BIND_HOST=127.0.0.1 in .env so the app/db/dashboard host
+# ports are NOT exposed publicly — Caddy is the only public entry (80/443),
+# reverse-proxying to the containers over the internal compose network.
+
+services:
+  qdrant:
+    restart: always
+  postgres:
+    restart: always
+  grafana:
+    restart: always
+    environment:
+      # Served under /grafana by Caddy.
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-/grafana/}"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+  api:
+    restart: always
+  ui:
+    restart: always
+
+  caddy:
+    image: caddy:2.8
+    restart: always
+    depends_on:
+      - ui
+      - api
+      - grafana
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # ":80" (HTTP on the VM's IP) by default; set to your domain for auto-HTTPS.
+      SITE_ADDRESS: "${SITE_ADDRESS:-:80}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

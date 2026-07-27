@@ -192,6 +192,19 @@ usage, and judge-relevance distribution (seeded by the RAG eval).
 > sources → `docs/screenshots/ui.png`; open Grafana → the "IRB Copilot —
 > Monitoring" dashboard → `docs/screenshots/grafana.png`.
 
+## Deployment
+
+Deploy the whole stack to a single VM with docker-compose behind a **Caddy**
+reverse proxy (automatic HTTPS; only 80/443 exposed — Qdrant/Postgres/Grafana
+stay on the internal network). See **[deploy/README.md](deploy/README.md)**.
+
+```bash
+sudo bash deploy/provision.sh   # install Docker + firewall (once)
+cp .env.example .env            # set OPENAI_API_KEY, SITE_ADDRESS, BIND_HOST=127.0.0.1
+bash deploy/deploy.sh           # build, start, ingest
+# -> UI at https://<domain>/, API at /api, Grafana at /grafana
+```
+
 ## Configuration
 
 All behaviour is env-driven; see [`.env.example`](.env.example) for every
@@ -224,6 +237,7 @@ Notebook: `notebooks/experiments.ipynb`.
 | Ingestion: automated pipeline (special tool) | **Prefect** flow `ingestion/flow.py` (`make ingest`); stages in `ingestion/pipeline.py` |
 | Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (6 panels) |
 | Containerization | full `docker-compose.yml` (qdrant, postgres, grafana, api, ui) + multi-stage `Dockerfile` (uv, non-root, CPU-only torch); build verified end-to-end |
+| Deployment | VM deploy via `deploy/` — production compose overlay behind a Caddy TLS proxy, provisioning + deploy scripts, [runbook](deploy/README.md) |
 | Reproducibility | `make setup`, auto-download + sha256, `uv.lock` pins all versions, committed eval results |
 | Best practices: hybrid search / re-ranking / query rewriting | all implemented (`retrieval.py`, `rewrite.py`) and evaluated |
 
