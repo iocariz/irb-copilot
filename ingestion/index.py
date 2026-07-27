@@ -1,13 +1,16 @@
 """Indexing stage (SPEC §5, step 4).
 
-Embeds chunks and upserts them into the Qdrant collection `irb_chunks` with
-deterministic ids (so re-runs upsert, not duplicate), and builds a persistent
-BM25 index over the same chunk texts for lexical retrieval.
+Embeds chunks and upserts them into a Qdrant collection with deterministic ids
+(so re-runs upsert, not duplicate), and builds a persistent BM25 index over the
+same chunk texts. The collection name and BM25 directory are parameterisable so
+the evaluation (SPEC §11.2) can build a separate naive-chunk index alongside the
+production structure index.
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
@@ -20,18 +23,29 @@ from .models import Chunk
 _UPSERT_BATCH = 128
 
 
-def index_chunks(chunks: list[Chunk], *, recreate: bool = False) -> None:
+def index_chunks(
+    chunks: list[Chunk],
+    *,
+    recreate: bool = False,
+    collection: str | None = None,
+    bm25_dir: Path | None = None,
+) -> None:
     """Build both the vector index (Qdrant) and the lexical index (BM25)."""
     if not chunks:
         raise ValueError("index_chunks called with no chunks")
-    build_qdrant(chunks, recreate=recreate)
-    build_bm25(chunks)
+    collection = collection or settings.qdrant_collection
+    bm25_dir = bm25_dir or settings.bm25_index_dir
+    build_qdrant(chunks, recreate=recreate, collection=collection)
+    build_bm25(chunks, bm25_dir=bm25_dir)
 
 
-def build_qdrant(chunks: list[Chunk], *, recreate: bool = False) -> None:
+def build_qdrant(
+    chunks: list[Chunk], *, recreate: bool = False, collection: str | None = None
+) -> None:
     """Embed chunk texts and upsert them into the Qdrant collection."""
+    collection = collection or settings.qdrant_collection
     client = QdrantClient(url=settings.qdrant_url)
-    _ensure_collection(client, recreate=recreate)
+    _ensure_collection(client, collection, recreate=recreate)
 
     for start in range(0, len(chunks), _UPSERT_BATCH):
         batch = chunks[start : start + _UPSERT_BATCH]
@@ -40,13 +54,13 @@ def build_qdrant(chunks: list[Chunk], *, recreate: bool = False) -> None:
             PointStruct(id=chunk.chunk_id, vector=vector, payload=chunk.model_dump())
             for chunk, vector in zip(batch, vectors, strict=True)
         ]
-        client.upsert(collection_name=settings.qdrant_collection, points=points)
-    print(f"[index] upserted {len(chunks)} chunks into '{settings.qdrant_collection}'")
+        client.upsert(collection_name=collection, points=points)
+    print(f"[index] upserted {len(chunks)} chunks into '{collection}'")
 
     # Guardrail: deterministic ids mean re-runs upsert in place, but chunks that
     # disappeared or changed id in a re-ingest leave orphaned points behind. If
     # the collection is larger than what we just indexed, say so loudly.
-    total = client.count(settings.qdrant_collection, exact=True).count
+    total = client.count(collection, exact=True).count
     warning = orphan_warning(total, len(chunks))
     if warning:
         print(warning)
@@ -64,25 +78,25 @@ def orphan_warning(collection_count: int, indexed_count: int) -> str | None:
     )
 
 
-def _ensure_collection(client: QdrantClient, *, recreate: bool) -> None:
-    exists = client.collection_exists(settings.qdrant_collection)
+def _ensure_collection(client: QdrantClient, collection: str, *, recreate: bool) -> None:
+    exists = client.collection_exists(collection)
     if exists and recreate:
-        client.delete_collection(settings.qdrant_collection)
+        client.delete_collection(collection)
         exists = False
     if not exists:
         client.create_collection(
-            collection_name=settings.qdrant_collection,
+            collection_name=collection,
             vectors_config=VectorParams(
                 size=settings.embedding_dim, distance=Distance.COSINE
             ),
         )
 
 
-def build_bm25(chunks: list[Chunk]) -> None:
+def build_bm25(chunks: list[Chunk], *, bm25_dir: Path | None = None) -> None:
     """Build and persist a BM25 index plus a parallel chunk manifest to disk."""
     import bm25s
 
-    out_dir = settings.bm25_index_dir
+    out_dir = bm25_dir or settings.bm25_index_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     corpus = [c.text for c in chunks]

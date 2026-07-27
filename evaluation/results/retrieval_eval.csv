@@ -1,0 +1,17 @@
+retrieval_mode,chunker,rewrite,hit_rate_at_5,mrr_at_5,n_queries
+bm25,structure,False,0.95,0.8518,800
+bm25,structure,True,0.8087,0.6771,800
+vector,structure,False,0.835,0.6813,800
+vector,structure,True,0.6863,0.5103,800
+hybrid,structure,False,0.9225,0.8133,800
+hybrid,structure,True,0.795,0.6407,800
+hybrid_rerank,structure,False,0.9363,0.8346,800
+hybrid_rerank,structure,True,0.8287,0.681,800
+bm25,naive,False,0.93,0.8144,800
+bm25,naive,True,0.8175,0.6609,800
+vector,naive,False,0.7612,0.5828,800
+vector,naive,True,0.6312,0.4479,800
+hybrid,naive,False,0.8838,0.7409,800
+hybrid,naive,True,0.7887,0.5964,800
+hybrid_rerank,naive,False,0.9475,0.8419,800
+hybrid_rerank,naive,True,0.8525,0.7083,800

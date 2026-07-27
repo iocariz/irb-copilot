@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 
 from qdrant_client import QdrantClient
 from qdrant_client import models as qmodels
@@ -64,13 +65,21 @@ class Retriever:
     """Loads the persisted BM25 index + manifest and a Qdrant client, and serves
     all four retrieval modes."""
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        collection: str | None = None,
+        bm25_dir: Path | str | None = None,
+    ) -> None:
         self.settings = settings or get_settings()
+        self._collection = collection or self.settings.qdrant_collection
+        self._bm25_dir = Path(bm25_dir) if bm25_dir else self.settings.bm25_index_dir
 
     # --- lazily loaded resources ------------------------------------------- #
     @cached_property
     def _manifest(self) -> list[Chunk]:
-        path = self.settings.bm25_index_dir / "chunks.jsonl"
+        path = self._bm25_dir / "chunks.jsonl"
         if not path.exists():
             raise FileNotFoundError(f"BM25 manifest missing: {path}; run ingestion")
         # Split on "\n" only (chunk text may contain unicode line separators).
@@ -84,7 +93,7 @@ class Retriever:
     def _bm25(self):  # noqa: ANN202 — bm25s type is optional at import time
         import bm25s
 
-        return bm25s.BM25.load(str(self.settings.bm25_index_dir), mmap=False)
+        return bm25s.BM25.load(str(self._bm25_dir), mmap=False)
 
     @cached_property
     def _qdrant(self) -> QdrantClient:
@@ -135,7 +144,7 @@ class Retriever:
     ) -> list[RetrievedChunk]:
         pool = top_k if not doc_ids else max(top_k * 10, 50)
         hits = self._qdrant.search(
-            collection_name=self.settings.qdrant_collection,
+            collection_name=self._collection,
             query_vector=embed_query(query),
             limit=pool,
             query_filter=_doc_filter(doc_ids),

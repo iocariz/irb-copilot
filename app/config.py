@@ -58,8 +58,10 @@ class Settings(BaseSettings):
     eval_models: str = Field(default="gpt-4o-mini,gpt-4o", alias="EVAL_MODELS")
 
     # --- Retrieval / RAG behaviour ---
-    retrieval_mode: RetrievalMode = Field(default="hybrid", alias="RETRIEVAL_MODE")
-    enable_rewrite: bool = Field(default=True, alias="ENABLE_REWRITE")
+    # Defaults are the best config from the retrieval evaluation (§11.2):
+    # bm25 + structure chunks + rewrite off (hit@5=0.95, mrr@5=0.85).
+    retrieval_mode: RetrievalMode = Field(default="bm25", alias="RETRIEVAL_MODE")
+    enable_rewrite: bool = Field(default=False, alias="ENABLE_REWRITE")
     prompt_version: PromptVersion = Field(default="v2", alias="PROMPT_VERSION")
     chunker: ChunkerKind = Field(default="structure", alias="CHUNKER")
     top_k: int = Field(default=5, alias="TOP_K")

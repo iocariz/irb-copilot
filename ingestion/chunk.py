@@ -146,20 +146,24 @@ def chunk_naive(
     if overlap >= size:
         raise ValueError("overlap must be smaller than window size")
 
-    token_pages: list[tuple[int, int]] = []
+    # Track each token's page and source paragraph id, so a naive window records
+    # which paragraphs it covers — needed to match naive chunks to ground truth
+    # in the retrieval evaluation (SPEC §11.2).
+    tokens: list[tuple[int, int, str]] = []
     for para in doc.paragraphs:
         for tok in encode(para.text):
-            token_pages.append((tok, para.page))
+            tokens.append((tok, para.page, para.para_id))
 
     raws: list[_Raw] = []
     step = size - overlap
-    for start in range(0, max(len(token_pages), 1), step):
-        window = token_pages[start : start + size]
+    for start in range(0, max(len(tokens), 1), step):
+        window = tokens[start : start + size]
         if not window:
             break
-        text = decode([tok for tok, _ in window])
-        pages = sorted({page for _, page in window})
-        raws.append(_Raw([], [f"naive-{start}"], pages, text))
-        if start + size >= len(token_pages):
+        text = decode([tok for tok, _, _ in window])
+        pages = sorted({page for _, page, _ in window})
+        para_ids = list(dict.fromkeys(pid for _, _, pid in window))  # ordered-unique
+        raws.append(_Raw([], para_ids, pages, text))
+        if start + size >= len(tokens):
             break
     return _assign_ids(doc, raws)
