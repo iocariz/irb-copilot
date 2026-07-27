@@ -52,6 +52,10 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Consumed by the provisioned Postgres datasource (postgres.yaml).
+      POSTGRES_USER: ${POSTGRES_USER:-irb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-irb}
+      POSTGRES_DB: ${POSTGRES_DB:-irb}
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:

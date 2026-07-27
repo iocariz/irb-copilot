@@ -1,0 +1,5 @@
+model,prompt_version,n,relevant,partly_relevant,non_relevant,relevant_rate,citation_supported_rate,avg_answer_cost_usd,avg_judge_cost_usd,avg_latency_ms
+gpt-4o-mini,v1,100,76,21,3,0.76,0.69,0.00039333,0.00762693,2327.4
+gpt-4o-mini,v2,100,80,17,3,0.8,0.77,0.00040422,0.0075681,2335.5
+gpt-4o,v1,100,81,16,3,0.81,0.78,0.00633138,0.00754513,3951.3
+gpt-4o,v2,100,79,19,2,0.79,0.79,0.00667228,0.00753505,9867.2

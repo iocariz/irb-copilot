@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     )
 
     # --- LLM / embeddings (default provider: OpenAI) ---
+    # gpt-4o-mini is the RAG-eval choice (§11.3): ~gpt-4o quality at 1/16th cost.
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
     llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")

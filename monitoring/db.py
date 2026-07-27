@@ -77,8 +77,12 @@ def init_db() -> None:
     Base.metadata.create_all(_engine())
 
 
-def log_conversation(answer) -> str:  # noqa: ANN001 — app.rag.Answer (avoid import cycle)
-    """Persist an answered question; return the new conversation id."""
+def log_conversation(answer, judge_relevance: str | None = None) -> str:  # noqa: ANN001
+    """Persist an answered question; return the new conversation id.
+
+    `judge_relevance` is normally None for live traffic and filled by the RAG
+    evaluation (§11.3) when it seeds the monitoring DB.
+    """
     conversation_id = str(uuid.uuid4())
     with _sessions().begin() as session:
         session.add(
@@ -96,7 +100,7 @@ def log_conversation(answer) -> str:  # noqa: ANN001 — app.rag.Answer (avoid i
                 tokens_out=answer.tokens_out,
                 cost_usd=answer.cost_usd,
                 latency_ms=answer.latency_ms,
-                judge_relevance=None,
+                judge_relevance=judge_relevance,
             )
         )
     return conversation_id
