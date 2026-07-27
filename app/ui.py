@@ -1,9 +1,9 @@
 """Streamlit front end (SPEC §10).
 
-A single-page app: ask a question (optionally filtered to specific documents),
-see the cited answer with expandable source snippets, rate it 👍/👎, and view the
-model/cost/latency of the last answer in the sidebar. Calls the FastAPI backend;
-holds no chat history (single-turn).
+A single page: ask a question (optionally filtered to specific documents), watch
+the cited answer stream in, expand the source snippets, rate it 👍/👎, and ask
+follow-ups (a short conversation history is kept). Calls the FastAPI backend's
+streaming endpoint; model/cost/latency of the last answer are in the sidebar.
 """
 
 from __future__ import annotations
@@ -15,6 +15,8 @@ from pathlib import Path
 # `import app.*` would fail; add the repo root before importing app modules.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import json
+
 import httpx
 import streamlit as st
 import yaml
@@ -23,6 +25,7 @@ from app.config import get_settings
 
 settings = get_settings()
 _TIMEOUT = httpx.Timeout(120.0)
+_HISTORY_TURNS = 3  # prior turns sent as follow-up context
 
 
 def load_documents() -> dict[str, str]:
@@ -34,14 +37,19 @@ def load_documents() -> dict[str, str]:
     return {d["id"]: d["title"] for d in raw.get("documents", [])}
 
 
-def ask_api(question: str, doc_ids: list[str] | None) -> dict:
-    resp = httpx.post(
-        f"{settings.api_url}/ask",
-        json={"question": question, "doc_ids": doc_ids or None},
-        timeout=_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+def sse_ask(question: str, doc_ids: list[str], history: list[dict]):
+    """Yield (event, payload) parsed from the /ask/stream SSE response."""
+    payload = {"question": question, "doc_ids": doc_ids or None, "history": history or None}
+    with httpx.stream(
+        "POST", f"{settings.api_url}/ask/stream", json=payload, timeout=_TIMEOUT
+    ) as resp:
+        resp.raise_for_status()
+        event = None
+        for line in resp.iter_lines():
+            if line.startswith("event: "):
+                event = line[len("event: ") :]
+            elif line.startswith("data: "):
+                yield event, json.loads(line[len("data: ") :])
 
 
 def send_feedback(answer_id: str, thumbs: str, comment: str | None = None) -> None:
@@ -50,6 +58,48 @@ def send_feedback(answer_id: str, thumbs: str, comment: str | None = None) -> No
         json={"answer_id": answer_id, "thumbs": thumbs, "comment": comment},
         timeout=_TIMEOUT,
     ).raise_for_status()
+
+
+def render_details(ans: dict) -> None:
+    """Citations, grounding warning, source snippets, and feedback buttons."""
+    if ans.get("citations"):
+        st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
+    if ans.get("ungrounded_citations"):
+        st.warning(
+            "⚠ These citations were not found in the retrieved sources "
+            "(possible hallucination): " + "; ".join(ans["ungrounded_citations"])
+        )
+    st.markdown("#### Sources")
+    for src in ans["chunks_used"]:
+        header = f"{src['doc_title']} — para. {', '.join(src['para_ids'])} (p. {src['pages']})"
+        with st.expander(header):
+            if src["section_path"]:
+                st.caption(" › ".join(src["section_path"]))
+            st.write(src["text"])
+
+    col_up, col_down, _ = st.columns([1, 1, 6])
+    if col_up.button("👍", key=f"up_{ans.get('answer_id')}"):
+        _submit_feedback(ans, "up")
+    if col_down.button("👎", key=f"down_{ans.get('answer_id')}"):
+        _submit_feedback(ans, "down")
+
+
+def render_answer(ans: dict) -> None:
+    """Static (non-streaming) render of a stored answer."""
+    st.markdown("### Answer")
+    st.write(ans["text"])
+    render_details(ans)
+
+
+def _submit_feedback(ans: dict, thumbs: str) -> None:
+    if not ans.get("answer_id"):
+        st.warning("Answer was not logged; feedback unavailable.")
+        return
+    try:
+        send_feedback(ans["answer_id"], thumbs)
+        st.success("Thanks for the feedback!")
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Could not send feedback: {exc}")
 
 
 def render_sidebar() -> None:
@@ -65,47 +115,33 @@ def render_sidebar() -> None:
         f"mode: {ans['retrieval_mode']} · prompt: {ans['prompt_version']} · "
         f"tokens: {ans['tokens_in']}→{ans['tokens_out']}"
     )
-    if ans.get("rewritten_query") and ans["rewritten_query"] != ans["question"]:
-        st.sidebar.caption(f"rewritten: {ans['rewritten_query']}")
 
 
-def render_answer(ans: dict) -> None:
+def _run_streaming_ask(question: str, doc_ids: list[str]) -> None:
+    history = st.session_state.get("history", [])
     st.markdown("### Answer")
-    st.write(ans["text"])
+    captured: dict[str, dict] = {}
 
-    if ans.get("citations"):
-        st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
+    def tokens():
+        try:
+            for event, payload in sse_ask(question, doc_ids, history[-2 * _HISTORY_TURNS :]):
+                if event == "token":
+                    yield payload["text"]
+                else:
+                    captured[event] = payload
+        except Exception as exc:  # noqa: BLE001
+            st.error(f"Request failed: {exc}")
 
-    if ans.get("ungrounded_citations"):
-        st.warning(
-            "⚠ These citations were not found in the retrieved sources "
-            "(possible hallucination): " + "; ".join(ans["ungrounded_citations"])
-        )
-
-    st.markdown("### Sources")
-    for src in ans["chunks_used"]:
-        header = f"{src['doc_title']} — para. {', '.join(src['para_ids'])} (p. {src['pages']})"
-        with st.expander(header):
-            if src["section_path"]:
-                st.caption(" › ".join(src["section_path"]))
-            st.write(src["text"])
-
-    col_up, col_down, _ = st.columns([1, 1, 6])
-    if col_up.button("👍", key="up"):
-        _submit_feedback(ans, "up")
-    if col_down.button("👎", key="down"):
-        _submit_feedback(ans, "down")
-
-
-def _submit_feedback(ans: dict, thumbs: str) -> None:
-    if not ans.get("answer_id"):
-        st.warning("Answer was not logged; feedback unavailable.")
+    st.write_stream(tokens())
+    final = captured.get("done")
+    if not final:
         return
-    try:
-        send_feedback(ans["answer_id"], thumbs)
-        st.success("Thanks for the feedback!")
-    except Exception as exc:  # noqa: BLE001 — surface a friendly message.
-        st.error(f"Could not send feedback: {exc}")
+    render_details(final)
+    st.session_state["answer"] = final
+    st.session_state["history"] = history + [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": final["text"]},
+    ]
 
 
 def main() -> None:
@@ -115,6 +151,7 @@ def main() -> None:
         "Q&A over EU prudential regulation for credit-risk modeling. "
         "Answers cite their sources."
     )
+    st.session_state.setdefault("history", [])
 
     docs = load_documents()
     selected_titles = st.multiselect(
@@ -127,16 +164,24 @@ def main() -> None:
         "Your question",
         placeholder="What does the EBA require regarding margin of conservatism in LGD estimation?",
     )
+    col_ask, col_new = st.columns([1, 1])
+    ask = col_ask.button("Ask", type="primary")
+    if st.session_state["history"] and col_new.button("New conversation"):
+        st.session_state["history"] = []
+        st.session_state.pop("answer", None)
+        st.rerun()
 
-    if st.button("Ask", type="primary") and question.strip():
-        with st.spinner("Retrieving and answering…"):
-            try:
-                st.session_state["answer"] = ask_api(question.strip(), doc_ids)
-            except Exception as exc:  # noqa: BLE001
-                st.error(f"Request failed: {exc}")
+    if st.session_state["history"]:
+        with st.expander(f"Conversation so far ({len(st.session_state['history']) // 2} turns)"):
+            for turn in st.session_state["history"]:
+                who = "**You:** " if turn["role"] == "user" else "**Copilot:** "
+                st.markdown(who + turn["content"])
 
     render_sidebar()
-    if st.session_state.get("answer"):
+
+    if ask and question.strip():
+        _run_streaming_ask(question.strip(), doc_ids)
+    elif st.session_state.get("answer"):
         render_answer(st.session_state["answer"])
 
 

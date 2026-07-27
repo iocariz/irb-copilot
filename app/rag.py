@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Iterator
 
 from pydantic import BaseModel, Field
 
 from app.config import Settings, get_settings
 from app.prompts import build_messages
-from app.providers import complete
+from app.providers import LLMResult, complete, stream_complete
 from app.retrieval import RetrievedChunk, Retriever
-from app.rewrite import rewrite_query
+from app.rewrite import RewriteResult, rewrite_query
 
 # One bracketed citation group, and its "title, para. X" internals.
 _BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")
@@ -120,18 +121,14 @@ def _to_source(rc: RetrievedChunk) -> SourceChunk:
     )
 
 
-def answer(
+def _prepare(
     question: str,
-    doc_ids: list[str] | None = None,
-    *,
-    settings: Settings | None = None,
-    retriever: Retriever | None = None,
-) -> Answer:
-    """Run the full RAG flow and return a cited Answer."""
-    settings = settings or get_settings()
-    retriever = retriever or Retriever(settings)
-    started = time.perf_counter()
-
+    doc_ids: list[str] | None,
+    settings: Settings,
+    retriever: Retriever,
+    history: list[dict[str, str]] | None,
+) -> tuple[RewriteResult, list[SourceChunk], list[dict[str, str]]]:
+    """Shared front half: rewrite, retrieve, build messages."""
     rewrite = rewrite_query(question, settings)
     chunks = retriever.search(
         rewrite.rewritten,
@@ -139,14 +136,23 @@ def answer(
         top_k=settings.top_k,
         doc_ids=doc_ids,
     )
-    messages = build_messages(question, chunks, version=settings.prompt_version)
-    llm = complete(messages, model=settings.llm_model)
+    messages = build_messages(
+        question, chunks, version=settings.prompt_version, history=history
+    )
+    return rewrite, [_to_source(rc) for rc in chunks], messages
 
+
+def _assemble(
+    question: str,
+    rewrite: RewriteResult,
+    sources: list[SourceChunk],
+    llm: LLMResult,
+    settings: Settings,
+    started: float,
+) -> Answer:
+    """Shared back half: parse citations, self-check, assemble the Answer."""
     citations = parse_citations(llm.text)
-    sources = [_to_source(rc) for rc in chunks]
     ungrounded = check_citation_grounding(citations, sources)
-
-    latency_ms = int((time.perf_counter() - started) * 1000)
     return Answer(
         text=llm.text,
         citations=citations,
@@ -161,6 +167,55 @@ def answer(
         tokens_in=rewrite.tokens_in + llm.tokens_in,
         tokens_out=rewrite.tokens_out + llm.tokens_out,
         cost_usd=round(rewrite.cost_usd + llm.cost_usd, 8),
-        latency_ms=latency_ms,
+        latency_ms=int((time.perf_counter() - started) * 1000),
         used_rewrite=rewrite.used_llm,
     )
+
+
+def answer(
+    question: str,
+    doc_ids: list[str] | None = None,
+    *,
+    settings: Settings | None = None,
+    retriever: Retriever | None = None,
+    history: list[dict[str, str]] | None = None,
+) -> Answer:
+    """Run the full RAG flow and return a cited Answer."""
+    settings = settings or get_settings()
+    retriever = retriever or Retriever(settings)
+    started = time.perf_counter()
+    rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
+    llm = complete(messages, model=settings.llm_model)
+    return _assemble(question, rewrite, sources, llm, settings, started)
+
+
+def answer_stream(
+    question: str,
+    doc_ids: list[str] | None = None,
+    *,
+    settings: Settings | None = None,
+    retriever: Retriever | None = None,
+    history: list[dict[str, str]] | None = None,
+) -> Iterator[tuple[str, object]]:
+    """Streaming RAG flow.
+
+    Yields ("sources", list[SourceChunk]) once retrieval is done, then
+    ("token", str) for each generated delta, then ("answer", Answer) at the end.
+    """
+    settings = settings or get_settings()
+    retriever = retriever or Retriever(settings)
+    started = time.perf_counter()
+    rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
+    yield ("sources", sources)
+
+    stream = stream_complete(messages, model=settings.llm_model)
+    llm: LLMResult | None = None
+    while True:
+        try:
+            delta = next(stream)
+        except StopIteration as stop:
+            llm = stop.value
+            break
+        yield ("token", delta)
+
+    yield ("answer", _assemble(question, rewrite, sources, llm, settings, started))

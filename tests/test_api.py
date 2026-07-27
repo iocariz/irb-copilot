@@ -40,7 +40,7 @@ def client() -> TestClient:
 
 
 def test_ask_returns_answer_with_id(monkeypatch, client) -> None:
-    monkeypatch.setattr(api, "rag_answer", lambda q, d: _fake_answer())
+    monkeypatch.setattr(api, "rag_answer", lambda q, d, history=None: _fake_answer())
     monkeypatch.setattr(api, "log_conversation", lambda a: "cid-123")
     resp = client.post("/ask", json={"question": "What about MoC?"})
     assert resp.status_code == 200
@@ -51,8 +51,27 @@ def test_ask_returns_answer_with_id(monkeypatch, client) -> None:
     assert data["citations"][0]["paras"] == "82"
 
 
+def test_ask_stream_emits_sse_events(monkeypatch, client) -> None:
+    ans = _fake_answer()
+
+    def fake_stream(question, doc_ids=None, history=None):
+        yield ("sources", ans.chunks_used)
+        yield ("token", "Institutions ")
+        yield ("token", "must apply MoC.")
+        yield ("answer", ans)
+
+    monkeypatch.setattr(api, "answer_stream", fake_stream)
+    monkeypatch.setattr(api, "log_conversation", lambda a: "cid-9")
+    resp = client.post("/ask/stream", json={"question": "q"})
+    assert resp.status_code == 200
+    body = resp.text
+    assert "event: sources" in body
+    assert "event: token" in body and "Institutions " in body
+    assert "event: done" in body and "cid-9" in body
+
+
 def test_ask_survives_logging_failure(monkeypatch, client) -> None:
-    monkeypatch.setattr(api, "rag_answer", lambda q, d: _fake_answer())
+    monkeypatch.setattr(api, "rag_answer", lambda q, d, history=None: _fake_answer())
 
     def boom(_a):
         raise RuntimeError("db down")

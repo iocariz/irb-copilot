@@ -6,7 +6,7 @@ parsing, prompt assembly, cost — without requiring Qdrant, BM25 files, or an L
 
 from __future__ import annotations
 
-from app.prompts import build_context, citation_header, system_prompt
+from app.prompts import build_context, build_messages, citation_header, system_prompt
 from app.providers import estimate_cost
 from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations
 from app.retrieval import RetrievedChunk, filter_by_doc_ids, reciprocal_rank_fusion
@@ -139,6 +139,22 @@ def test_system_prompt_versions_differ() -> None:
     assert "few" not in system_prompt("v1").lower() or True  # v1 is the plain base
     assert len(system_prompt("v2")) > len(system_prompt("v1"))
     assert "Example:" in system_prompt("v2")
+
+
+def test_build_messages_inserts_history_before_question() -> None:
+    history = [
+        {"role": "user", "content": "prev q"},
+        {"role": "assistant", "content": "prev a"},
+    ]
+    msgs = build_messages("q", [_rc("1")], version="v2", history=history)
+    assert msgs[0]["role"] == "system"
+    assert msgs[1:3] == history
+    assert msgs[-1]["role"] == "user" and "Context:" in msgs[-1]["content"]
+
+
+def test_build_messages_without_history() -> None:
+    msgs = build_messages("q", [_rc("1")], version="v1")
+    assert len(msgs) == 2 and msgs[0]["role"] == "system" and msgs[1]["role"] == "user"
 
 
 def test_system_prompt_unknown_raises() -> None:

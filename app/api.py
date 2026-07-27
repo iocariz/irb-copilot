@@ -10,14 +10,16 @@ Conversation logging is best-effort: a monitoring outage must not stop answers.
 
 from __future__ import annotations
 
+import json
 from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.config import get_settings
-from app.rag import Answer
+from app.rag import Answer, answer_stream
 from app.rag import answer as rag_answer
 from monitoring.db import init_db, log_conversation, log_feedback, ping_postgres
 
@@ -25,6 +27,8 @@ from monitoring.db import init_db, log_conversation, log_feedback, ping_postgres
 class AskRequest(BaseModel):
     question: str
     doc_ids: list[str] | None = None
+    # Prior turns [{role, content}] for follow-up questions (optional).
+    history: list[dict[str, str]] | None = None
 
 
 class AskResponse(Answer):
@@ -53,13 +57,46 @@ app = FastAPI(title="IRB Copilot", version="0.1.0", lifespan=lifespan)
 
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest) -> AskResponse:
-    answer = rag_answer(request.question, request.doc_ids)
-    try:
-        answer_id = log_conversation(answer)
-    except Exception as exc:  # noqa: BLE001 — answering must survive logging errors.
-        print(f"[api] log_conversation failed: {exc}")
-        answer_id = ""
+    answer = rag_answer(request.question, request.doc_ids, history=request.history)
+    answer_id = _log(answer)
     return AskResponse(answer_id=answer_id, **answer.model_dump())
+
+
+@app.post("/ask/stream")
+def ask_stream(request: AskRequest) -> StreamingResponse:
+    """Server-sent events: `sources` once, then `token` deltas, then `done`
+    (the full Answer + answer_id)."""
+
+    def events():  # noqa: ANN202
+        final: Answer | None = None
+        for kind, payload in answer_stream(
+            request.question, request.doc_ids, history=request.history
+        ):
+            if kind == "sources":
+                yield _sse("sources", [s.model_dump() for s in payload])
+            elif kind == "token":
+                yield _sse("token", {"text": payload})
+            elif kind == "answer":
+                final = payload
+        answer_id = _log(final) if final else ""
+        yield _sse("done", {"answer_id": answer_id, **(final.model_dump() if final else {})})
+
+    return StreamingResponse(events(), media_type="text/event-stream")
+
+
+def _log(answer: Answer | None) -> str:
+    """Best-effort conversation logging; answering must survive DB errors."""
+    if answer is None:
+        return ""
+    try:
+        return log_conversation(answer)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[api] log_conversation failed: {exc}")
+        return ""
+
+
+def _sse(event: str, data: object) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
 @app.post("/feedback")

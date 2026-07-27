@@ -9,6 +9,7 @@ with a warning rather than failing.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -86,6 +87,49 @@ def complete(
     tokens_out = usage.completion_tokens if usage else 0
     return LLMResult(
         text=response.choices[0].message.content or "",
+        model=model,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=estimate_cost(model, tokens_in, tokens_out),
+        latency_ms=latency_ms,
+    )
+
+
+def stream_complete(
+    messages: list[dict[str, str]],
+    *,
+    model: str | None = None,
+    temperature: float = 0.0,
+    max_tokens: int | None = None,
+) -> Iterator[str]:
+    """Stream a chat completion token-by-token.
+
+    Yields text deltas as they arrive; the generator's return value (available
+    via StopIteration.value) is the final `LLMResult` with token/cost/latency.
+    """
+    model = model or settings.llm_model
+    client = openai_client()
+    start = time.perf_counter()
+    stream = client.chat.completions.create(
+        model=model,
+        messages=messages,  # type: ignore[arg-type]
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=True,
+        stream_options={"include_usage": True},
+    )
+    parts: list[str] = []
+    tokens_in = tokens_out = 0
+    for chunk in stream:
+        if chunk.usage:  # final usage-only chunk
+            tokens_in = chunk.usage.prompt_tokens
+            tokens_out = chunk.usage.completion_tokens
+        if chunk.choices and (delta := chunk.choices[0].delta.content):
+            parts.append(delta)
+            yield delta
+    latency_ms = int((time.perf_counter() - start) * 1000)
+    return LLMResult(
+        text="".join(parts),
         model=model,
         tokens_in=tokens_in,
         tokens_out=tokens_out,

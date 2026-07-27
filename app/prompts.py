@@ -61,16 +61,26 @@ def build_context(chunks: list[RetrievedChunk]) -> str:
 
 
 def build_messages(
-    question: str, chunks: list[RetrievedChunk], *, version: str
+    question: str,
+    chunks: list[RetrievedChunk],
+    *,
+    version: str,
+    history: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
-    """Assemble the chat messages for the answer call."""
+    """Assemble the chat messages for the answer call.
+
+    `history` (prior user/assistant turns) is inserted before the current
+    question so follow-ups can resolve references; grounding still comes only
+    from the freshly retrieved context.
+    """
     context = build_context(chunks)
     user = (
         f"Context:\n{context}\n\n"
         f"Question: {question}\n\n"
         "Answer using only the context above, with inline citations."
     )
-    return [
-        {"role": "system", "content": system_prompt(version)},
-        {"role": "user", "content": user},
-    ]
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt(version)}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": user})
+    return messages
