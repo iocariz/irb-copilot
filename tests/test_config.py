@@ -45,6 +45,22 @@ def test_eval_models_list_parsing() -> None:
     assert s.eval_models_list == ["gpt-4o-mini", "gpt-4o"]
 
 
+def test_data_paths_are_absolute_and_root_anchored() -> None:
+    """Relative path settings resolve against the repo root, not the cwd."""
+    from app.config import PROJECT_ROOT
+
+    s = Settings(_env_file=None)
+    assert s.bm25_index_dir.is_absolute()
+    assert s.bm25_index_dir == PROJECT_ROOT / "data" / "bm25_index"
+    assert s.data_path == PROJECT_ROOT / "data"
+    assert s.raw_path == PROJECT_ROOT / "data" / "raw"
+
+
+def test_absolute_path_setting_is_left_unchanged() -> None:
+    s = Settings(_env_file=None, BM25_INDEX_PATH="/tmp/idx")
+    assert str(s.bm25_index_dir) == "/tmp/idx"
+
+
 def test_module_exposes_cached_singleton() -> None:
     """`settings` singleton and `get_settings()` cache are wired up."""
     import app.config as cfg

@@ -32,23 +32,25 @@ dependencies = [
     "matplotlib>=3.9",
 ]
 
-[project.optional-dependencies]
-# Heavy, torch-backed deps. Not needed for the default app path
-# (bm25 | vector | hybrid retrieval + OpenAI API). Pulled in per phase:
-#   parse  -> ingestion `parse` stage (docling)              [phase 2]
-#   rerank -> RETRIEVAL_MODE=hybrid_rerank (cross-encoder)    [phase 3]
-parse = ["docling>=2.7"]
-rerank = ["sentence-transformers>=3.0"]
-
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "ruff>=0.6",
+    "ipykernel>=6.29",
 ]
+# Heavy, torch-backed deps kept as groups (not optional-extras) so `uv run`
+# does NOT uninstall them on every invocation. Included by default via
+# [tool.uv] default-groups below; opt out with e.g. `uv sync --no-group parse`.
+#   parse  -> ingestion `parse` stage (docling)
+#   rerank -> RETRIEVAL_MODE=hybrid_rerank (cross-encoder)
+parse = ["docling>=2.7"]
+rerank = ["sentence-transformers>=3.0"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Notebooks need a sys.path bootstrap before imports (E402); don't lint them.
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -59,3 +61,6 @@ addopts = "-q"
 
 [tool.uv]
 package = false
+# Install these groups by default (incl. on `uv run`) so docling/reranker stay
+# present. Lighter installs can opt out with `uv sync --no-group parse` etc.
+default-groups = ["dev", "parse", "rerank"]

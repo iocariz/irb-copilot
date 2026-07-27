@@ -51,7 +51,14 @@ def parse_pdf(pdf_path: Path, doc_id: str, doc_title: str) -> ParsedDoc:
     """Parse a PDF into a ParsedDoc, docling first with pymupdf fallback."""
     try:
         paragraphs = _parse_with_docling(pdf_path)
-    except Exception as exc:  # noqa: BLE001 — fall back, but say why.
+    except ImportError as exc:
+        # docling not installed is an environment error, not a per-document
+        # parse failure — fail loudly rather than silently degrading quality.
+        raise RuntimeError(
+            "docling is required for parsing but is not installed. "
+            "Run `uv sync` (docling is a default group) or `make setup`."
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 — genuine per-doc failure: fall back.
         print(f"[parse] docling failed on {doc_id} ({exc}); falling back to pymupdf")
         paragraphs = split_into_paragraphs(_extract_pages_pymupdf(pdf_path))
     if not paragraphs:

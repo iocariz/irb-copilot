@@ -10,6 +10,7 @@ See `.env.example` for the documented set of variables.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -18,6 +19,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 RetrievalMode = Literal["bm25", "vector", "hybrid", "hybrid_rerank"]
 PromptVersion = Literal["v1", "v2"]
 ChunkerKind = Literal["structure", "naive"]
+
+# Repository root (this file is <root>/app/config.py). Relative data paths are
+# resolved against it so filesystem access works regardless of the process cwd
+# (CLI from root, notebooks from notebooks/, API/UI, containers).
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve(path_str: str) -> Path:
+    """Resolve a possibly-relative path against the project root."""
+    path = Path(path_str)
+    return path if path.is_absolute() else PROJECT_ROOT / path
 
 
 class Settings(BaseSettings):
@@ -29,7 +41,8 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Absolute so the root .env loads regardless of cwd (CLI, notebook, API).
+        env_file=str(PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -79,6 +92,19 @@ class Settings(BaseSettings):
     def eval_models_list(self) -> list[str]:
         """`EVAL_MODELS` parsed into a clean list."""
         return [m.strip() for m in self.eval_models.split(",") if m.strip()]
+
+    # Absolute, cwd-independent versions of the path settings (use these for I/O).
+    @property
+    def data_path(self) -> Path:
+        return _resolve(self.data_dir)
+
+    @property
+    def raw_path(self) -> Path:
+        return _resolve(self.raw_dir)
+
+    @property
+    def bm25_index_dir(self) -> Path:
+        return _resolve(self.bm25_index_path)
 
 
 @lru_cache(maxsize=1)

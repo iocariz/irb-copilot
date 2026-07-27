@@ -27,8 +27,8 @@ STAGES = ("download", "parse", "chunk", "index")
 
 def main() -> None:
     args = _parse_args()
-    data_dir = Path(settings.data_dir)
-    raw_dir = Path(settings.raw_dir)
+    data_dir = settings.data_path
+    raw_dir = settings.raw_path
     parsed_dir = data_dir / "parsed"
     chunks_dir = data_dir / "chunks"
 

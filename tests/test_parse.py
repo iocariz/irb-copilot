@@ -178,3 +178,21 @@ def test_pymupdf_fallback_pipeline_on_fixture_pdf(tmp_path: Path) -> None:
     paras = split_into_paragraphs(_extract_pages_pymupdf(pdf_path))
     ids = [p.para_id for p in paras]
     assert "81" in ids and "82" in ids
+
+
+def test_missing_docling_fails_loudly(tmp_path: Path, monkeypatch) -> None:
+    """A missing docling install is an environment error, not a silent fallback."""
+    import ingestion.parse as parse_mod
+
+    def _raise_import_error(_path):
+        raise ImportError("No module named 'docling'")
+
+    monkeypatch.setattr(parse_mod, "_parse_with_docling", _raise_import_error)
+    pdf_path = tmp_path / "sample.pdf"
+    _write_fixture_pdf(pdf_path)
+    try:
+        parse_mod.parse_pdf(pdf_path, doc_id="x", doc_title="X")
+    except RuntimeError as exc:
+        assert "docling" in str(exc)
+        return
+    raise AssertionError("expected RuntimeError when docling is missing")

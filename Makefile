@@ -8,8 +8,8 @@ help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Install deps (incl. dev + parse + rerank extras) and create .env
-	uv sync --extra parse --extra rerank --group dev
+setup: ## Install deps (dev + parse + rerank are default groups) and create .env
+	uv sync
 	@test -f .env || cp .env.example .env
 
 up: ## Start backing services (qdrant + postgres + grafana)

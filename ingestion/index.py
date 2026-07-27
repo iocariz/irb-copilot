@@ -8,7 +8,6 @@ BM25 index over the same chunk texts for lexical retrieval.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
@@ -83,7 +82,7 @@ def build_bm25(chunks: list[Chunk]) -> None:
     """Build and persist a BM25 index plus a parallel chunk manifest to disk."""
     import bm25s
 
-    out_dir = Path(settings.bm25_index_path)
+    out_dir = settings.bm25_index_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     corpus = [c.text for c in chunks]
