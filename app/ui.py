@@ -76,6 +76,12 @@ def render_answer(ans: dict) -> None:
     if ans.get("citations"):
         st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
 
+    if ans.get("ungrounded_citations"):
+        st.warning(
+            "⚠ These citations were not found in the retrieved sources "
+            "(possible hallucination): " + "; ".join(ans["ungrounded_citations"])
+        )
+
     st.markdown("### Sources")
     for src in ans["chunks_used"]:
         header = f"{src['doc_title']} — para. {', '.join(src['para_ids'])} (p. {src['pages']})"

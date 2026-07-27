@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from app.prompts import build_context, citation_header, system_prompt
 from app.providers import estimate_cost
-from app.rag import parse_citations
+from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations
 from app.retrieval import RetrievedChunk, filter_by_doc_ids, reciprocal_rank_fusion
 from app.rewrite import expand_acronyms, unknown_acronyms
 from ingestion.models import Chunk
@@ -92,6 +92,34 @@ def test_parse_citations_splits_multiple_and_dedupes() -> None:
     cites = parse_citations(text)
     keys = [(c.doc_title, c.paras) for c in cites]
     assert keys == [("Doc A", "1"), ("Doc B", "2")]
+
+
+# --- citation grounding self-check ------------------------------------------ #
+def _src(doc_title: str, para_ids: list[str]) -> SourceChunk:
+    return SourceChunk(
+        chunk_id="x", doc_id="d", doc_title=doc_title, section_path=[],
+        para_ids=para_ids, pages=[1], score=1.0, text="t",
+    )
+
+
+def test_grounding_all_citations_backed() -> None:
+    cites = [Citation(text="Doc A, para. 82", doc_title="Doc A", paras="82")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82", "83"])]) == []
+
+
+def test_grounding_flags_missing_paragraph() -> None:
+    cites = [Citation(text="Doc A, para. 99", doc_title="Doc A", paras="99")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == ["Doc A, para. 99"]
+
+
+def test_grounding_flags_wrong_document() -> None:
+    cites = [Citation(text="Doc B, para. 82", doc_title="Doc B", paras="82")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == ["Doc B, para. 82"]
+
+
+def test_grounding_multi_para_partial_match_is_grounded() -> None:
+    cites = [Citation(text="Doc A, para. 82, 99", doc_title="Doc A", paras="82, 99")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == []
 
 
 # --- prompts ---------------------------------------------------------------- #

@@ -24,6 +24,7 @@ from app.rewrite import rewrite_query
 # One bracketed citation group, and its "title, para. X" internals.
 _BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")
 _CITE_RE = re.compile(r"^(?P<title>.+?),\s*para\.?\s*(?P<paras>.+)$", re.IGNORECASE)
+_PARA_SPLIT_RE = re.compile(r"[,;]")
 
 
 class Citation(BaseModel):
@@ -63,6 +64,9 @@ class Answer(BaseModel):
     cost_usd: float
     latency_ms: int
     used_rewrite: bool = Field(default=False)
+    # Answer-time self-check: are all citations backed by a retrieved source?
+    citations_grounded: bool = Field(default=True)
+    ungrounded_citations: list[str] = Field(default_factory=list)
 
 
 def parse_citations(text: str) -> list[Citation]:
@@ -80,6 +84,26 @@ def parse_citations(text: str) -> list[Citation]:
                 seen.add((title, paras))
                 citations.append(Citation(text=part, doc_title=title, paras=paras))
     return citations
+
+
+def check_citation_grounding(
+    citations: list[Citation], chunks_used: list[SourceChunk]
+) -> list[str]:
+    """Return the texts of citations NOT backed by a retrieved source (pure).
+
+    A citation is grounded if some retrieved chunk shares its document title and
+    at least one cited paragraph number. Ungrounded citations mean the model
+    cited outside the context it was given — a likely hallucination.
+    """
+    available: dict[str, set[str]] = {}
+    for chunk in chunks_used:
+        available.setdefault(chunk.doc_title, set()).update(chunk.para_ids)
+    ungrounded: list[str] = []
+    for citation in citations:
+        cited = {p.strip() for p in _PARA_SPLIT_RE.split(citation.paras) if p.strip()}
+        if not (cited & available.get(citation.doc_title, set())):
+            ungrounded.append(citation.text)
+    return ungrounded
 
 
 def _to_source(rc: RetrievedChunk) -> SourceChunk:
@@ -118,11 +142,17 @@ def answer(
     messages = build_messages(question, chunks, version=settings.prompt_version)
     llm = complete(messages, model=settings.llm_model)
 
+    citations = parse_citations(llm.text)
+    sources = [_to_source(rc) for rc in chunks]
+    ungrounded = check_citation_grounding(citations, sources)
+
     latency_ms = int((time.perf_counter() - started) * 1000)
     return Answer(
         text=llm.text,
-        citations=parse_citations(llm.text),
-        chunks_used=[_to_source(rc) for rc in chunks],
+        citations=citations,
+        chunks_used=sources,
+        citations_grounded=not ungrounded,
+        ungrounded_citations=ungrounded,
         question=question,
         rewritten_query=rewrite.rewritten,
         retrieval_mode=settings.retrieval_mode,
