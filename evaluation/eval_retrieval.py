@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from pathlib import Path
 
 import matplotlib
 
@@ -43,18 +44,24 @@ TOP_K = 5
 RESULTS_DIR = PROJECT_ROOT / "evaluation" / "results"
 
 
-def load_ground_truth() -> list[dict]:
-    """Load ground_truth.csv, parsing para_ids into a list."""
-    if not GROUND_TRUTH_CSV.exists():
+def load_ground_truth(path: Path) -> list[dict]:
+    """Load a ground-truth CSV, parsing para_ids into a list."""
+    if not path.exists():
         raise FileNotFoundError(
-            f"{GROUND_TRUTH_CSV} not found — run `python -m evaluation.generate_ground_truth`"
+            f"{path} not found — run `python -m evaluation.generate_ground_truth`"
         )
     rows: list[dict] = []
-    with GROUND_TRUTH_CSV.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             row["para_ids_list"] = [p for p in row["para_ids"].split(",") if p]
             rows.append(row)
     return rows
+
+
+def output_suffix(gt_path: Path) -> str:
+    """'' for ground_truth.csv, '_hard' for ground_truth_hard.csv, etc."""
+    stem = gt_path.stem
+    return "" if stem == "ground_truth" else "_" + stem.removeprefix("ground_truth_")
 
 
 def ensure_naive_index(settings: Settings, *, rebuild: bool) -> tuple[str, object]:
@@ -142,19 +149,20 @@ def _config_label(r: dict) -> str:
     return f"{r['retrieval_mode']}|{r['chunker']}|{'rw' if r['rewrite'] else 'raw'}"
 
 
-def write_outputs(results: list[dict]) -> dict:
+def write_outputs(results: list[dict], suffix: str = "") -> dict:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    csv_path = RESULTS_DIR / "retrieval_eval.csv"
+    csv_path = RESULTS_DIR / f"retrieval_eval{suffix}.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=list(results[0].keys()))
         writer.writeheader()
         writer.writerows(results)
 
     labels = [_config_label(r) for r in results]
-    _bar_chart(labels, [r["hit_rate_at_5"] for r in results], RESULTS_DIR / "retrieval_eval.png")
+    png_path = RESULTS_DIR / f"retrieval_eval{suffix}.png"
+    _bar_chart(labels, [r["hit_rate_at_5"] for r in results], png_path)
 
     best = max(results, key=lambda r: (r["hit_rate_at_5"], r["mrr_at_5"]))
-    print(f"\n[eval] wrote {csv_path} and retrieval_eval.png")
+    print(f"\n[eval] wrote {csv_path} and {png_path.name}")
     print(
         f"[eval] BEST: mode={best['retrieval_mode']} chunker={best['chunker']} "
         f"rewrite={best['rewrite']} (hit@5={best['hit_rate_at_5']}, mrr@5={best['mrr_at_5']})"
@@ -179,18 +187,23 @@ def _bar_chart(labels: list[str], values: list[float], out_path) -> None:
 def main() -> None:
     args = _parse_args()
     settings = get_settings()
-    gt = load_ground_truth()
+    gt_path = Path(args.ground_truth)
+    gt = load_ground_truth(gt_path)
     if args.limit:
         gt = gt[: args.limit]
     print(f"[eval] {len(gt)} ground-truth questions x {len(MODES) * len(CHUNKERS) * 2} configs")
     results = run(gt, settings, rebuild_naive=args.rebuild_naive)
-    write_outputs(results)
+    write_outputs(results, output_suffix(gt_path))
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="eval_retrieval", description=__doc__)
     parser.add_argument("--limit", type=int, default=None, help="cap ground-truth rows")
     parser.add_argument("--rebuild-naive", action="store_true", help="rebuild naive index")
+    parser.add_argument(
+        "--ground-truth", default=str(GROUND_TRUTH_CSV),
+        help="ground-truth CSV (e.g. evaluation/ground_truth_hard.csv)",
+    )
     return parser.parse_args()
 
 

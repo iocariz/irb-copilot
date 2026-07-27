@@ -2,7 +2,7 @@
 # All Python runs through `uv run` so the pinned environment (uv.lock) is used.
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down ingest ground-truth eval-retrieval eval-rag run api ui test lint fmt
+.PHONY: help setup up down ingest ground-truth ground-truth-hard eval-retrieval eval-retrieval-hard eval-rag run api ui test lint fmt
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -24,8 +24,14 @@ ingest: ## Run the full ingestion pipeline via Prefect (download -> parse -> chu
 ground-truth: ## Generate evaluation ground truth (LLM; writes evaluation/ground_truth.csv)
 	uv run python -m evaluation.generate_ground_truth
 
+ground-truth-hard: ## Generate de-biased (paraphrased) ground truth
+	uv run python -m evaluation.generate_ground_truth --style hard
+
 eval-retrieval: ## Evaluate retrieval configs, pick the best (writes results/)
 	uv run python -m evaluation.eval_retrieval
+
+eval-retrieval-hard: ## Evaluate retrieval on the de-biased ground truth
+	uv run python -m evaluation.eval_retrieval --ground-truth evaluation/ground_truth_hard.csv
 
 eval-rag: ## Evaluate RAG prompt/model configs (writes results/)
 	uv run python -m evaluation.eval_rag

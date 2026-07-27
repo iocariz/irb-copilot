@@ -140,6 +140,12 @@ regulatory terms) → `ENABLE_REWRITE=false`. `bm25` wins on this corpus; note t
 LLM-generated ground truth reuses chunk vocabulary, which favors lexical search.
 **Chosen default: `bm25` + structure + no rewrite.**
 
+*De-biased evaluation:* `generate_ground_truth --style hard` writes paraphrased
+questions that avoid the source vocabulary (measured mean lexical overlap drops
+**0.83 → 0.46**); `make eval-retrieval-hard` re-runs the eval on that set
+(`results/retrieval_eval_hard.*`) to check whether `hybrid`/`hybrid_rerank`
+overtake `bm25` when questions don't echo the passage.
+
 ### RAG (`eval_rag.py`) — LLM-as-judge, 100 questions × 4 configs
 
 Judge (gpt-4o) labels each answer RELEVANT / PARTLY / NON and checks citation

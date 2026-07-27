@@ -10,7 +10,33 @@ chunker: structure chunks match the ground-truth chunk id exactly; naive chunks
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
+
+# Minimal stopword set so lexical-overlap reflects content words, not filler.
+_STOPWORDS = frozenset({
+    "the", "a", "an", "of", "to", "in", "on", "for", "and", "or", "is", "are", "be",
+    "as", "by", "with", "that", "this", "these", "those", "it", "its", "at", "from",
+    "which", "what", "when", "how", "may", "should", "shall", "must", "not", "no", "if",
+})
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _content_words(text: str) -> set[str]:
+    return {w for w in _WORD_RE.findall(text.lower()) if len(w) > 2 and w not in _STOPWORDS}
+
+
+def lexical_overlap(question: str, passage: str) -> float:
+    """Fraction of the question's content words that appear in the passage.
+
+    A proxy for lexical bias: LLM-generated questions that reuse the source's
+    vocabulary score high (favouring lexical/BM25 retrieval); paraphrased,
+    "de-biased" questions score lower. Range [0, 1].
+    """
+    q = _content_words(question)
+    if not q:
+        return 0.0
+    return len(q & _content_words(passage)) / len(q)
 
 
 def hit_rate_at_k(relevances: Sequence[Sequence[bool]], k: int) -> float:

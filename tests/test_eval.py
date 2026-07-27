@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from evaluation.eval_retrieval import output_suffix
 from evaluation.generate_ground_truth import parse_questions
 from evaluation.metrics import (
     hit_rate_at_k,
+    lexical_overlap,
     mrr_at_k,
     relevant_by_chunk_id,
     relevant_by_paragraph,
@@ -74,6 +78,28 @@ def test_stratified_sample_respects_small_n() -> None:
 
 
 # --- ground-truth question parsing ------------------------------------------ #
+# --- lexical overlap (de-biasing signal) + output suffix --------------------- #
+def test_lexical_overlap_high_when_question_reuses_vocabulary() -> None:
+    passage = "margin of conservatism in LGD estimation for defaulted exposures"
+    question = "What margin of conservatism applies to LGD estimation?"
+    assert lexical_overlap(question, passage) > 0.6
+
+
+def test_lexical_overlap_low_when_paraphrased() -> None:
+    passage = "margin of conservatism in LGD estimation for defaulted exposures"
+    question = "How much extra caution is needed when computing recovery rates?"
+    assert lexical_overlap(question, passage) < 0.3
+
+
+def test_lexical_overlap_empty_question() -> None:
+    assert lexical_overlap("", "anything") == 0.0
+
+
+def test_output_suffix_maps_filename_to_tag() -> None:
+    assert output_suffix(Path("evaluation/ground_truth.csv")) == ""
+    assert output_suffix(Path("x/ground_truth_hard.csv")) == "_hard"
+
+
 def test_parse_questions_json_array() -> None:
     text = 'Here: ["What is PD?", "Define LGD.", "Extra?"]'
     assert parse_questions(text, 2) == ["What is PD?", "Define LGD."]
