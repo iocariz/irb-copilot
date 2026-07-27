@@ -3,6 +3,11 @@
 {$SITE_ADDRESS} {
 	encode gzip
 
+	# Reject oversized request bodies at the edge (cheap DoS/cost guard).
+	request_body {
+		max_size 64KB
+	}
+
 	# API under /api (prefix stripped before proxying to FastAPI).
 	handle_path /api/* {
 		reverse_proxy api:8000

@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 import app.api as api
 from app.rag import Answer, Citation, SourceChunk
+from app.security import RateLimiter
 
 
 def _fake_answer() -> Answer:
@@ -28,10 +29,11 @@ def _fake_answer() -> Answer:
 
 @pytest.fixture(autouse=True)
 def _safe_defaults(monkeypatch):
-    """Never touch a real DB / Qdrant during API tests."""
+    """Never touch a real DB / Qdrant, and don't rate-limit, during API tests."""
     monkeypatch.setattr(api, "init_db", lambda: None)
     monkeypatch.setattr(api, "ping_qdrant", lambda: True)
     monkeypatch.setattr(api, "ping_postgres", lambda: True)
+    monkeypatch.setattr(api, "_limiter", RateLimiter(0))  # disabled
 
 
 @pytest.fixture
@@ -97,6 +99,55 @@ def test_feedback_records(monkeypatch, client) -> None:
 def test_feedback_rejects_invalid_thumbs(client) -> None:
     resp = client.post("/feedback", json={"answer_id": "x", "thumbs": "maybe"})
     assert resp.status_code == 422  # Literal["up","down"] validation
+
+
+# --- input bounds ----------------------------------------------------------- #
+def test_ask_rejects_oversized_question(client) -> None:
+    resp = client.post("/ask", json={"question": "x" * 5000})
+    assert resp.status_code == 422
+
+
+def test_ask_rejects_empty_question(client) -> None:
+    assert client.post("/ask", json={"question": ""}).status_code == 422
+
+
+def test_ask_rejects_too_many_doc_ids(client) -> None:
+    resp = client.post("/ask", json={"question": "q", "doc_ids": [str(i) for i in range(50)]})
+    assert resp.status_code == 422
+
+
+def test_ask_rejects_overlong_history(client) -> None:
+    hist = [{"role": "user", "content": "x"} for _ in range(50)]
+    assert client.post("/ask", json={"question": "q", "history": hist}).status_code == 422
+
+
+def test_feedback_rejects_overlong_comment(client) -> None:
+    resp = client.post(
+        "/feedback", json={"answer_id": "a", "thumbs": "up", "comment": "x" * 5000}
+    )
+    assert resp.status_code == 422
+
+
+# --- optional API-key auth -------------------------------------------------- #
+def test_ask_requires_api_key_when_configured(monkeypatch, client) -> None:
+    monkeypatch.setattr(api._settings, "api_key", "secret")
+    monkeypatch.setattr(api, "rag_answer", lambda q, d, history=None: _fake_answer())
+    monkeypatch.setattr(api, "log_conversation", lambda a: "cid")
+    assert client.post("/ask", json={"question": "q"}).status_code == 401
+    assert client.post(
+        "/ask", json={"question": "q"}, headers={"X-API-Key": "wrong"}
+    ).status_code == 401
+    assert client.post(
+        "/ask", json={"question": "q"}, headers={"X-API-Key": "secret"}
+    ).status_code == 200
+
+
+def test_rate_limit_returns_429(monkeypatch, client) -> None:
+    monkeypatch.setattr(api, "_limiter", RateLimiter(1))
+    monkeypatch.setattr(api, "rag_answer", lambda q, d, history=None: _fake_answer())
+    monkeypatch.setattr(api, "log_conversation", lambda a: "cid")
+    assert client.post("/ask", json={"question": "q"}).status_code == 200
+    assert client.post("/ask", json={"question": "q"}).status_code == 429
 
 
 def test_health_ok(client) -> None:

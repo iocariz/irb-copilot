@@ -28,6 +28,11 @@ _TIMEOUT = httpx.Timeout(120.0)
 _HISTORY_TURNS = 3  # prior turns sent as follow-up context
 
 
+def _headers() -> dict[str, str]:
+    """Attach the API key when the backend requires one."""
+    return {"X-API-Key": settings.api_key} if settings.api_key else {}
+
+
 def load_documents() -> dict[str, str]:
     """Return {doc_id: title} from data/sources.yaml for the document filter."""
     path = settings.data_path / "sources.yaml"
@@ -41,7 +46,7 @@ def sse_ask(question: str, doc_ids: list[str], history: list[dict]):
     """Yield (event, payload) parsed from the /ask/stream SSE response."""
     payload = {"question": question, "doc_ids": doc_ids or None, "history": history or None}
     with httpx.stream(
-        "POST", f"{settings.api_url}/ask/stream", json=payload, timeout=_TIMEOUT
+        "POST", f"{settings.api_url}/ask/stream", json=payload, headers=_headers(), timeout=_TIMEOUT
     ) as resp:
         resp.raise_for_status()
         event = None
@@ -56,6 +61,7 @@ def send_feedback(answer_id: str, thumbs: str, comment: str | None = None) -> No
     httpx.post(
         f"{settings.api_url}/feedback",
         json={"answer_id": answer_id, "thumbs": thumbs, "comment": comment},
+        headers=_headers(),
         timeout=_TIMEOUT,
     ).raise_for_status()
 

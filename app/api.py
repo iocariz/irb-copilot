@@ -11,24 +11,72 @@ Conversation logging is best-effort: a monitoring outage must not stop answers.
 from __future__ import annotations
 
 import json
+import time
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import get_settings
 from app.rag import Answer, answer_stream
 from app.rag import answer as rag_answer
+from app.security import RateLimiter, client_ip
 from monitoring.db import init_db, log_conversation, log_feedback, ping_postgres
+
+_settings = get_settings()
+_limiter = RateLimiter(_settings.rate_limit_per_minute)
+
+
+def guard(
+    request: Request,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+) -> None:
+    """Auth (optional API key) + per-IP rate limiting for the write endpoints."""
+    if _settings.api_key and x_api_key != _settings.api_key:
+        raise HTTPException(status_code=401, detail="invalid or missing API key")
+    ip = client_ip(
+        request.headers.get("x-forwarded-for"),
+        request.client.host if request.client else "unknown",
+    )
+    if not _limiter.allow(ip, time.time()):
+        raise HTTPException(status_code=429, detail="rate limit exceeded — slow down")
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1)
     doc_ids: list[str] | None = None
     # Prior turns [{role, content}] for follow-up questions (optional).
     history: list[dict[str, str]] | None = None
+
+    @field_validator("question")
+    @classmethod
+    def _bound_question(cls, value: str) -> str:
+        limit = get_settings().max_question_chars
+        if len(value) > limit:
+            raise ValueError(f"question exceeds {limit} characters")
+        return value
+
+    @field_validator("doc_ids")
+    @classmethod
+    def _bound_doc_ids(cls, value: list[str] | None) -> list[str] | None:
+        if value and len(value) > get_settings().max_doc_ids:
+            raise ValueError("too many doc_ids")
+        return value
+
+    @field_validator("history")
+    @classmethod
+    def _bound_history(cls, value: list[dict[str, str]] | None) -> list[dict[str, str]] | None:
+        if not value:
+            return value
+        settings = get_settings()
+        if len(value) > settings.max_history_messages:
+            raise ValueError("history too long")
+        for message in value:
+            if len(message.get("content", "")) > settings.max_question_chars * 2:
+                raise ValueError("history message too long")
+        return value
 
 
 class AskResponse(Answer):
@@ -38,9 +86,9 @@ class AskResponse(Answer):
 
 
 class FeedbackRequest(BaseModel):
-    answer_id: str
+    answer_id: str = Field(min_length=1, max_length=64)
     thumbs: Literal["up", "down"]
-    comment: str | None = None
+    comment: str | None = Field(default=None, max_length=2000)
 
 
 @asynccontextmanager
@@ -55,14 +103,14 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
 app = FastAPI(title="IRB Copilot", version="0.1.0", lifespan=lifespan)
 
 
-@app.post("/ask", response_model=AskResponse)
+@app.post("/ask", response_model=AskResponse, dependencies=[Depends(guard)])
 def ask(request: AskRequest) -> AskResponse:
     answer = rag_answer(request.question, request.doc_ids, history=request.history)
     answer_id = _log(answer)
     return AskResponse(answer_id=answer_id, **answer.model_dump())
 
 
-@app.post("/ask/stream")
+@app.post("/ask/stream", dependencies=[Depends(guard)])
 def ask_stream(request: AskRequest) -> StreamingResponse:
     """Server-sent events: `sources` once, then `token` deltas, then `done`
     (the full Answer + answer_id)."""
@@ -99,7 +147,7 @@ def _sse(event: str, data: object) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-@app.post("/feedback")
+@app.post("/feedback", dependencies=[Depends(guard)])
 def feedback(request: FeedbackRequest) -> dict[str, str]:
     try:
         feedback_id = log_feedback(request.answer_id, request.thumbs, request.comment)

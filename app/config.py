@@ -88,6 +88,16 @@ class Settings(BaseSettings):
     ui_port: int = Field(default=8501, alias="UI_PORT")
     grafana_port: int = Field(default=3000, alias="GRAFANA_PORT")
 
+    # --- API protection (matters once the API is publicly reachable) ---
+    # If set, /ask, /ask/stream and /feedback require this key (X-API-Key header).
+    api_key: str = Field(default="", alias="API_KEY")
+    # Per-client (IP) requests/minute for those endpoints; 0 disables.
+    rate_limit_per_minute: int = Field(default=30, alias="RATE_LIMIT_PER_MINUTE")
+    # Input bounds to cap prompt cost / abuse.
+    max_question_chars: int = Field(default=2000, alias="MAX_QUESTION_CHARS")
+    max_history_messages: int = Field(default=10, alias="MAX_HISTORY_MESSAGES")
+    max_doc_ids: int = Field(default=20, alias="MAX_DOC_IDS")
+
     # --- Local paths ---
     data_dir: str = Field(default="data", alias="DATA_DIR")
     raw_dir: str = Field(default="data/raw", alias="RAW_DIR")

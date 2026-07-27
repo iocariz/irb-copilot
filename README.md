@@ -331,6 +331,9 @@ the evaluation winners, so the app is sensible out of the box.
 | `POSTGRES_DSN` | `postgresql+psycopg://irb:irb@localhost:5432/irb` | monitoring DB |
 | `API_PORT` / `UI_PORT` / `GRAFANA_PORT` | `8000` / `8501` / `3000` | service ports |
 | `API_URL` | `http://localhost:8000` | where the UI calls the API |
+| `API_KEY` | — | if set, `/ask` `/ask/stream` `/feedback` require an `X-API-Key` header |
+| `RATE_LIMIT_PER_MINUTE` | `30` | per-client-IP request limit (0 disables) |
+| `MAX_QUESTION_CHARS` / `MAX_HISTORY_MESSAGES` / `MAX_DOC_IDS` | `2000` / `10` / `20` | request input bounds |
 | `BIND_HOST` / `SITE_ADDRESS` | `0.0.0.0` / `:80` | production deploy (see [deploy/](deploy/README.md)) |
 
 ## Evaluation
@@ -421,6 +424,27 @@ cp .env.example .env            # set OPENAI_API_KEY, SITE_ADDRESS, BIND_HOST=12
 bash deploy/deploy.sh           # build, start, ingest
 # -> UI at https://<domain>/, API at /api, Grafana at /grafana
 ```
+
+## Security
+
+Because `/ask` fans out to paid OpenAI calls (and a CPU reranker), a publicly
+reachable API is a cost/DoS surface. The write endpoints (`/ask`, `/ask/stream`,
+`/feedback`) are defended in layers:
+
+- **Input bounds** (always on) — question length, history size, and `doc_ids`
+  count are capped (`MAX_*` settings) so a single request can't blow up the
+  prompt; oversized requests get a `422`.
+- **Per-IP rate limiting** — `RATE_LIMIT_PER_MINUTE` (default 30) returns `429`
+  when exceeded; the client IP is taken from `X-Forwarded-For` behind Caddy.
+- **Optional API key** — set `API_KEY` and the endpoints require an `X-API-Key`
+  header (the UI sends it automatically); leave empty for an open demo.
+- **Edge body-size cap** — Caddy rejects request bodies over 64 KB before they
+  reach the app.
+
+For a public deployment, set `API_KEY` and a conservative `RATE_LIMIT_PER_MINUTE`,
+and change `GRAFANA_PASSWORD` / `POSTGRES_PASSWORD` from their defaults. The
+limiter is in-memory per process — for multiple workers/instances, back it with
+Redis.
 
 ## Development
 

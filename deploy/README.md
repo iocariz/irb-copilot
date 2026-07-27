@@ -57,7 +57,9 @@ $C down               # stop (add -v to wipe volumes/data)
 
 ## Notes
 - **Change the defaults** in `.env` before exposing publicly: `GRAFANA_PASSWORD`,
-  `POSTGRES_PASSWORD`.
+  `POSTGRES_PASSWORD`. Set `API_KEY` and a conservative `RATE_LIMIT_PER_MINUTE`
+  to protect the paid `/ask` endpoints (see the README's Security section). Caddy
+  also caps request bodies at 64 KB.
 - The default `RETRIEVAL_MODE=hybrid_rerank` downloads the cross-encoder model on
   the first query (~1 GB); set `RETRIEVAL_MODE=bm25` for a lighter/faster deploy.
 - `SITE_ADDRESS=:80` serves plain HTTP on the VM IP (fine for a quick demo);
