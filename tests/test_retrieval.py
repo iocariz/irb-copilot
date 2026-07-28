@@ -152,6 +152,33 @@ def test_hybrid_rerank_pools_at_least_top_k(monkeypatch) -> None:
     assert captured["pool"] == _RERANK_POOL  # max(5, 20)
 
 
+def test_lazy_resource_loads_exactly_once_under_concurrency(monkeypatch) -> None:
+    # Concurrent first-access to a heavy resource must load it once, not once per
+    # thread (parallel torch-model loads were double-freeing / crashing the eval).
+    import threading
+    import time
+
+    import bm25s
+
+    retriever = Retriever(get_settings())
+    calls = {"n": 0}
+
+    def slow_load(path, mmap=False):  # noqa: ANN001, ANN202
+        calls["n"] += 1
+        time.sleep(0.05)  # widen the race window so all threads pile up on first-load
+        return object()
+
+    monkeypatch.setattr(bm25s.BM25, "load", slow_load)
+    seen: list[object] = []
+    threads = [threading.Thread(target=lambda: seen.append(retriever._bm25)) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert calls["n"] == 1  # built exactly once despite 8 concurrent first-accesses
+    assert len({id(x) for x in seen}) == 1  # every thread observes the same instance
+
+
 # --- doc_id filtering ------------------------------------------------------- #
 def test_filter_by_doc_ids_none_is_noop() -> None:
     chunks = [_rc("1", doc_id="a"), _rc("2", doc_id="b")]

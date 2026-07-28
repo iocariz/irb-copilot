@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 
 from app.config import PROJECT_ROOT, Settings, get_settings
 from app.rag import answer as rag_answer
+from app.retrieval import get_retriever
 from evaluation.corpus import load_chunks
 from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.judge import RELEVANCE_LABELS, judge_answer
@@ -118,6 +119,9 @@ def run(
     gt: list[dict], settings: Settings, *, judge_model: str, log_to_db: bool, workers: int = 8
 ) -> list[dict]:
     reference = {c.chunk_id: c.text for c in load_chunks("structure", settings)}
+    # Load index/model once in the main thread; the per-question answers run in a
+    # thread pool and concurrent first-loads of the reranker are not thread-safe.
+    get_retriever().warm()
     results: list[dict] = []
     for model in settings.eval_models_list:
         if judge_model == model:

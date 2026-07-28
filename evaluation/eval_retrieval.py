@@ -135,6 +135,10 @@ def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool, workers: int
         "structure": Retriever(settings),
         "naive": Retriever(settings, collection=collection, bm25_dir=bm25_dir),
     }
+    # Load every mode's resources up front (single-threaded); the per-config eval
+    # runs searches in a thread pool and concurrent first-loads aren't thread-safe.
+    for retriever in retrievers.values():
+        retriever.warm(full=True)
     queries = precompute_queries(gt, settings, workers=workers)
 
     results: list[dict] = []

@@ -13,6 +13,7 @@ optional ``doc_ids`` metadata filter.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
@@ -79,6 +80,11 @@ class Retriever:
         self.settings = settings or get_settings()
         self._collection = collection or self.settings.qdrant_collection
         self._bm25_dir = Path(bm25_dir) if bm25_dir else self.settings.bm25_index_dir
+        # cached_property is NOT thread-safe (esp. Python 3.12, which dropped its
+        # internal lock). Serialize the heavy first-loads so concurrent callers
+        # can't build a torch/BM25/Qdrant resource twice at once (loading a torch
+        # model from multiple threads simultaneously can crash the interpreter).
+        self._load_lock = threading.Lock()
 
     # --- lazily loaded resources ------------------------------------------- #
     @cached_property
@@ -97,11 +103,21 @@ class Retriever:
     def _bm25(self):  # noqa: ANN202 — bm25s type is optional at import time
         import bm25s
 
-        return bm25s.BM25.load(str(self._bm25_dir), mmap=False)
+        with self._load_lock:
+            if (cached := self.__dict__.get("_bm25")) is not None:
+                return cached  # populated by another thread while we waited
+            value = bm25s.BM25.load(str(self._bm25_dir), mmap=False)
+            self.__dict__["_bm25"] = value  # publish inside the lock to close the race
+            return value
 
     @cached_property
     def _qdrant(self) -> QdrantClient:
-        return QdrantClient(url=self.settings.qdrant_url)
+        with self._load_lock:
+            if (cached := self.__dict__.get("_qdrant")) is not None:
+                return cached
+            value = QdrantClient(url=self.settings.qdrant_url)
+            self.__dict__["_qdrant"] = value
+            return value
 
     # --- public API -------------------------------------------------------- #
     def search(
@@ -191,18 +207,28 @@ class Retriever:
     def _reranker(self):  # noqa: ANN202 — sentence-transformers is optional
         from sentence_transformers import CrossEncoder
 
-        return CrossEncoder(self.settings.rerank_model)
+        with self._load_lock:
+            if (cached := self.__dict__.get("_reranker")) is not None:
+                return cached
+            value = CrossEncoder(self.settings.rerank_model)
+            self.__dict__["_reranker"] = value
+            return value
 
-    def warm(self) -> None:
-        """Eagerly load the resources the configured mode needs, so the first
-        request isn't slow and lazy loads don't race under concurrency."""
+    def warm(self, *, full: bool = False) -> None:
+        """Eagerly load resources in the calling thread, so the first request
+        isn't slow and concurrent lazy loads don't race under a thread pool.
+
+        `full=True` loads the resources for ALL modes — the evaluation exercises
+        every retrieval mode on one retriever, so it must warm everything up front
+        rather than let the first parallel batch trigger the loads.
+        """
         mode = self.settings.retrieval_mode
         _ = self._manifest
-        if mode in ("bm25", "hybrid", "hybrid_rerank"):
+        if full or mode in ("bm25", "hybrid", "hybrid_rerank"):
             _ = self._bm25
-        if mode in ("vector", "hybrid", "hybrid_rerank"):
+        if full or mode in ("vector", "hybrid", "hybrid_rerank"):
             _ = self._qdrant
-        if mode == "hybrid_rerank":
+        if full or mode == "hybrid_rerank":
             _ = self._reranker
 
 
