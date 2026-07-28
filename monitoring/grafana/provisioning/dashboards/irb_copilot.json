@@ -108,6 +108,23 @@
           "rawSql": "SELECT judge_relevance AS metric, count(*) AS value FROM conversations WHERE judge_relevance IS NOT NULL GROUP BY judge_relevance"
         }
       ]
+    },
+    {
+      "id": 7,
+      "title": "Ungrounded-citation rate (hallucinations)",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "irb_postgres" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', ts) AS time, 100.0 * avg(CASE WHEN citations_grounded IS FALSE THEN 1 ELSE 0 END) AS ungrounded_pct FROM conversations WHERE citations_grounded IS NOT NULL GROUP BY 1 ORDER BY 1"
+        }
+      ]
     }
   ]
 }

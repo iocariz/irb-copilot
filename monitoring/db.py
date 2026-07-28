@@ -13,6 +13,7 @@ from functools import lru_cache
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -48,6 +49,9 @@ class Conversation(Base):
     cost_usd: Mapped[float] = mapped_column(Float)
     latency_ms: Mapped[int] = mapped_column(Integer)
     judge_relevance: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Answer-time citation self-check: were all citations backed by a source?
+    citations_grounded: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    ungrounded_citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
 
 class Feedback(Base):
@@ -72,9 +76,20 @@ def _sessions():  # noqa: ANN202
     return sessionmaker(bind=_engine())
 
 
+# Columns added after the initial schema; ensured on every startup so existing
+# databases pick them up without a migration tool (Postgres ADD COLUMN IF NOT EXISTS).
+_ADDED_COLUMNS = (
+    "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS citations_grounded boolean",
+    "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS ungrounded_citations jsonb",
+)
+
+
 def init_db() -> None:
-    """Create tables if they do not exist (idempotent)."""
+    """Create tables if they do not exist and apply lightweight migrations."""
     Base.metadata.create_all(_engine())
+    with _engine().begin() as conn:
+        for statement in _ADDED_COLUMNS:
+            conn.execute(text(statement))
 
 
 def log_conversation(answer, judge_relevance: str | None = None) -> str:  # noqa: ANN001
@@ -101,6 +116,8 @@ def log_conversation(answer, judge_relevance: str | None = None) -> str:  # noqa
                 cost_usd=answer.cost_usd,
                 latency_ms=answer.latency_ms,
                 judge_relevance=judge_relevance,
+                citations_grounded=answer.citations_grounded,
+                ungrounded_citations=answer.ungrounded_citations,
             )
         )
     return conversation_id

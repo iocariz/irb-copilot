@@ -56,7 +56,7 @@ rather than guessing.
 - **Full evaluation harness** — retrieval (hit-rate@5, MRR@5) and RAG
   (LLM-as-a-judge relevance + citation support), with a de-biasing analysis.
 - **Monitoring** — every question + feedback logged to Postgres, visualised in a
-  6-panel Grafana dashboard.
+  7-panel Grafana dashboard (incl. a hallucination-rate trend).
 - **Containerised & deployable** — one `docker compose` for everything, plus a
   hardened VM deployment behind a Caddy TLS proxy.
 
@@ -395,11 +395,13 @@ Both evals run their hundreds of API calls concurrently (`--workers`, default 8)
 
 Every `/ask` is logged to Postgres (`conversations`: question, rewritten query,
 answer, model, prompt/retrieval mode, chunk ids, tokens, cost, latency,
-`judge_relevance`), and every 👍/👎 to `feedback`. Grafana is auto-provisioned
-(datasource + dashboard) with six panels:
+`judge_relevance`, and the citation self-check result `citations_grounded` /
+`ungrounded_citations`), and every 👍/👎 to `feedback`. Grafana is
+auto-provisioned (datasource + dashboard) with seven panels:
 
 1. questions per day · 2. thumbs up/down ratio · 3. cost over time ·
-4. latency p50/p95 · 5. retrieval-mode usage · 6. judge-relevance distribution.
+4. latency p50/p95 · 5. retrieval-mode usage · 6. judge-relevance distribution ·
+7. ungrounded-citation rate (hallucination trend).
 
 Schema in [`monitoring/schema.sql`](monitoring/schema.sql); it's applied on first
 Postgres init and idempotently by `monitoring.db` at API startup.

@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     tokens_out      INTEGER NOT NULL,
     cost_usd        DOUBLE PRECISION NOT NULL,
     latency_ms      INTEGER NOT NULL,
-    judge_relevance TEXT
+    judge_relevance TEXT,
+    citations_grounded   BOOLEAN,
+    ungrounded_citations JSONB
 );
 
 CREATE TABLE IF NOT EXISTS feedback (
