@@ -80,7 +80,23 @@ def build_messages(
         "Answer using only the context above, with inline citations."
     )
     messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt(version)}]
-    if history:
-        messages.extend(history)
+    messages.extend(safe_history(history))
     messages.append({"role": "user", "content": user})
     return messages
+
+
+_HISTORY_ROLES = frozenset({"user", "assistant"})
+
+
+def safe_history(history: list[dict[str, str]] | None) -> list[dict[str, str]]:
+    """Keep only well-formed user/assistant turns.
+
+    Never lets a caller-supplied ``system`` (or other) role reach the model — a
+    prompt-injection defense, since history is client-controlled at the API.
+    """
+    safe: list[dict[str, str]] = []
+    for message in history or []:
+        role, content = message.get("role"), message.get("content")
+        if role in _HISTORY_ROLES and isinstance(content, str):
+            safe.append({"role": role, "content": content})
+    return safe

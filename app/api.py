@@ -44,11 +44,26 @@ def guard(
         raise HTTPException(status_code=429, detail="rate limit exceeded — slow down")
 
 
+class HistoryMessage(BaseModel):
+    """A prior conversation turn. Roles are constrained to user/assistant so a
+    client cannot inject a `system` (or tool) message via the history field."""
+
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1)
+
+    @field_validator("content")
+    @classmethod
+    def _bound_content(cls, value: str) -> str:
+        limit = get_settings().max_question_chars * 2
+        if len(value) > limit:
+            raise ValueError(f"history message exceeds {limit} characters")
+        return value
+
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=1)
     doc_ids: list[str] | None = None
-    # Prior turns [{role, content}] for follow-up questions (optional).
-    history: list[dict[str, str]] | None = None
+    history: list[HistoryMessage] | None = None
 
     @field_validator("question")
     @classmethod
@@ -67,15 +82,9 @@ class AskRequest(BaseModel):
 
     @field_validator("history")
     @classmethod
-    def _bound_history(cls, value: list[dict[str, str]] | None) -> list[dict[str, str]] | None:
-        if not value:
-            return value
-        settings = get_settings()
-        if len(value) > settings.max_history_messages:
+    def _bound_history(cls, value: list | None) -> list | None:
+        if value and len(value) > get_settings().max_history_messages:
             raise ValueError("history too long")
-        for message in value:
-            if len(message.get("content", "")) > settings.max_question_chars * 2:
-                raise ValueError("history message too long")
         return value
 
 
@@ -103,9 +112,13 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
 app = FastAPI(title="IRB Copilot", version="0.1.0", lifespan=lifespan)
 
 
+def _history_dicts(request: AskRequest) -> list[dict[str, str]] | None:
+    return [m.model_dump() for m in request.history] if request.history else None
+
+
 @app.post("/ask", response_model=AskResponse, dependencies=[Depends(guard)])
 def ask(request: AskRequest) -> AskResponse:
-    answer = rag_answer(request.question, request.doc_ids, history=request.history)
+    answer = rag_answer(request.question, request.doc_ids, history=_history_dicts(request))
     answer_id = _log(answer)
     return AskResponse(answer_id=answer_id, **answer.model_dump())
 
@@ -118,7 +131,7 @@ def ask_stream(request: AskRequest) -> StreamingResponse:
     def events():  # noqa: ANN202
         final: Answer | None = None
         for kind, payload in answer_stream(
-            request.question, request.doc_ids, history=request.history
+            request.question, request.doc_ids, history=_history_dicts(request)
         ):
             if kind == "sources":
                 yield _sse("sources", [s.model_dump() for s in payload])

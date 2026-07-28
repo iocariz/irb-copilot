@@ -434,6 +434,9 @@ reachable API is a cost/DoS surface. The write endpoints (`/ask`, `/ask/stream`,
 - **Input bounds** (always on) — question length, history size, and `doc_ids`
   count are capped (`MAX_*` settings) so a single request can't blow up the
   prompt; oversized requests get a `422`.
+- **Prompt-injection defense** — conversation `history` is schema-validated to
+  `user`/`assistant` roles only (a client can't inject a `system` message → `422`),
+  and `build_messages` re-sanitizes it as a safety net regardless of caller.
 - **Per-IP rate limiting** — `RATE_LIMIT_PER_MINUTE` (default 30) returns `429`
   when exceeded; the client IP is taken from `X-Forwarded-For` behind Caddy.
 - **Optional API key** — set `API_KEY` and the endpoints require an `X-API-Key`
