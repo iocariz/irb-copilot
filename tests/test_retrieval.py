@@ -163,6 +163,22 @@ def test_unknown_acronyms_lists_non_glossary_terms() -> None:
     assert unknown_acronyms("PD and XYZ and ABC") == ["XYZ", "ABC"]
 
 
+def test_expand_acronyms_handles_mixed_case_keys() -> None:
+    assert "MoC (margin of conservatism)" in expand_acronyms("apply the MoC to LGD")
+    assert "DoD (definition of default)" in expand_acronyms("under the DoD guidelines")
+
+
+def test_expand_acronyms_is_case_insensitive() -> None:
+    assert "margin of conservatism" in expand_acronyms("apply MOC")      # all-caps form
+    assert "definition of default" in expand_acronyms("the dod rules")    # lowercase form
+    assert "probability of default" in expand_acronyms("estimate pd")     # lowercase key
+
+
+def test_unknown_acronyms_recognizes_known_acronyms_any_case() -> None:
+    # MOC is the known MoC (not unknown); XYZ is genuinely unknown.
+    assert unknown_acronyms("MOC and XYZ") == ["XYZ"]
+
+
 # --- citation parsing ------------------------------------------------------- #
 def test_parse_citations_extracts_title_and_para() -> None:
     text = "Institutions must apply MoC [EBA GL 2017/16, para. 82]."

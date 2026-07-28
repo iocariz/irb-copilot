@@ -37,8 +37,18 @@ GLOSSARY: dict[str, str] = {
     "RWEA": "risk-weighted exposure amounts",
 }
 
-# All-caps tokens (2–6 letters, optional digits) that look like acronyms.
+# All-caps tokens (2–6 letters, optional digit) — used to find UNKNOWN acronyms.
 _ACRONYM_RE = re.compile(r"\b([A-Z]{2,6}[0-9]?)\b")
+
+
+def _glossary_regex(glossary: dict[str, str]) -> re.Pattern[str]:
+    """Match any glossary term case-insensitively (longest key first, so ELBE
+    wins over EL). Keyed off the glossary so mixed-case keys like MoC/DoD work."""
+    keys = sorted((re.escape(k) for k in glossary), key=len, reverse=True)
+    return re.compile(r"\b(" + "|".join(keys) + r")\b", re.IGNORECASE)
+
+
+_GLOSSARY_RE = _glossary_regex(GLOSSARY)
 
 _REWRITE_SYSTEM = (
     "You rewrite a credit-risk analyst's question into a concise search query "
@@ -69,26 +79,33 @@ class RewriteResult:
 
 
 def expand_acronyms(text: str, glossary: dict[str, str] = GLOSSARY) -> str:
-    """Append 'ACRONYM (expansion)' for each known acronym found (pure)."""
+    """Append 'ACRONYM (expansion)' for each known acronym found (pure).
+
+    Case-insensitive, so mixed-case keys (MoC, DoD) and any user casing
+    (MoC / MOC / moc) all resolve to the same glossary entry.
+    """
+    if not glossary:
+        return text
+    regex = _GLOSSARY_RE if glossary is GLOSSARY else _glossary_regex(glossary)
+    canonical = {key.upper(): value for key, value in glossary.items()}
     seen: set[str] = set()
     additions: list[str] = []
-    for match in _ACRONYM_RE.finditer(text):
+    for match in regex.finditer(text):
         token = match.group(1)
-        if token in glossary and token not in seen:
-            seen.add(token)
-            additions.append(f"{token} ({glossary[token]})")
+        key = token.upper()
+        if key not in seen:
+            seen.add(key)
+            additions.append(f"{token} ({canonical[key]})")
     if not additions:
         return text
     return f"{text} [{'; '.join(additions)}]"
 
 
 def unknown_acronyms(text: str, glossary: dict[str, str] = GLOSSARY) -> list[str]:
-    """All-caps tokens that are not in the glossary (candidate unknown terms)."""
-    return [
-        m.group(1)
-        for m in _ACRONYM_RE.finditer(text)
-        if m.group(1) not in glossary
-    ]
+    """All-caps tokens not in the glossary (candidate unknown terms), compared
+    case-insensitively so a known acronym in any casing isn't flagged."""
+    known = {key.upper() for key in glossary}
+    return [m.group(1) for m in _ACRONYM_RE.finditer(text) if m.group(1).upper() not in known]
 
 
 def rewrite_query(question: str, settings: Settings | None = None) -> RewriteResult:
