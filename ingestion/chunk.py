@@ -118,10 +118,22 @@ def _finalize_group(
 
 
 def _split_by_sentences(text: str, hard_split: int, count: TokenCounter) -> list[str]:
-    """Greedily pack sentences into pieces of at most `hard_split` tokens."""
+    """Greedily pack sentences into pieces of at most `hard_split` tokens.
+
+    A single sentence longer than `hard_split` cannot be packed within the cap,
+    so it is broken at the token level — the SPEC requires no chunk to exceed the
+    limit, even if that means splitting mid-sentence.
+    """
     pieces: list[str] = []
     current: list[str] = []
     for sentence in split_sentences(text):
+        if count(sentence) > hard_split:
+            # Oversized on its own: flush the packed sentences, then token-split it.
+            if current:
+                pieces.append(" ".join(current))
+                current = []
+            pieces.extend(_split_by_tokens(sentence, hard_split))
+            continue
         candidate = " ".join([*current, sentence])
         if current and count(candidate) > hard_split:
             pieces.append(" ".join(current))
@@ -131,6 +143,15 @@ def _split_by_sentences(text: str, hard_split: int, count: TokenCounter) -> list
     if current:
         pieces.append(" ".join(current))
     return pieces
+
+
+def _split_by_tokens(text: str, hard_split: int) -> list[str]:
+    """Split text into consecutive pieces of at most `hard_split` tokens each."""
+    token_ids = encode(text)
+    return [
+        decode(token_ids[start : start + hard_split])
+        for start in range(0, len(token_ids), hard_split)
+    ]
 
 
 # --------------------------------------------------------------------------- #

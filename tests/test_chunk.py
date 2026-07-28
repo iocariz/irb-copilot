@@ -7,8 +7,9 @@ naive baseline and id determinism are tested against the real tokenizer.
 
 from __future__ import annotations
 
-from ingestion.chunk import chunk_naive, chunk_structured
+from ingestion.chunk import _split_by_sentences, chunk_naive, chunk_structured
 from ingestion.models import Paragraph, ParsedDoc
+from ingestion.tokens import count_tokens
 
 # Deterministic, transparent token counter: one token per whitespace word.
 words = lambda text: len(text.split())  # noqa: E731
@@ -63,6 +64,29 @@ def test_oversized_chunk_is_hard_split_at_sentence_boundaries() -> None:
     assert all(c.para_ids == ["99"] for c in chunks)
     # Hard-split sub-chunks get distinct ids.
     assert len({c.chunk_id for c in chunks}) == len(chunks)
+
+
+def test_oversized_single_sentence_is_token_split_below_cap() -> None:
+    # A single sentence (no sentence boundaries) larger than the cap must still be
+    # broken up — SPEC requires no chunk over the hard-split limit. Uses the real
+    # tokenizer so the guard and the token-level split measure tokens the same way.
+    sec = ["3", "3.1"]
+    long_sentence = " ".join(["clause"] * 4000)  # no '. ' => one sentence
+    doc = _doc([_para("100", long_sentence, sec)])
+    chunks = chunk_structured(doc, merge_below=250, hard_split=1000, count=count_tokens)
+    assert len(chunks) > 1
+    assert all(count_tokens(c.text) <= 1000 for c in chunks)
+    assert all(c.para_ids == ["100"] for c in chunks)
+    assert len({c.chunk_id for c in chunks}) == len(chunks)
+
+
+def test_split_by_sentences_hard_splits_leading_oversized_sentence() -> None:
+    # Reproduces the reported bug: current is empty and the first sentence already
+    # exceeds the cap, so the greedy packer previously emitted it whole.
+    oversized = " ".join(["w"] * 3000)  # single sentence, no boundaries
+    pieces = _split_by_sentences(oversized, hard_split=1000, count=count_tokens)
+    assert len(pieces) > 1
+    assert all(count_tokens(p) <= 1000 for p in pieces)
 
 
 def test_pages_are_unioned_and_sorted() -> None:
