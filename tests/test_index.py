@@ -5,8 +5,12 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.config import get_settings
+from ingestion import index
 from ingestion.index import index_targets, orphan_warning
+from ingestion.models import Chunk
 
 
 def test_no_warning_when_counts_match() -> None:
@@ -40,3 +44,25 @@ def test_index_targets_naive_is_isolated_from_production() -> None:
     assert bm25_dir == s.data_path / "bm25_index_naive"
     assert collection != s.qdrant_collection
     assert bm25_dir != s.bm25_index_dir
+
+
+# --- recreate atomicity: embed before dropping the collection ---------------- #
+def test_build_qdrant_does_not_drop_collection_if_embedding_fails(monkeypatch) -> None:
+    dropped = {"ensured": False}
+    monkeypatch.setattr(index, "QdrantClient", lambda url: object())
+    monkeypatch.setattr(
+        index, "_ensure_collection",
+        lambda *a, **k: dropped.__setitem__("ensured", True),
+    )
+
+    def failing_embed(_texts):
+        raise RuntimeError("openai unavailable")
+
+    monkeypatch.setattr(index, "embed_texts", failing_embed)
+    chunk = Chunk(
+        chunk_id="1", doc_id="d", doc_title="D", section_path=[],
+        para_ids=["1"], pages=[1], text="t",
+    )
+    with pytest.raises(RuntimeError):
+        index.build_qdrant([chunk], recreate=True, collection="c")
+    assert dropped["ensured"] is False  # collection was never (re)created/dropped

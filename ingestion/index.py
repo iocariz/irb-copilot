@@ -58,16 +58,23 @@ def build_qdrant(
     """Embed chunk texts and upsert them into the Qdrant collection."""
     collection = collection or settings.qdrant_collection
     client = QdrantClient(url=settings.qdrant_url)
-    _ensure_collection(client, collection, recreate=recreate)
 
+    # Embed EVERYTHING first. `recreate` drops the collection, so if embedding
+    # fails mid-way we must not have dropped it yet — otherwise a transient
+    # OpenAI error would destroy the existing index with nothing to put back.
+    points: list[PointStruct] = []
     for start in range(0, len(chunks), _UPSERT_BATCH):
         batch = chunks[start : start + _UPSERT_BATCH]
         vectors = embed_texts([c.text for c in batch])
-        points = [
+        points.extend(
             PointStruct(id=chunk.chunk_id, vector=vector, payload=chunk.model_dump())
             for chunk, vector in zip(batch, vectors, strict=True)
-        ]
-        client.upsert(collection_name=collection, points=points)
+        )
+
+    # Only now — with all vectors in hand — (re)create and upsert.
+    _ensure_collection(client, collection, recreate=recreate)
+    for start in range(0, len(points), _UPSERT_BATCH):
+        client.upsert(collection_name=collection, points=points[start : start + _UPSERT_BATCH])
     print(f"[index] upserted {len(chunks)} chunks into '{collection}'")
 
     # Guardrail: deterministic ids mean re-runs upsert in place, but chunks that
