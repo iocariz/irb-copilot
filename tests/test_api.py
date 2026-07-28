@@ -191,6 +191,31 @@ def test_rate_limit_returns_429(monkeypatch, client) -> None:
     assert client.post("/ask", json={"question": "q"}).status_code == 429
 
 
+def test_feedback_error_does_not_leak_internals(monkeypatch, client) -> None:
+    def boom(*_a, **_k):
+        raise RuntimeError("psql FK violation on conversations; dsn=postgres://secret")
+
+    monkeypatch.setattr(api, "log_feedback", boom)
+    resp = client.post("/feedback", json={"answer_id": "x", "thumbs": "up"})
+    assert resp.status_code == 500
+    detail = resp.json()["detail"]
+    assert detail == "feedback could not be saved"
+    assert "psql" not in detail and "secret" not in detail and "dsn" not in detail
+
+
+def test_openapi_schema_served_by_default(client) -> None:
+    # DOCS_ENABLED defaults true; the prod overlay sets it false to hide the schema.
+    assert client.get("/openapi.json").status_code == 200
+
+
+def test_startup_fails_if_auth_required_without_key(monkeypatch) -> None:
+    monkeypatch.setattr(api._settings, "require_api_key", True)
+    monkeypatch.setattr(api._settings, "api_key", "")
+    monkeypatch.setattr(api, "init_db", lambda: None)
+    with pytest.raises(RuntimeError, match="REQUIRE_API_KEY"), TestClient(api.app):
+        pass  # entering the context runs lifespan, which must refuse to start
+
+
 def test_health_ok(client) -> None:
     resp = client.get("/health")
     assert resp.status_code == 200

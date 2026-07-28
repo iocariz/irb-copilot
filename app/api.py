@@ -10,7 +10,9 @@ Conversation logging is best-effort: a monitoring outage must not stop answers.
 
 from __future__ import annotations
 
+import hmac
 import json
+import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -26,6 +28,8 @@ from app.retrieval import get_retriever
 from app.security import RateLimiter, client_ip
 from monitoring.db import init_db, log_conversation, log_feedback, ping_postgres
 
+logger = logging.getLogger("app.api")
+
 _settings = get_settings()
 _limiter = RateLimiter(_settings.rate_limit_per_minute)
 
@@ -35,7 +39,9 @@ def guard(
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ) -> None:
     """Auth (optional API key) + per-IP rate limiting for the write endpoints."""
-    if _settings.api_key and x_api_key != _settings.api_key:
+    # Constant-time comparison so the key can't be recovered byte-by-byte via
+    # response-timing differences.
+    if _settings.api_key and not hmac.compare_digest(x_api_key or "", _settings.api_key):
         raise HTTPException(status_code=401, detail="invalid or missing API key")
     ip = client_ip(
         request.headers.get("x-forwarded-for"),
@@ -107,18 +113,32 @@ class FeedbackRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ANN201
+    # Fail fast rather than silently serving unauthenticated write endpoints.
+    if _settings.require_api_key and not _settings.api_key:
+        raise RuntimeError(
+            "REQUIRE_API_KEY is set but API_KEY is empty — refusing to start with "
+            "unauthenticated /ask, /ask/stream and /feedback endpoints."
+        )
     try:
         init_db()
     except Exception as exc:  # noqa: BLE001 — start even if DB is briefly down.
-        print(f"[api] init_db failed (monitoring may be unavailable): {exc}")
+        logger.warning("init_db failed (monitoring may be unavailable): %s", exc)
     try:
         get_retriever().warm()  # load index/model once now, not on the first request
     except Exception as exc:  # noqa: BLE001 — e.g. corpus not ingested yet.
-        print(f"[api] retriever warm-up skipped: {exc}")
+        logger.warning("retriever warm-up skipped: %s", exc)
     yield
 
 
-app = FastAPI(title="IRB Copilot", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="IRB Copilot",
+    version="0.1.0",
+    lifespan=lifespan,
+    # Do not expose the interactive schema in production (DOCS_ENABLED=false).
+    docs_url="/docs" if _settings.docs_enabled else None,
+    redoc_url="/redoc" if _settings.docs_enabled else None,
+    openapi_url="/openapi.json" if _settings.docs_enabled else None,
+)
 
 
 def _history_dicts(request: AskRequest) -> list[dict[str, str]] | None:
@@ -133,7 +153,7 @@ def ask(request: AskRequest) -> AskResponse:
     try:
         answer = rag_answer(request.question, request.doc_ids, history=_history_dicts(request))
     except Exception as exc:  # noqa: BLE001 — turn provider/retrieval faults into a clean 502.
-        print(f"[api] /ask failed: {exc!r}")
+        logger.exception("/ask failed")
         raise HTTPException(status_code=502, detail=_UPSTREAM_ERROR) from exc
     answer_id = _log(answer)
     return AskResponse(answer_id=answer_id, **answer.model_dump())
@@ -156,8 +176,8 @@ def ask_stream(request: AskRequest) -> StreamingResponse:
                     yield _sse("token", {"text": payload})
                 elif kind == "answer":
                     final = payload
-        except Exception as exc:  # noqa: BLE001 — the stream is already 200; signal via SSE.
-            print(f"[api] /ask/stream failed: {exc!r}")
+        except Exception:  # noqa: BLE001 — the stream is already 200; signal via SSE.
+            logger.exception("/ask/stream failed")
             yield _sse("error", {"detail": _UPSTREAM_ERROR})
             return
         answer_id = _log(final) if final else ""
@@ -172,8 +192,8 @@ def _log(answer: Answer | None) -> str:
         return ""
     try:
         return log_conversation(answer)
-    except Exception as exc:  # noqa: BLE001
-        print(f"[api] log_conversation failed: {exc}")
+    except Exception:  # noqa: BLE001
+        logger.warning("log_conversation failed", exc_info=True)
         return ""
 
 
@@ -185,8 +205,9 @@ def _sse(event: str, data: object) -> str:
 def feedback(request: FeedbackRequest) -> dict[str, str]:
     try:
         feedback_id = log_feedback(request.answer_id, request.thumbs, request.comment)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=f"feedback failed: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 — never leak DB internals to the client.
+        logger.exception("feedback failed")
+        raise HTTPException(status_code=500, detail="feedback could not be saved") from exc
     return {"status": "ok", "feedback_id": feedback_id}
 
 

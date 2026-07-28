@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     # --- API protection (matters once the API is publicly reachable) ---
     # If set, /ask, /ask/stream and /feedback require this key (X-API-Key header).
     api_key: str = Field(default="", alias="API_KEY")
+    # Fail fast at startup if auth is required but no key is set (set true in prod
+    # so write endpoints are never served unauthenticated by accident).
+    require_api_key: bool = Field(default=False, alias="REQUIRE_API_KEY")
+    # Expose the interactive API docs (/docs, /redoc, /openapi.json). Disable in
+    # production so the full API schema isn't publicly browsable.
+    docs_enabled: bool = Field(default=True, alias="DOCS_ENABLED")
     # Per-client (IP) requests/minute for those endpoints; 0 disables.
     rate_limit_per_minute: int = Field(default=30, alias="RATE_LIMIT_PER_MINUTE")
     # Number of trusted reverse proxies in front of the app (Caddy = 1). The real
@@ -105,6 +111,10 @@ class Settings(BaseSettings):
     max_question_chars: int = Field(default=2000, alias="MAX_QUESTION_CHARS")
     max_history_messages: int = Field(default=10, alias="MAX_HISTORY_MESSAGES")
     max_doc_ids: int = Field(default=20, alias="MAX_DOC_IDS")
+    # Hard cap on answer-generation output tokens, so one request can't run the
+    # model out to the full context window (cost / abuse guard). The rewrite and
+    # condense calls are already bounded separately.
+    max_answer_tokens: int = Field(default=1500, alias="MAX_ANSWER_TOKENS")
 
     # --- Local paths ---
     data_dir: str = Field(default="data", alias="DATA_DIR")

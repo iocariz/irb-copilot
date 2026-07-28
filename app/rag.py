@@ -258,7 +258,7 @@ def answer(
     retriever = retriever or get_retriever()
     started = time.perf_counter()
     rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
-    llm = complete(messages, model=settings.llm_model)
+    llm = complete(messages, model=settings.llm_model, max_tokens=settings.max_answer_tokens)
     return _assemble(question, rewrite, sources, llm, settings, started)
 
 
@@ -281,7 +281,9 @@ def answer_stream(
     rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
     yield ("sources", sources)
 
-    stream = stream_complete(messages, model=settings.llm_model)
+    stream = stream_complete(
+        messages, model=settings.llm_model, max_tokens=settings.max_answer_tokens
+    )
     llm: LLMResult | None = None
     while True:
         try:

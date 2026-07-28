@@ -8,12 +8,24 @@ from __future__ import annotations
 
 import threading
 
+# Cap on distinct client keys held in memory. Without a bound, an attacker who
+# rotates source IPs adds a new key per request and never revisits it, growing
+# the map without limit (memory-exhaustion DoS). Stale keys are swept first; a
+# genuine flood past the cap drops the least-recently-active keys.
+_DEFAULT_MAX_KEYS = 100_000
+
 
 class RateLimiter:
-    """Sliding-window request limiter keyed by an arbitrary client id."""
+    """Sliding-window request limiter keyed by an arbitrary client id.
 
-    def __init__(self, per_minute: int) -> None:
+    Bounded in memory: a key whose window empties is removed, and the total
+    number of keys is capped, so a stream of unique keys can't grow the map
+    without limit.
+    """
+
+    def __init__(self, per_minute: int, max_keys: int = _DEFAULT_MAX_KEYS) -> None:
         self.per_minute = per_minute
+        self.max_keys = max_keys
         self._hits: dict[str, list[float]] = {}
         self._lock = threading.Lock()
 
@@ -27,8 +39,23 @@ class RateLimiter:
             allowed = len(hits) < self.per_minute
             if allowed:
                 hits.append(now)
-            self._hits[key] = hits
+            self._hits[key] = hits  # always non-empty here (a new/expired key is allowed)
+            if len(self._hits) > self.max_keys:
+                self._evict(cutoff)
             return allowed
+
+    def _evict(self, cutoff: float) -> None:
+        """Bound the key map so rotating client ids can't grow it without limit:
+        drop windows with no live hits first, then, if still over capacity, the
+        least-recently-active keys. Caller holds the lock."""
+        stale = [k for k, ts in self._hits.items() if not ts or ts[-1] <= cutoff]
+        for k in stale:
+            del self._hits[k]
+        overflow = len(self._hits) - self.max_keys
+        if overflow > 0:  # active flood beyond the cap: drop oldest last-activity
+            oldest = sorted(self._hits, key=lambda k: self._hits[k][-1])[:overflow]
+            for k in oldest:
+                del self._hits[k]
 
 
 def client_ip(forwarded_for: str | None, fallback: str, trusted_hops: int = 1) -> str:

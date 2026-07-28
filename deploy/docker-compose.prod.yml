@@ -17,8 +17,16 @@ services:
       # Served under /grafana by Caddy.
       GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-/grafana/}"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Grafana is reachable through Caddy at /grafana, so it must NOT run with the
+      # dev admin/admin default. `:?` makes compose refuse to start if unset/empty;
+      # deploy.sh additionally rejects the literal "admin".
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD:?set a strong GRAFANA_PASSWORD in .env before deploying to production}"
   api:
     restart: always
+    environment:
+      # Fail closed in production: require the API key and hide the API schema.
+      REQUIRE_API_KEY: "true"
+      DOCS_ENABLED: "false"
   ui:
     restart: always
 
