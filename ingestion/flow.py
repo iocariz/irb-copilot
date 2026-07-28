@@ -39,8 +39,8 @@ def chunk_stage(sources: list[Source], parsed_dir: Path, chunks_dir: Path, kind:
 
 
 @task
-def index_stage(sources: list[Source], chunks_dir: Path, kind: str, recreate: bool) -> None:
-    pipeline.run_index(sources, chunks_dir, kind=kind, recreate=recreate)
+def index_stage(chunks_dir: Path, kind: str, recreate: bool) -> None:
+    pipeline.run_index(chunks_dir, kind=kind, recreate=recreate)
 
 
 @flow(name="irb-ingestion")
@@ -65,7 +65,8 @@ def ingestion_flow(
     if "chunk" in active:
         chunk_stage(sources, paths.parsed, paths.chunks, chunker)
     if "index" in active:
-        index_stage(sources, paths.chunks, chunker, recreate)
+        # Full corpus, independent of --only-doc, so BM25 and Qdrant stay in sync.
+        index_stage(paths.chunks, chunker, recreate)
 
 
 def main() -> None:

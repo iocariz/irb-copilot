@@ -76,17 +76,28 @@ def run_chunk(sources: list[Source], parsed_dir: Path, chunks_dir: Path, *, kind
         print(f"[chunk] {source.id}: {len(chunks)} {kind} chunks -> {out}")
 
 
-def run_index(sources: list[Source], chunks_dir: Path, *, kind: str, recreate: bool) -> None:
+def run_index(chunks_dir: Path, *, kind: str, recreate: bool) -> None:
+    """Index the FULL on-disk corpus for `kind` (every ``*.<kind>.jsonl``).
+
+    The BM25 index is monolithic — `build_bm25` overwrites the persisted index
+    with whatever chunks it is given. Indexing a subset (e.g. under --only-doc)
+    would therefore shrink BM25 to that one document while Qdrant keeps the rest,
+    silently desyncing lexical and vector retrieval. So the index stage always
+    reads every chunk file; --only-doc only scopes download/parse/chunk.
+    """
+    files = sorted(chunks_dir.glob(f"*.{kind}.jsonl"))
+    if not files:
+        raise FileNotFoundError(
+            f"[index] no {kind} chunk files in {chunks_dir}; run the chunk stage"
+        )
     chunks: list[Chunk] = []
-    for source in sources:
-        path = chunks_dir / f"{source.id}.{kind}.jsonl"
-        if not path.exists():
-            raise FileNotFoundError(f"[index] missing {path}; run the chunk stage")
+    for path in files:
         # Split on "\n" only — NOT str.splitlines(), which also breaks on
         # U+2028/U+2029/U+0085 that can appear unescaped inside chunk text.
         for line in path.read_text(encoding="utf-8").split("\n"):
             if line.strip():
                 chunks.append(Chunk.model_validate_json(line))
+    print(f"[index] full corpus: {len(chunks)} {kind} chunks from {len(files)} document(s)")
     index_chunks(chunks, recreate=recreate)
 
 

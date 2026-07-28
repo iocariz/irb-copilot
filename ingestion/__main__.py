@@ -31,7 +31,8 @@ def main() -> None:
     if "chunk" in active:
         pipeline.run_chunk(sources, paths.parsed, paths.chunks, kind=args.chunker)
     if "index" in active:
-        pipeline.run_index(sources, paths.chunks, kind=args.chunker, recreate=args.recreate)
+        # Index the full corpus (not just --only-doc) so BM25 and Qdrant agree.
+        pipeline.run_index(paths.chunks, kind=args.chunker, recreate=args.recreate)
 
 
 def _parse_args() -> argparse.Namespace:
