@@ -40,6 +40,7 @@ def guard(
     ip = client_ip(
         request.headers.get("x-forwarded-for"),
         request.client.host if request.client else "unknown",
+        trusted_hops=_settings.trusted_proxy_hops,
     )
     if not _limiter.allow(ip, time.time()):
         raise HTTPException(status_code=429, detail="rate limit exceeded — slow down")

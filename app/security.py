@@ -31,11 +31,22 @@ class RateLimiter:
             return allowed
 
 
-def client_ip(forwarded_for: str | None, fallback: str) -> str:
-    """Resolve the real client IP: the first hop of ``X-Forwarded-For`` (set by
-    the Caddy reverse proxy) if present, otherwise the direct peer address."""
-    if forwarded_for:
-        first = forwarded_for.split(",")[0].strip()
-        if first:
-            return first
+def client_ip(forwarded_for: str | None, fallback: str, trusted_hops: int = 1) -> str:
+    """Resolve the real client IP behind ``trusted_hops`` trusted reverse proxies.
+
+    A trusted proxy (e.g. Caddy) *appends* the peer address it saw to
+    ``X-Forwarded-For``, so the real client is the ``trusted_hops``-th entry from
+    the RIGHT — the rightmost value a client cannot forge. The leftmost entries
+    are attacker-supplied: trusting them (as taking the first hop did) lets a
+    client rotate the rate-limit key at will and bypass the limiter while growing
+    the in-memory map. Anything left of the trusted hops is ignored.
+
+    Falls back to the direct peer when there is no header, ``trusted_hops`` is 0
+    (no proxy in front), or fewer hops are present than expected (fails closed to
+    the proxy's address rather than an attacker-controlled value).
+    """
+    if forwarded_for and trusted_hops > 0:
+        hops = [h.strip() for h in forwarded_for.split(",") if h.strip()]
+        if len(hops) >= trusted_hops:
+            return hops[-trusted_hops]
     return fallback

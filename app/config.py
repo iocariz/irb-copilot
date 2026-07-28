@@ -97,6 +97,10 @@ class Settings(BaseSettings):
     api_key: str = Field(default="", alias="API_KEY")
     # Per-client (IP) requests/minute for those endpoints; 0 disables.
     rate_limit_per_minute: int = Field(default=30, alias="RATE_LIMIT_PER_MINUTE")
+    # Number of trusted reverse proxies in front of the app (Caddy = 1). The real
+    # client IP is read this many hops from the RIGHT of X-Forwarded-For, so
+    # clients can't spoof it via the leftmost hop. Set 0 when there is no proxy.
+    trusted_proxy_hops: int = Field(default=1, alias="TRUSTED_PROXY_HOPS")
     # Input bounds to cap prompt cost / abuse.
     max_question_chars: int = Field(default=2000, alias="MAX_QUESTION_CHARS")
     max_history_messages: int = Field(default=10, alias="MAX_HISTORY_MESSAGES")

@@ -345,6 +345,7 @@ the evaluation winners, so the app is sensible out of the box.
 | `API_URL` | `http://localhost:8000` | where the UI calls the API |
 | `API_KEY` | — | if set, `/ask` `/ask/stream` `/feedback` require an `X-API-Key` header |
 | `RATE_LIMIT_PER_MINUTE` | `30` | per-client-IP request limit (0 disables) |
+| `TRUSTED_PROXY_HOPS` | `1` | reverse proxies in front (Caddy = 1); real client IP is read this many hops from the right of `X-Forwarded-For`. Set `0` when no proxy |
 | `MAX_QUESTION_CHARS` / `MAX_HISTORY_MESSAGES` / `MAX_DOC_IDS` | `2000` / `10` / `20` | request input bounds |
 | `BIND_HOST` / `SITE_ADDRESS` | `0.0.0.0` / `:80` | production deploy (see [deploy/](deploy/README.md)) |
 
@@ -452,7 +453,9 @@ reachable API is a cost/DoS surface. The write endpoints (`/ask`, `/ask/stream`,
   `user`/`assistant` roles only (a client can't inject a `system` message → `422`),
   and `build_messages` re-sanitizes it as a safety net regardless of caller.
 - **Per-IP rate limiting** — `RATE_LIMIT_PER_MINUTE` (default 30) returns `429`
-  when exceeded; the client IP is taken from `X-Forwarded-For` behind Caddy.
+  when exceeded. The client IP is read `TRUSTED_PROXY_HOPS` (default 1, for Caddy)
+  hops from the **right** of `X-Forwarded-For` — the value the trusted proxy
+  appended — so a client can't spoof the leftmost hop to rotate the limiter key.
 - **Optional API key** — set `API_KEY` and the endpoints require an `X-API-Key`
   header (the UI sends it automatically); leave empty for an open demo.
 - **Edge body-size cap** — Caddy rejects request bodies over 64 KB before they
