@@ -4,6 +4,12 @@ Fetches each registered PDF, verifies its sha256 (populating the registry hash
 on first successful download), and is idempotent — an already-present file whose
 hash matches is left untouched. A 404 (or any HTTP error) fails loudly with the
 document id; nothing is silently skipped.
+
+Downloads are written to a temp ``.part`` file and promoted atomically only
+after they validate, so an interrupted transfer never leaves a partial file at
+the canonical path. When no sha256 is pinned yet (content can't be verified), a
+present or freshly downloaded file must still be a structurally complete PDF, so
+a truncated/corrupt file is rejected rather than trusted.
 """
 
 from __future__ import annotations
@@ -17,6 +23,14 @@ import yaml
 
 _TIMEOUT = httpx.Timeout(60.0)
 _CHUNK = 1 << 16
+
+# Structural markers of a complete PDF: it starts with %PDF- and ends with %%EOF.
+# A truncated/interrupted download (or an HTML error page served with HTTP 200)
+# fails this — the cheapest way to reject a "valid" corrupt file when no sha256
+# is pinned to verify content against.
+_PDF_HEADER = b"%PDF-"
+_PDF_TRAILER = b"%%EOF"
+_MIN_PDF_BYTES = 1024
 
 
 @dataclass(frozen=True)
@@ -66,24 +80,47 @@ def _download_one(source: Source, raw_dir: Path) -> str:
 
     if dest.exists():
         digest = _sha256_file(dest)
-        if source.sha256 is None or digest == source.sha256:
-            print(f"[download] {source.id}: present ({digest[:12]}…), skipping")
-            return digest
-        raise ValueError(
-            f"[download] {source.id}: sha256 mismatch "
-            f"(expected {source.sha256[:12]}…, got {digest[:12]}…); delete to re-fetch"
-        )
+        if source.sha256 is not None:
+            if digest == source.sha256:
+                print(f"[download] {source.id}: present ({digest[:12]}…), skipping")
+                return digest
+            raise ValueError(
+                f"[download] {source.id}: sha256 mismatch "
+                f"(expected {source.sha256[:12]}…, got {digest[:12]}…); delete to re-fetch"
+            )
+        # No pinned hash to verify content: an interrupted earlier download could
+        # have left a partial file here. Don't trust it unless it is a structurally
+        # complete PDF; fail loudly rather than silently feeding corruption downstream.
+        if not _looks_like_pdf(dest):
+            raise ValueError(
+                f"[download] {source.id}: existing file is not a complete PDF "
+                f"(truncated or corrupt) and no sha256 is pinned to verify it; "
+                f"delete {dest} to re-fetch"
+            )
+        print(f"[download] {source.id}: present ({digest[:12]}…, unverified), skipping")
+        return digest
 
     print(f"[download] {source.id}: fetching {source.url}")
-    _fetch(source.url, dest, doc_id=source.id)
-    digest = _sha256_file(dest)
+    # Download to a temp path and promote atomically, so an interrupted transfer
+    # never leaves a partial file at the canonical path for the next run to trust.
+    tmp = dest.with_name(f"{source.id}.pdf.part")
+    _fetch(source.url, tmp, doc_id=source.id)
 
+    if not _looks_like_pdf(tmp):
+        tmp.unlink(missing_ok=True)
+        raise ValueError(
+            f"[download] {source.id}: downloaded file is not a valid PDF "
+            f"(truncated response or an error page served as 200)"
+        )
+    digest = _sha256_file(tmp)
     if source.sha256 and digest != source.sha256:
-        dest.unlink(missing_ok=True)
+        tmp.unlink(missing_ok=True)
         raise ValueError(
             f"[download] {source.id}: sha256 mismatch after download "
             f"(expected {source.sha256[:12]}…, got {digest[:12]}…)"
         )
+
+    tmp.replace(dest)  # atomic promote — only reached once all checks pass
     if source.sha256 is None:
         print(f"[download] {source.id}: record this sha256 in sources.yaml -> {digest}")
     return digest
@@ -99,6 +136,20 @@ def _fetch(url: str, dest: Path, *, doc_id: str) -> None:
     except httpx.HTTPError as exc:
         dest.unlink(missing_ok=True)
         raise RuntimeError(f"[download] {doc_id}: failed to fetch {url} — {exc}") from exc
+
+
+def _looks_like_pdf(path: Path) -> bool:
+    """True only for a structurally complete PDF (``%PDF-`` header, ``%%EOF``
+    trailer, and a plausible minimum size). Truncated or non-PDF files fail."""
+    size = path.stat().st_size
+    if size < _MIN_PDF_BYTES:
+        return False
+    with path.open("rb") as fh:
+        if fh.read(len(_PDF_HEADER)) != _PDF_HEADER:
+            return False
+        fh.seek(-_MIN_PDF_BYTES, 2)
+        tail = fh.read()
+    return _PDF_TRAILER in tail
 
 
 def _sha256_file(path: Path) -> str:
