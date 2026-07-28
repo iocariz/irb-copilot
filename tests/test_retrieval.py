@@ -15,7 +15,12 @@ from app.prompts import (
 )
 from app.providers import estimate_cost
 from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations, titles_match
-from app.retrieval import RetrievedChunk, filter_by_doc_ids, reciprocal_rank_fusion
+from app.retrieval import (
+    RetrievedChunk,
+    filter_by_doc_ids,
+    get_retriever,
+    reciprocal_rank_fusion,
+)
 from app.rewrite import expand_acronyms, unknown_acronyms
 from ingestion.models import Chunk
 
@@ -49,6 +54,12 @@ def test_rrf_rank_is_zero_based_and_uses_k() -> None:
     scores = reciprocal_rank_fusion([["x", "y"]], k=60)
     assert scores["x"] == 1 / 60
     assert scores["y"] == 1 / 61
+
+
+# --- shared retriever ------------------------------------------------------- #
+def test_get_retriever_is_a_shared_singleton() -> None:
+    # Same instance across calls, so index/model resources load once, not per /ask.
+    assert get_retriever() is get_retriever()
 
 
 # --- doc_id filtering ------------------------------------------------------- #

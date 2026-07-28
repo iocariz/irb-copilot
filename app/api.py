@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.config import get_settings
 from app.rag import Answer, answer_stream
 from app.rag import answer as rag_answer
+from app.retrieval import get_retriever
 from app.security import RateLimiter, client_ip
 from monitoring.db import init_db, log_conversation, log_feedback, ping_postgres
 
@@ -109,6 +110,10 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
         init_db()
     except Exception as exc:  # noqa: BLE001 — start even if DB is briefly down.
         print(f"[api] init_db failed (monitoring may be unavailable): {exc}")
+    try:
+        get_retriever().warm()  # load index/model once now, not on the first request
+    except Exception as exc:  # noqa: BLE001 — e.g. corpus not ingested yet.
+        print(f"[api] retriever warm-up skipped: {exc}")
     yield
 
 

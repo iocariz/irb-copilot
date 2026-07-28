@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from app.config import Settings, get_settings
 from app.prompts import build_messages
 from app.providers import LLMResult, complete, stream_complete
-from app.retrieval import RetrievedChunk, Retriever
+from app.retrieval import RetrievedChunk, Retriever, get_retriever
 from app.rewrite import RewriteResult, rewrite_query
 
 # One bracketed citation group, and its "title, para. X" internals.
@@ -247,7 +247,7 @@ def answer(
 ) -> Answer:
     """Run the full RAG flow and return a cited Answer."""
     settings = settings or get_settings()
-    retriever = retriever or Retriever(settings)
+    retriever = retriever or get_retriever()
     started = time.perf_counter()
     rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
     llm = complete(messages, model=settings.llm_model)
@@ -268,7 +268,7 @@ def answer_stream(
     ("token", str) for each generated delta, then ("answer", Answer) at the end.
     """
     settings = settings or get_settings()
-    retriever = retriever or Retriever(settings)
+    retriever = retriever or get_retriever()
     started = time.perf_counter()
     rewrite, sources, messages = _prepare(question, doc_ids, settings, retriever, history)
     yield ("sources", sources)

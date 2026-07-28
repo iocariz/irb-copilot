@@ -14,7 +14,7 @@ optional ``doc_ids`` metadata filter.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cached_property, lru_cache
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -186,6 +186,25 @@ class Retriever:
         from sentence_transformers import CrossEncoder
 
         return CrossEncoder(self.settings.rerank_model)
+
+    def warm(self) -> None:
+        """Eagerly load the resources the configured mode needs, so the first
+        request isn't slow and lazy loads don't race under concurrency."""
+        mode = self.settings.retrieval_mode
+        _ = self._manifest
+        if mode in ("bm25", "hybrid", "hybrid_rerank"):
+            _ = self._bm25
+        if mode in ("vector", "hybrid", "hybrid_rerank"):
+            _ = self._qdrant
+        if mode == "hybrid_rerank":
+            _ = self._reranker
+
+
+@lru_cache(maxsize=1)
+def get_retriever() -> Retriever:
+    """Process-wide shared Retriever, so the BM25 index, Qdrant client and
+    cross-encoder load once and are reused across requests (not per call)."""
+    return Retriever()
 
 
 def _doc_filter(doc_ids: list[str] | None) -> qmodels.Filter | None:
