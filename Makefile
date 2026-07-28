@@ -49,7 +49,7 @@ regen: up ## Regenerate EVERYTHING: re-ingest + ground truth + retrieval & RAG e
 	@echo "[regen] full pipeline: re-ingest -> ground truth -> retrieval & RAG eval."
 	@echo "[regen] requires OPENAI_API_KEY in .env; this makes paid LLM/embedding calls and can take a while."
 	@grep -Eq '^OPENAI_API_KEY=.+' .env 2>/dev/null || { echo "[regen] ERROR: set OPENAI_API_KEY in .env first"; exit 1; }
-	uv run python -m ingestion.flow                                                   # re-chunk + re-index (new boundaries)
+	uv run python -m ingestion.flow --recreate                                        # clean rebuild: chunk ids change, so drop the collection to avoid orphans
 	uv run python -m evaluation.generate_ground_truth                                 # writes ground_truth.csv + .meta.json
 	uv run python -m evaluation.generate_ground_truth --style hard                    # writes ground_truth_hard.csv + .meta.json
 	uv run python -m evaluation.eval_retrieval --rebuild-naive                        # rebuilds the stale naive index once
