@@ -192,7 +192,9 @@ the `rewritten_query`, `retrieval_mode`, `prompt_version`, `model`,
 
 - `POST /ask` → full `Answer` JSON (+ an `answer_id`); logs the conversation.
 - `POST /ask/stream` → server-sent events: `sources`, then `token` deltas, then
-  a `done` event with the full answer.
+  a `done` event with the full answer — or an `error` event if generation fails
+  mid-stream. Upstream retrieval/model failures on `/ask` return a clean `502`
+  (details logged server-side, not leaked to the client).
 - `POST /feedback` → records 👍/👎 (+ optional comment) for a prior `answer_id`.
 - `GET /health` → checks Qdrant + Postgres connectivity.
 

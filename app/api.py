@@ -68,6 +68,9 @@ class AskRequest(BaseModel):
     @field_validator("question")
     @classmethod
     def _bound_question(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("question must not be empty")
         limit = get_settings().max_question_chars
         if len(value) > limit:
             raise ValueError(f"question exceeds {limit} characters")
@@ -116,9 +119,16 @@ def _history_dicts(request: AskRequest) -> list[dict[str, str]] | None:
     return [m.model_dump() for m in request.history] if request.history else None
 
 
+_UPSTREAM_ERROR = "failed to generate an answer (retrieval or model error)"
+
+
 @app.post("/ask", response_model=AskResponse, dependencies=[Depends(guard)])
 def ask(request: AskRequest) -> AskResponse:
-    answer = rag_answer(request.question, request.doc_ids, history=_history_dicts(request))
+    try:
+        answer = rag_answer(request.question, request.doc_ids, history=_history_dicts(request))
+    except Exception as exc:  # noqa: BLE001 — turn provider/retrieval faults into a clean 502.
+        print(f"[api] /ask failed: {exc!r}")
+        raise HTTPException(status_code=502, detail=_UPSTREAM_ERROR) from exc
     answer_id = _log(answer)
     return AskResponse(answer_id=answer_id, **answer.model_dump())
 
@@ -126,19 +136,24 @@ def ask(request: AskRequest) -> AskResponse:
 @app.post("/ask/stream", dependencies=[Depends(guard)])
 def ask_stream(request: AskRequest) -> StreamingResponse:
     """Server-sent events: `sources` once, then `token` deltas, then `done`
-    (the full Answer + answer_id)."""
+    (the full Answer + answer_id) — or an `error` event if generation fails."""
 
     def events():  # noqa: ANN202
         final: Answer | None = None
-        for kind, payload in answer_stream(
-            request.question, request.doc_ids, history=_history_dicts(request)
-        ):
-            if kind == "sources":
-                yield _sse("sources", [s.model_dump() for s in payload])
-            elif kind == "token":
-                yield _sse("token", {"text": payload})
-            elif kind == "answer":
-                final = payload
+        try:
+            for kind, payload in answer_stream(
+                request.question, request.doc_ids, history=_history_dicts(request)
+            ):
+                if kind == "sources":
+                    yield _sse("sources", [s.model_dump() for s in payload])
+                elif kind == "token":
+                    yield _sse("token", {"text": payload})
+                elif kind == "answer":
+                    final = payload
+        except Exception as exc:  # noqa: BLE001 — the stream is already 200; signal via SSE.
+            print(f"[api] /ask/stream failed: {exc!r}")
+            yield _sse("error", {"detail": _UPSTREAM_ERROR})
+            return
         answer_id = _log(final) if final else ""
         yield _sse("done", {"answer_id": answer_id, **(final.model_dump() if final else {})})
 

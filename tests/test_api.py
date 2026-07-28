@@ -72,6 +72,34 @@ def test_ask_stream_emits_sse_events(monkeypatch, client) -> None:
     assert "event: done" in body and "cid-9" in body
 
 
+def test_ask_rejects_whitespace_only_question(client) -> None:
+    assert client.post("/ask", json={"question": "   "}).status_code == 422
+
+
+def test_ask_returns_502_on_upstream_failure(monkeypatch, client) -> None:
+    def boom(*a, **k):
+        raise RuntimeError("openai is down")
+
+    monkeypatch.setattr(api, "rag_answer", boom)
+    resp = client.post("/ask", json={"question": "q"})
+    assert resp.status_code == 502
+    assert "openai" not in resp.json()["detail"].lower()  # no internals leaked
+
+
+def test_ask_stream_emits_error_event_on_mid_stream_failure(monkeypatch, client) -> None:
+    def failing_stream(question, doc_ids=None, history=None):
+        yield ("sources", _fake_answer().chunks_used)
+        yield ("token", "partial ")
+        raise RuntimeError("model exploded")
+
+    monkeypatch.setattr(api, "answer_stream", failing_stream)
+    resp = client.post("/ask/stream", json={"question": "q"})
+    assert resp.status_code == 200  # stream already established
+    assert "event: sources" in resp.text and "event: token" in resp.text
+    assert "event: error" in resp.text
+    assert "event: done" not in resp.text
+
+
 def test_ask_survives_logging_failure(monkeypatch, client) -> None:
     monkeypatch.setattr(api, "rag_answer", lambda q, d, history=None: _fake_answer())
 

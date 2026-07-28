@@ -139,6 +139,9 @@ def _run_streaming_ask(question: str, doc_ids: list[str]) -> None:
             st.error(f"Request failed: {exc}")
 
     st.write_stream(tokens())
+    if "error" in captured:
+        st.error(captured["error"].get("detail", "The answer could not be generated."))
+        return
     final = captured.get("done")
     if not final:
         return
