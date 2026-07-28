@@ -21,7 +21,7 @@ _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 # U+0085/U+2028/U+2029 are NOT escaped by pydantic's UTF-8 JSON output yet are
 # treated as line boundaries by str.splitlines(), which would corrupt JSONL. We
 # normalise them to spaces so stored text is clean and one chunk == one line.
-_STRAY_SEPARATORS = re.compile("[\x0b\x0c\x1c\x1d\x1e\x1f\x85  ]")
+_STRAY_SEPARATORS = re.compile("[\x0b\x0c\x1c\x1d\x1e\x1f\u0085\u2028\u2029]")
 
 
 @lru_cache(maxsize=1)

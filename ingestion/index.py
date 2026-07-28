@@ -10,6 +10,8 @@ production structure index.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -113,20 +115,42 @@ def _ensure_collection(client: QdrantClient, collection: str, *, recreate: bool)
 
 
 def build_bm25(chunks: list[Chunk], *, bm25_dir: Path | None = None) -> None:
-    """Build and persist a BM25 index plus a parallel chunk manifest to disk."""
+    """Build and persist a BM25 index plus a parallel chunk manifest to disk.
+
+    Written to a temp sibling directory and swapped in atomically, so a failed or
+    partial write never leaves a corrupt/half-written index at the live path (which
+    would silently diverge from the Qdrant vectors that hybrid retrieval fuses).
+    """
     import bm25s
 
     out_dir = bm25_dir or settings.bm25_index_dir
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+    tmp_dir = out_dir.parent / f".{out_dir.name}.tmp"
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
+    tmp_dir.mkdir(parents=True)
 
-    corpus = [c.text for c in chunks]
-    tokens = bm25s.tokenize(corpus, stopwords="en")
-    retriever = bm25s.BM25()
-    retriever.index(tokens)
-    retriever.save(str(out_dir))
+    try:
+        corpus = [c.text for c in chunks]
+        tokens = bm25s.tokenize(corpus, stopwords="en")
+        retriever = bm25s.BM25()
+        retriever.index(tokens)
+        retriever.save(str(tmp_dir))
 
-    manifest = out_dir / "chunks.jsonl"
-    with manifest.open("w", encoding="utf-8") as fh:
-        for chunk in chunks:
-            fh.write(json.dumps(chunk.model_dump(), ensure_ascii=False) + "\n")
+        manifest = tmp_dir / "chunks.jsonl"
+        with manifest.open("w", encoding="utf-8") as fh:
+            for chunk in chunks:
+                fh.write(json.dumps(chunk.model_dump(), ensure_ascii=False) + "\n")
+        # Completeness check before the swap: the manifest must hold every chunk.
+        written = sum(1 for line in manifest.open(encoding="utf-8") if line.strip())
+        if written != len(chunks):
+            raise OSError(f"BM25 manifest wrote {written} of {len(chunks)} chunks")
+
+        # Atomic swap-in (same filesystem — tmp is a sibling of out_dir).
+        if out_dir.exists():
+            shutil.rmtree(out_dir)
+        os.replace(tmp_dir, out_dir)
+    finally:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir, ignore_errors=True)
     print(f"[index] persisted BM25 index + manifest ({len(chunks)} chunks) to {out_dir}")

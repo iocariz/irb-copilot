@@ -78,13 +78,16 @@ def chunk_structured(
     anything oversized. Preserves paragraph order and citation metadata."""
     raws: list[_Raw] = []
     paras = doc.paragraphs
+    # Paragraphs are joined with "\n\n"; count that separator in the merge
+    # decision so the running total matches the length _finalize_group measures.
+    sep_tokens = count("\n\n")
     i = 0
     while i < len(paras):
         group = [paras[i]]
         group_tokens = count(paras[i].text)
         j = i + 1
         while j < len(paras) and paras[j].section_path == paras[i].section_path:
-            combined = group_tokens + count(paras[j].text)
+            combined = group_tokens + sep_tokens + count(paras[j].text)
             if combined < merge_below:
                 group.append(paras[j])
                 group_tokens = combined
