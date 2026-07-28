@@ -73,6 +73,20 @@ def test_evaluate_config_aggregates(monkeypatch) -> None:
     assert row["relevant_rate"] == 0.5
     assert row["citation_supported_rate"] == 0.5
     assert row["avg_latency_ms"] == 300.0
+    assert row["self_judged"] is False  # answer gpt-4o-mini vs judge gpt-4o
+
+
+def test_evaluate_config_flags_self_judging(monkeypatch) -> None:
+    gt = [{"question": "q1", "chunk_id": "c1"}]
+    monkeypatch.setattr(eval_rag, "rag_answer", lambda q, settings=None: _answer())
+    monkeypatch.setattr(
+        eval_rag, "judge_answer", lambda *a, **k: JudgeResult("RELEVANT", True, "", 0.0)
+    )
+    row = eval_rag.evaluate_config(
+        gt, {"c1": "ref"}, eval_rag.get_settings(),
+        model="gpt-4o", prompt_version="v2", judge_model="gpt-4o", log_to_db=False,
+    )
+    assert row["self_judged"] is True  # judge == answer model
 
 
 # --- grafana provisioning sanity -------------------------------------------- #

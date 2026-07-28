@@ -2,8 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
+from collections.abc import Sequence
+
 from app.config import Settings, get_settings
 from ingestion.models import Chunk, ParsedDoc
+
+
+def corpus_fingerprint(chunks: Sequence[Chunk]) -> str:
+    """Stable hash of a chunk set's ids — changes iff the corpus is re-chunked.
+
+    Ground truth records chunk ids (and paragraph anchors derived from them); a
+    re-ingest that changes chunk ids silently invalidates those references. Stamp
+    this fingerprint alongside the ground truth to detect that drift.
+    """
+    joined = "\n".join(sorted(c.chunk_id for c in chunks))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
 
 
 def load_chunks(kind: str, settings: Settings | None = None) -> list[Chunk]:

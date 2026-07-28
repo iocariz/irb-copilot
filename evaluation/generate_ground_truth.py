@@ -18,14 +18,49 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from app.config import PROJECT_ROOT, get_settings
+from app.config import PROJECT_ROOT, Settings, get_settings
 from app.providers import complete
-from evaluation.corpus import load_chunks
+from evaluation.corpus import corpus_fingerprint, load_chunks
 from evaluation.metrics import lexical_overlap
 from evaluation.sampling import stratified_sample
 from ingestion.models import Chunk
 
 GROUND_TRUTH_CSV = PROJECT_ROOT / "evaluation" / "ground_truth.csv"
+
+
+def meta_path(gt_path: Path) -> Path:
+    """Sidecar file that fingerprints the corpus a ground-truth CSV was built from."""
+    return gt_path.with_suffix(".meta.json")
+
+
+def write_ground_truth_meta(gt_path: Path, chunks: list[Chunk]) -> None:
+    """Record the corpus fingerprint next to the ground-truth CSV."""
+    meta = {
+        "corpus_fingerprint": corpus_fingerprint(chunks),
+        "chunk_kind": "structure",
+        "n_chunks": len(chunks),
+    }
+    meta_path(gt_path).write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+
+def check_ground_truth_freshness(gt_path: Path, settings: Settings) -> str | None:
+    """Return a warning if the corpus changed since this ground truth was built.
+
+    Returns None when there is no sidecar (older ground truth) or the fingerprint
+    still matches, so evaluation proceeds but stale references are surfaced loudly.
+    """
+    sidecar = meta_path(gt_path)
+    if not sidecar.exists():
+        return None
+    recorded = json.loads(sidecar.read_text(encoding="utf-8")).get("corpus_fingerprint")
+    current = corpus_fingerprint(load_chunks("structure", settings))
+    if recorded and recorded != current:
+        return (
+            f"[gt] WARNING: the corpus changed since {gt_path.name} was generated "
+            f"(chunk ids differ). Structure references/ids may be stale — regenerate "
+            f"with `python -m evaluation.generate_ground_truth`."
+        )
+    return None
 
 _SYSTEM = (
     "You generate evaluation questions for a retrieval system over EU credit-risk "
@@ -134,6 +169,7 @@ def main() -> None:
             overlaps.append(lexical_overlap(question, chunk.text))
 
     _write_csv(rows, out_path)
+    write_ground_truth_meta(out_path, chunks)  # fingerprint the corpus for staleness checks
     mean_overlap = sum(overlaps) / len(overlaps) if overlaps else 0.0
     print(f"[gt] wrote {len(rows)} questions to {out_path}")
     print(f"[gt] mean question↔chunk lexical overlap: {mean_overlap:.3f} (lower = less bias)")

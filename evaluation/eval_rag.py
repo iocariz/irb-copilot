@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 from app.config import PROJECT_ROOT, Settings, get_settings
 from app.rag import answer as rag_answer
 from evaluation.corpus import load_chunks
-from evaluation.generate_ground_truth import GROUND_TRUTH_CSV
+from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.judge import RELEVANCE_LABELS, judge_answer
 from monitoring.db import log_conversation
 
@@ -93,6 +93,9 @@ def evaluate_config(
         "model": model,
         "prompt_version": prompt_version,
         "n": n,
+        # A judge scoring answers from its own model family is prone to
+        # self-preference bias; record it so the CSV/plot consumer can discount it.
+        "self_judged": judge_model == model,
         "relevant": labels["RELEVANT"],
         "partly_relevant": labels["PARTLY_RELEVANT"],
         "non_relevant": labels["NON_RELEVANT"],
@@ -117,6 +120,12 @@ def run(
     reference = {c.chunk_id: c.text for c in load_chunks("structure", settings)}
     results: list[dict] = []
     for model in settings.eval_models_list:
+        if judge_model == model:
+            print(
+                f"[eval-rag] WARNING: judge model ({judge_model}) equals the answer "
+                f"model — self-preference bias likely; use a different-family judge "
+                f"(--judge-model) for a trustworthy relevance score on this config."
+            )
         for prompt_version in PROMPT_VERSIONS:
             print(f"[eval-rag] config model={model} prompt={prompt_version} …")
             row = evaluate_config(
@@ -179,6 +188,9 @@ def _distribution_plot(results: list[dict], out_path) -> None:
 def main() -> None:
     args = _parse_args()
     settings = get_settings()
+    staleness = check_ground_truth_freshness(GROUND_TRUTH_CSV, settings)
+    if staleness:
+        print(staleness)
     gt = load_sample(args.n, args.seed)
     n_configs = len(settings.eval_models_list) * len(PROMPT_VERSIONS)
     print(f"[eval-rag] {len(gt)} questions x {n_configs} configs (judge={args.judge_model})")

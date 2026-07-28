@@ -27,11 +27,10 @@ from app.config import PROJECT_ROOT, Settings, get_settings
 from app.retrieval import RetrievedChunk, Retriever
 from app.rewrite import rewrite_query
 from evaluation.corpus import load_parsed_docs
-from evaluation.generate_ground_truth import GROUND_TRUTH_CSV
+from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.metrics import (
     hit_rate_at_k,
     mrr_at_k,
-    relevant_by_chunk_id,
     relevant_by_paragraph,
 )
 from ingestion.chunk import chunk_document
@@ -94,9 +93,15 @@ def precompute_queries(
     return queries
 
 
-def _is_relevant(chunker: str, hit: RetrievedChunk, row: dict) -> bool:
-    if chunker == "structure":
-        return relevant_by_chunk_id(hit.chunk.chunk_id, row["chunk_id"])
+def _is_relevant(hit: RetrievedChunk, row: dict) -> bool:
+    """Relevance by document + paragraph-anchor overlap, for BOTH chunkers.
+
+    Using the same criterion makes the structure-vs-naive comparison fair:
+    previously structure required an exact chunk-id match (stricter than naive's
+    paragraph overlap, biasing the comparison) and also missed hard-split sibling
+    chunks that cover the same ground-truth paragraph. Paragraph anchors are the
+    stable citation unit, so they are the right common denominator.
+    """
     return relevant_by_paragraph(
         hit.chunk.doc_id, hit.chunk.para_ids, row["doc_id"], row["para_ids_list"]
     )
@@ -115,7 +120,7 @@ def evaluate_config(
     def relevances_for(row: dict) -> list[bool]:
         query = queries[(row["question"], rewrite_on)]
         hits = retriever.search(query, mode=mode, top_k=TOP_K)
-        return [_is_relevant(chunker, h, row) for h in hits]
+        return [_is_relevant(h, row) for h in hits]
 
     # bm25 is local (fast, single-threaded); other modes hit the embedding API.
     pool_workers = 1 if mode == "bm25" else workers
@@ -201,6 +206,9 @@ def main() -> None:
     settings = get_settings()
     gt_path = Path(args.ground_truth)
     gt = load_ground_truth(gt_path)
+    staleness = check_ground_truth_freshness(gt_path, settings)
+    if staleness:
+        print(staleness)
     if args.limit:
         gt = gt[: args.limit]
     print(f"[eval] {len(gt)} ground-truth questions x {len(MODES) * len(CHUNKERS) * 2} configs")
