@@ -180,6 +180,60 @@ def test_pymupdf_fallback_pipeline_on_fixture_pdf(tmp_path: Path) -> None:
     assert "81" in ids and "82" in ids
 
 
+def test_docling_converter_is_built_once(monkeypatch) -> None:
+    """The DocumentConverter (multi-minute model init) is created once and reused
+    across documents, not rebuilt per PDF."""
+    import sys
+    import types
+
+    import ingestion.parse as parse_mod
+
+    built = {"count": 0}
+
+    class _FakeConverter:
+        def __init__(self, **kwargs: object) -> None:
+            built["count"] += 1
+
+    def _mod(name: str, **attrs: object) -> types.ModuleType:
+        module = types.ModuleType(name)
+        for key, value in attrs.items():
+            setattr(module, key, value)
+        return module
+
+    # Minimal fake docling package tree so the lazy imports resolve without the
+    # real (slow) dependency.
+    monkeypatch.setitem(sys.modules, "docling", _mod("docling"))
+    monkeypatch.setitem(sys.modules, "docling.datamodel", _mod("docling.datamodel"))
+    monkeypatch.setitem(
+        sys.modules,
+        "docling.datamodel.base_models",
+        _mod("docling.datamodel.base_models", InputFormat=SimpleNamespace(PDF="pdf")),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "docling.datamodel.pipeline_options",
+        _mod("docling.datamodel.pipeline_options", PdfPipelineOptions=lambda **kw: object()),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "docling.document_converter",
+        _mod(
+            "docling.document_converter",
+            DocumentConverter=_FakeConverter,
+            PdfFormatOption=lambda **kw: object(),
+        ),
+    )
+
+    parse_mod._docling_converter.cache_clear()
+    try:
+        first = parse_mod._docling_converter()
+        second = parse_mod._docling_converter()
+        assert first is second  # same instance reused
+        assert built["count"] == 1  # constructed only once across calls
+    finally:
+        parse_mod._docling_converter.cache_clear()  # don't leak the fake to other tests
+
+
 def test_missing_docling_fails_loudly(tmp_path: Path, monkeypatch) -> None:
     """A missing docling install is an environment error, not a silent fallback."""
     import ingestion.parse as parse_mod

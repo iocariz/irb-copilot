@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable
+from functools import lru_cache
 from pathlib import Path
 
 from .models import Paragraph, ParsedDoc
@@ -69,18 +70,31 @@ def parse_pdf(pdf_path: Path, doc_id: str, doc_title: str) -> ParsedDoc:
 # --------------------------------------------------------------------------- #
 # docling path
 # --------------------------------------------------------------------------- #
-def _parse_with_docling(pdf_path: Path) -> list[Paragraph]:
-    """Convert with docling and build paragraphs from its item structure."""
+@lru_cache(maxsize=1)
+def _docling_converter():  # noqa: ANN202 — docling is an optional import
+    """Build the docling DocumentConverter once and reuse it across documents.
+
+    Constructing a converter cold-loads docling's layout/table models (a
+    multi-minute init), so it must not be rebuilt per PDF. A DocumentConverter is
+    safe to reuse across many ``convert()`` calls, so we cache it process-wide.
+    The docling import stays lazy (inside this function) so the light install
+    still works for everything that doesn't parse PDFs; a missing install raises
+    ImportError, which ``parse_pdf`` distinguishes from a per-document failure.
+    """
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
     from docling.document_converter import DocumentConverter, PdfFormatOption
 
     # Born-digital regulatory PDFs: OCR is unnecessary and slow; keep tables.
     pipeline = PdfPipelineOptions(do_ocr=False, do_table_structure=True)
-    converter = DocumentConverter(
+    return DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline)}
     )
-    doc = converter.convert(str(pdf_path)).document
+
+
+def _parse_with_docling(pdf_path: Path) -> list[Paragraph]:
+    """Convert with docling (reusing the shared converter) and build paragraphs."""
+    doc = _docling_converter().convert(str(pdf_path)).document
     return build_paragraphs_from_items(
         doc.iterate_items(), table_md=lambda item: _table_markdown(item, doc)
     )
