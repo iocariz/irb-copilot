@@ -30,12 +30,12 @@ def test_active_stages_rejects_inverted_range() -> None:
         active_stages("index", "parse")
 
 
-def _write_chunk(chunks_dir, doc_id: str, chunk_id: str) -> None:
+def _write_chunk(chunks_dir, doc_id: str, chunk_id: str, kind: str = "structure") -> None:
     chunk = Chunk(
         chunk_id=chunk_id, doc_id=doc_id, doc_title=doc_id, section_path=[],
         para_ids=["1"], pages=[1], text="text",
     )
-    (chunks_dir / f"{doc_id}.structure.jsonl").write_text(chunk.model_dump_json() + "\n")
+    (chunks_dir / f"{doc_id}.{kind}.jsonl").write_text(chunk.model_dump_json() + "\n")
 
 
 def test_run_index_uses_full_corpus_not_a_subset(tmp_path, monkeypatch) -> None:
@@ -46,13 +46,30 @@ def test_run_index_uses_full_corpus_not_a_subset(tmp_path, monkeypatch) -> None:
     captured: dict = {}
     monkeypatch.setattr(
         pipeline, "index_chunks",
-        lambda chunks, recreate=False: captured.update(
-            ids={c.chunk_id for c in chunks}, recreate=recreate
+        lambda chunks, recreate=False, collection=None, bm25_dir=None: captured.update(
+            ids={c.chunk_id for c in chunks}, recreate=recreate, collection=collection
         ),
     )
     pipeline.run_index(tmp_path, kind="structure", recreate=True)
     assert captured["ids"] == {"a1", "b1"}
     assert captured["recreate"] is True
+    from app.config import get_settings
+    assert captured["collection"] == get_settings().qdrant_collection  # production
+
+
+def test_run_index_naive_targets_isolated_namespace(tmp_path, monkeypatch) -> None:
+    # --chunker naive must NOT write into the production collection.
+    _write_chunk(tmp_path, "docA", "a1", kind="naive")
+    captured: dict = {}
+    monkeypatch.setattr(
+        pipeline, "index_chunks",
+        lambda chunks, recreate=False, collection=None, bm25_dir=None: captured.update(
+            collection=collection
+        ),
+    )
+    pipeline.run_index(tmp_path, kind="naive", recreate=True)
+    from app.config import get_settings
+    assert captured["collection"] == f"{get_settings().qdrant_collection}_naive"
 
 
 def test_run_index_errors_without_chunk_files(tmp_path) -> None:

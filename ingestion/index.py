@@ -15,12 +15,25 @@ from pathlib import Path
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from app.config import settings
+from app.config import Settings, get_settings, settings
 from app.providers import embed_texts
 
 from .models import Chunk
 
 _UPSERT_BATCH = 128
+
+
+def index_targets(kind: str, cfg: Settings | None = None) -> tuple[str, Path]:
+    """Return the (Qdrant collection, BM25 dir) an index of `kind` writes to.
+
+    The naive baseline is isolated to a separate namespace (`*_naive`) so
+    building it — via ingestion `--chunker naive` or the evaluation — never
+    overwrites the production (structure) index.
+    """
+    cfg = cfg or get_settings()
+    if kind == "naive":
+        return f"{cfg.qdrant_collection}_naive", cfg.data_path / "bm25_index_naive"
+    return cfg.qdrant_collection, cfg.bm25_index_dir
 
 
 def index_chunks(

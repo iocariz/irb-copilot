@@ -35,7 +35,7 @@ from evaluation.metrics import (
     relevant_by_paragraph,
 )
 from ingestion.chunk import chunk_document
-from ingestion.index import index_chunks
+from ingestion.index import index_chunks, index_targets
 
 MODES = ["bm25", "vector", "hybrid", "hybrid_rerank"]
 CHUNKERS = ["structure", "naive"]
@@ -67,8 +67,7 @@ def output_suffix(gt_path: Path) -> str:
 
 def ensure_naive_index(settings: Settings, *, rebuild: bool) -> tuple[str, object]:
     """Build the parallel naive-chunk index if needed; return (collection, dir)."""
-    collection = f"{settings.qdrant_collection}_naive"
-    bm25_dir = settings.data_path / "bm25_index_naive"
+    collection, bm25_dir = index_targets("naive", settings)
     if rebuild or not (bm25_dir / "chunks.jsonl").exists():
         print("[eval] building naive index (parse -> naive chunks -> index)")
         naive_chunks = [

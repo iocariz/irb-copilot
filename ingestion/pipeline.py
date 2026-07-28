@@ -15,7 +15,7 @@ from app.config import Settings, get_settings
 
 from .chunk import chunk_document
 from .download import Source, download_all, load_sources
-from .index import index_chunks
+from .index import index_chunks, index_targets
 from .models import Chunk, ParsedDoc
 from .parse import parse_pdf
 
@@ -97,8 +97,13 @@ def run_index(chunks_dir: Path, *, kind: str, recreate: bool) -> None:
         for line in path.read_text(encoding="utf-8").split("\n"):
             if line.strip():
                 chunks.append(Chunk.model_validate_json(line))
-    print(f"[index] full corpus: {len(chunks)} {kind} chunks from {len(files)} document(s)")
-    index_chunks(chunks, recreate=recreate)
+    # Naive routes to an isolated namespace so it never overwrites production.
+    collection, bm25_dir = index_targets(kind)
+    print(
+        f"[index] {len(chunks)} {kind} chunks from {len(files)} doc(s) "
+        f"-> collection={collection}, bm25={bm25_dir.name}"
+    )
+    index_chunks(chunks, recreate=recreate, collection=collection, bm25_dir=bm25_dir)
 
 
 def active_stages(from_stage: str, to_stage: str = "index") -> tuple[str, ...]:

@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from ingestion.index import orphan_warning
+from app.config import get_settings
+from ingestion.index import index_targets, orphan_warning
 
 
 def test_no_warning_when_counts_match() -> None:
@@ -22,3 +23,20 @@ def test_warning_reports_orphan_count() -> None:
     assert msg is not None
     assert "2430 orphaned" in msg
     assert "--recreate" in msg
+
+
+# --- index target routing (naive must not touch production) ------------------ #
+def test_index_targets_structure_is_production() -> None:
+    s = get_settings()
+    collection, bm25_dir = index_targets("structure")
+    assert collection == s.qdrant_collection
+    assert bm25_dir == s.bm25_index_dir
+
+
+def test_index_targets_naive_is_isolated_from_production() -> None:
+    s = get_settings()
+    collection, bm25_dir = index_targets("naive")
+    assert collection == f"{s.qdrant_collection}_naive"
+    assert bm25_dir == s.data_path / "bm25_index_naive"
+    assert collection != s.qdrant_collection
+    assert bm25_dir != s.bm25_index_dir
