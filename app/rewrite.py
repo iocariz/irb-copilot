@@ -47,6 +47,14 @@ _REWRITE_SYSTEM = (
     "ONLY the rewritten query, no preamble."
 )
 
+_CONDENSE_SYSTEM = (
+    "Given the conversation so far and a follow-up question, rewrite the follow-up "
+    "into a STANDALONE search query for retrieving passages from EU prudential "
+    "regulation. Resolve references (it, that, this guideline, the next paragraph) "
+    "to the concrete documents, paragraph numbers, and terms they point to, and "
+    "keep exact regulatory wording. Do NOT answer. Return ONLY the query."
+)
+
 
 @dataclass(frozen=True)
 class RewriteResult:
@@ -104,6 +112,45 @@ def rewrite_query(question: str, settings: Settings | None = None) -> RewriteRes
     return RewriteResult(
         original=question,
         rewritten=rewritten,
+        used_llm=True,
+        tokens_in=result.tokens_in,
+        tokens_out=result.tokens_out,
+        cost_usd=result.cost_usd,
+    )
+
+
+def condense_query(
+    question: str,
+    history: list[dict[str, str]],
+    settings: Settings | None = None,
+) -> RewriteResult:
+    """Rewrite a follow-up into a standalone retrieval query using chat history.
+
+    Retrieval otherwise runs on the bare follow-up, so references like "the next
+    paragraph" would search with a weak, context-free query. Only meaningful when
+    there is history; falls back to the plain rewrite otherwise.
+    """
+    from app.prompts import safe_history  # local import avoids an import cycle
+
+    settings = settings or get_settings()
+    turns = safe_history(history)
+    if not turns:
+        return rewrite_query(question, settings)
+
+    conversation = "\n".join(f"{t['role']}: {t['content']}" for t in turns)
+    user = f"Conversation:\n{conversation}\n\nFollow-up: {question}\n\nStandalone query:"
+    result = complete(
+        [
+            {"role": "system", "content": _CONDENSE_SYSTEM},
+            {"role": "user", "content": user},
+        ],
+        model=settings.llm_model,
+        temperature=0.0,
+        max_tokens=128,
+    )
+    return RewriteResult(
+        original=question,
+        rewritten=result.text.strip() or question,
         used_llm=True,
         tokens_in=result.tokens_in,
         tokens_out=result.tokens_out,

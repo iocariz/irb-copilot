@@ -164,13 +164,21 @@ search query. The evaluation found it *hurts* retrieval on this corpus (it
 paraphrases away the exact regulatory terms), so it's off by default — but it's
 implemented and evaluated.
 
+For **follow-up questions**, a separate step (`condense_query`, `CONDENSE_HISTORY`,
+on by default) rewrites the follow-up into a *standalone* query using the chat
+history — so "and what is the materiality threshold for that?" becomes a query
+that resolves *that* to *past due amounts* and retrieves the right paragraphs,
+instead of searching on a referent-free question. It only fires when history is
+present (first-turn retrieval is unchanged).
+
 ### 4. RAG flow ([`app/rag.py`](app/rag.py))
 
 `answer(question, doc_ids=None, history=None)` runs:
 
-1. **rewrite** (if enabled) → 2. **retrieve** top-k → 3. **build prompt** (context
-block with citation headers + optional conversation history) → 4. **LLM** →
-5. **parse citations** from the response → 6. **self-check** grounding.
+1. **resolve the retrieval query** — condense a follow-up to a standalone query
+using history, or apply the optional first-turn rewrite → 2. **retrieve** top-k →
+3. **build prompt** (context block with citation headers + conversation history) →
+4. **LLM** → 5. **parse citations** → 6. **self-check** grounding.
 
 The prompt ([`app/prompts.py`](app/prompts.py)) comes in two variants: `v1`
 (plain) and `v2` (few-shot example + stricter citation format). Both instruct the
@@ -325,7 +333,8 @@ the evaluation winners, so the app is sensible out of the box.
 | `EMBEDDING_MODEL` / `EMBEDDING_DIM` | `text-embedding-3-small` / `1536` | embeddings (dim must match) |
 | `EVAL_MODELS` | `gpt-4o-mini,gpt-4o` | models compared by `eval_rag` |
 | `RETRIEVAL_MODE` | `hybrid_rerank` | `bm25` \| `vector` \| `hybrid` \| `hybrid_rerank` |
-| `ENABLE_REWRITE` | `false` | query rewriting / acronym expansion |
+| `ENABLE_REWRITE` | `false` | first-turn query rewriting / acronym expansion |
+| `CONDENSE_HISTORY` | `true` | rewrite follow-ups into standalone retrieval queries |
 | `PROMPT_VERSION` | `v2` | `v1` (plain) \| `v2` (few-shot, stricter citations) |
 | `CHUNKER` | `structure` | `structure` \| `naive` (eval baseline) |
 | `TOP_K` / `RRF_K` | `5` / `60` | results returned / RRF constant |

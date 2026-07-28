@@ -20,7 +20,7 @@ from app.config import Settings, get_settings
 from app.prompts import build_messages
 from app.providers import LLMResult, complete, stream_complete
 from app.retrieval import RetrievedChunk, Retriever, get_retriever
-from app.rewrite import RewriteResult, rewrite_query
+from app.rewrite import RewriteResult, condense_query, rewrite_query
 
 # One bracketed citation group, and its "title, para. X" internals.
 _BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")
@@ -193,8 +193,16 @@ def _prepare(
     retriever: Retriever,
     history: list[dict[str, str]] | None,
 ) -> tuple[RewriteResult, list[SourceChunk], list[dict[str, str]]]:
-    """Shared front half: rewrite, retrieve, build messages."""
-    rewrite = rewrite_query(question, settings)
+    """Shared front half: resolve the retrieval query, retrieve, build messages.
+
+    For a follow-up (history present) the query is condensed to a standalone form
+    using that history, so retrieval isn't run on a referent-free question; a
+    first-turn question uses the plain rewrite (acronym expansion, off by default).
+    """
+    if history and settings.condense_history:
+        rewrite = condense_query(question, history, settings)
+    else:
+        rewrite = rewrite_query(question, settings)
     chunks = retriever.search(
         rewrite.rewritten,
         mode=settings.retrieval_mode,

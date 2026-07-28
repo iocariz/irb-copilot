@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     # hybrid_rerank leads (0.64); rewrite hurts on both sets.
     retrieval_mode: RetrievalMode = Field(default="hybrid_rerank", alias="RETRIEVAL_MODE")
     enable_rewrite: bool = Field(default=False, alias="ENABLE_REWRITE")
+    # Rewrite a follow-up into a standalone query (using chat history) before
+    # retrieval, so references like "the next paragraph" search well. Only fires
+    # when history is present; costs one cheap LLM call per follow-up.
+    condense_history: bool = Field(default=True, alias="CONDENSE_HISTORY")
     prompt_version: PromptVersion = Field(default="v2", alias="PROMPT_VERSION")
     chunker: ChunkerKind = Field(default="structure", alias="CHUNKER")
     top_k: int = Field(default=5, alias="TOP_K")

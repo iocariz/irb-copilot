@@ -6,6 +6,9 @@ parsing, prompt assembly, cost — without requiring Qdrant, BM25 files, or an L
 
 from __future__ import annotations
 
+import pytest
+
+from app.config import get_settings
 from app.prompts import (
     build_context,
     build_messages,
@@ -13,15 +16,22 @@ from app.prompts import (
     safe_history,
     system_prompt,
 )
-from app.providers import estimate_cost
-from app.rag import Citation, SourceChunk, check_citation_grounding, parse_citations, titles_match
+from app.providers import LLMResult, estimate_cost
+from app.rag import (
+    Citation,
+    SourceChunk,
+    _prepare,
+    check_citation_grounding,
+    parse_citations,
+    titles_match,
+)
 from app.retrieval import (
     RetrievedChunk,
     filter_by_doc_ids,
     get_retriever,
     reciprocal_rank_fusion,
 )
-from app.rewrite import expand_acronyms, unknown_acronyms
+from app.rewrite import RewriteResult, condense_query, expand_acronyms, unknown_acronyms
 from ingestion.models import Chunk
 
 
@@ -54,6 +64,67 @@ def test_rrf_rank_is_zero_based_and_uses_k() -> None:
     scores = reciprocal_rank_fusion([["x", "y"]], k=60)
     assert scores["x"] == 1 / 60
     assert scores["y"] == 1 / 61
+
+
+# --- follow-up query condensation ------------------------------------------- #
+def _fake_llm(text: str) -> LLMResult:
+    return LLMResult(
+        text=text, model="gpt-4o-mini", tokens_in=10, tokens_out=5,
+        cost_usd=0.0001, latency_ms=10,
+    )
+
+
+def test_condense_query_rewrites_followup_using_history(monkeypatch) -> None:
+    import app.rewrite as rw
+
+    monkeypatch.setattr(
+        rw, "complete", lambda messages, **k: _fake_llm("materiality threshold days past due")
+    )
+    history = [
+        {"role": "user", "content": "How many days past due trigger a default?"},
+        {"role": "assistant", "content": "90 consecutive days of material past due amounts."},
+    ]
+    result = condense_query("what about the materiality threshold?", history)
+    assert result.rewritten == "materiality threshold days past due"
+    assert result.used_llm and result.cost_usd > 0
+
+
+def test_condense_query_without_history_falls_back(monkeypatch) -> None:
+    # No history to condense against -> no LLM call, plain rewrite (off by default).
+    import app.rewrite as rw
+
+    monkeypatch.setattr(rw, "complete", lambda *a, **k: pytest.fail("should not call the LLM"))
+    result = condense_query("a standalone question", [])
+    assert result.used_llm is False
+
+
+class _FakeRetriever:
+    def __init__(self) -> None:
+        self.last_query: str | None = None
+
+    def search(self, query, *, mode, top_k, doc_ids):  # noqa: ANN001
+        self.last_query = query
+        return []
+
+
+def test_prepare_condenses_when_history_present(monkeypatch) -> None:
+    import app.rag as rag
+
+    monkeypatch.setattr(rag, "condense_query", lambda q, h, s: RewriteResult(q, "CONDENSED", True))
+    monkeypatch.setattr(rag, "rewrite_query", lambda q, s: RewriteResult(q, "PLAIN", False))
+    retriever = _FakeRetriever()
+    _prepare("q", None, get_settings(), retriever, [{"role": "user", "content": "prev"}])
+    assert retriever.last_query == "CONDENSED"  # retrieval used the standalone query
+
+
+def test_prepare_first_turn_uses_plain_rewrite(monkeypatch) -> None:
+    import app.rag as rag
+
+    monkeypatch.setattr(rag, "condense_query", lambda q, h, s: RewriteResult(q, "CONDENSED", True))
+    monkeypatch.setattr(rag, "rewrite_query", lambda q, s: RewriteResult(q, "PLAIN", False))
+    retriever = _FakeRetriever()
+    _prepare("q", None, get_settings(), retriever, None)
+    assert retriever.last_query == "PLAIN"
 
 
 # --- shared retriever ------------------------------------------------------- #
