@@ -150,10 +150,11 @@ def check_citation_grounding(
 ) -> list[str]:
     """Return the texts of citations NOT backed by a retrieved source (pure).
 
-    A citation is grounded if some retrieved chunk matches its document title
-    (exact or fuzzy — see ``titles_match``) and at least one cited paragraph
-    number. Ungrounded citations mean the model cited outside the context it
-    was given — a likely hallucination.
+    A citation is grounded only if a retrieved document matches its title (exact
+    or fuzzy — see ``titles_match``) and **every** cited paragraph number was
+    actually retrieved. Requiring all paragraphs — not just one — means a partly
+    hallucinated citation (e.g. ``para. 82, 99`` when only 82 was retrieved) is
+    flagged rather than laundered by the one real paragraph.
     """
     available: dict[str, set[str]] = {}
     for chunk in chunks_used:
@@ -161,10 +162,12 @@ def check_citation_grounding(
     ungrounded: list[str] = []
     for citation in citations:
         cited = {p.strip() for p in _PARA_SPLIT_RE.split(citation.paras) if p.strip()}
-        if not any(
-            titles_match(citation.doc_title, title) and (cited & paras)
-            for title, paras in available.items()
-        ):
+        # Paragraphs available under any document whose title matches the citation.
+        covered: set[str] = set()
+        for title, paras in available.items():
+            if titles_match(citation.doc_title, title):
+                covered |= paras
+        if not cited or not cited.issubset(covered):
             ungrounded.append(citation.text)
     return ungrounded
 

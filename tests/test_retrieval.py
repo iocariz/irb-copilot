@@ -123,9 +123,22 @@ def test_grounding_flags_wrong_document() -> None:
     assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == ["Doc B, para. 82"]
 
 
-def test_grounding_multi_para_partial_match_is_grounded() -> None:
+def test_grounding_flags_partially_hallucinated_paragraphs() -> None:
+    # Citing 82,99 when only 82 was retrieved: 99 is unverified -> flag it.
     cites = [Citation(text="Doc A, para. 82, 99", doc_title="Doc A", paras="82, 99")]
-    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == []
+    assert check_citation_grounding(cites, [_src("Doc A", ["82"])]) == ["Doc A, para. 82, 99"]
+
+
+def test_grounding_multi_para_all_present_is_grounded() -> None:
+    cites = [Citation(text="Doc A, para. 82, 83", doc_title="Doc A", paras="82, 83")]
+    assert check_citation_grounding(cites, [_src("Doc A", ["82", "83"])]) == []
+
+
+def test_grounding_multi_para_covered_across_chunks() -> None:
+    # A doc's paragraphs may be spread over several retrieved chunks.
+    cites = [Citation(text="Doc A, para. 82, 83", doc_title="Doc A", paras="82, 83")]
+    sources = [_src("Doc A", ["82"]), _src("Doc A", ["83"])]
+    assert check_citation_grounding(cites, sources) == []
 
 
 def test_grounding_accepts_shortened_title_dropping_parenthetical() -> None:

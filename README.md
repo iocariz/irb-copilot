@@ -178,8 +178,9 @@ model to answer **only** from the provided context, to say so when the context i
 insufficient, and to cite inline as `[doc_title, para. X]`.
 
 The **citation self-check** (`check_citation_grounding`) verifies every parsed
-citation maps to a retrieved source (same document title + an overlapping
-paragraph number). Citations that don't are surfaced as
+citation maps to a retrieved source — a title-matching document where **every**
+cited paragraph was actually retrieved (so a partly hallucinated `para. 82, 99`
+isn't laundered by the one real paragraph). Citations that don't are surfaced as
 `ungrounded_citations` and shown in the UI as a "possible hallucination" warning.
 
 The returned `Answer` carries: `text`, parsed `citations`, `chunks_used` (with
