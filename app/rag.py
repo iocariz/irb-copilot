@@ -24,7 +24,11 @@ from app.rewrite import RewriteResult, condense_query, rewrite_query
 
 # One bracketed citation group, and its "title, para. X" internals.
 _BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")
-_CITE_RE = re.compile(r"^(?P<title>.+?),\s*para\.?\s*(?P<paras>.+)$", re.IGNORECASE)
+# Accept the prompt's "para." plus the forms a model sometimes emits anyway
+# ("paras", "paragraph(s)"), so a valid citation isn't silently dropped.
+_CITE_RE = re.compile(
+    r"^(?P<title>.+?),\s*(?:paragraphs?|paras?)\.?\s*(?P<paras>.+)$", re.IGNORECASE
+)
 _PARA_SPLIT_RE = re.compile(r"[,;]")
 # Title normalization for grounding: LLMs often drop dates/parentheticals.
 _PAREN_RE = re.compile(r"\([^)]*\)")
@@ -293,4 +297,6 @@ def answer_stream(
             break
         yield ("token", delta)
 
+    if llm is None:  # only reachable if the stream ended without a final result
+        raise RuntimeError("stream_complete ended without returning an LLMResult")
     yield ("answer", _assemble(question, rewrite, sources, llm, settings, started))

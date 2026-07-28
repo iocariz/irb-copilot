@@ -145,6 +145,13 @@ def test_stray_separators_are_normalized_and_jsonl_safe() -> None:
     assert len(chunk.model_dump_json().splitlines()) == 1
 
 
+def test_naive_empty_document_returns_no_chunks() -> None:
+    # A document whose paragraphs are all empty tokenizes to nothing; return [] instead
+    # of falling through to the window loop (which downstream would crash on).
+    doc = _doc([_para("1", "", ["s"]), _para("2", "", ["s"])])
+    assert chunk_naive(doc) == []
+
+
 def test_naive_rejects_overlap_ge_size() -> None:
     doc = _doc([_para("1", "a b c", ["1"])])
     try:

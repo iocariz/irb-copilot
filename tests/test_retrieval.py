@@ -26,7 +26,9 @@ from app.rag import (
     titles_match,
 )
 from app.retrieval import (
+    _RERANK_POOL,
     RetrievedChunk,
+    Retriever,
     filter_by_doc_ids,
     get_retriever,
     reciprocal_rank_fusion,
@@ -131,6 +133,23 @@ def test_prepare_first_turn_uses_plain_rewrite(monkeypatch) -> None:
 def test_get_retriever_is_a_shared_singleton() -> None:
     # Same instance across calls, so index/model resources load once, not per /ask.
     assert get_retriever() is get_retriever()
+
+
+def test_hybrid_rerank_pools_at_least_top_k(monkeypatch) -> None:
+    # The rerank candidate pool must be max(top_k, _RERANK_POOL), so a top_k larger
+    # than the fixed pool isn't silently truncated to _RERANK_POOL candidates.
+    retriever = Retriever(get_settings())
+    captured: dict[str, int] = {}
+
+    def fake_hybrid(query, pool, doc_ids):  # noqa: ANN001, ANN202
+        captured["pool"] = pool
+        return []  # empty candidates -> returns before touching the cross-encoder
+
+    monkeypatch.setattr(retriever, "_search_hybrid", fake_hybrid)
+    retriever._search_hybrid_rerank("q", top_k=50, doc_ids=None)
+    assert captured["pool"] == 50  # max(50, _RERANK_POOL)
+    retriever._search_hybrid_rerank("q", top_k=5, doc_ids=None)
+    assert captured["pool"] == _RERANK_POOL  # max(5, 20)
 
 
 # --- doc_id filtering ------------------------------------------------------- #

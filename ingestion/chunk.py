@@ -174,6 +174,8 @@ def chunk_naive(
     for para in doc.paragraphs:
         for tok in encode(para.text):
             tokens.append((tok, para.page, para.para_id))
+    if not tokens:  # document with only empty paragraphs -> no chunks (not a crash)
+        return []
 
     raws: list[_Raw] = []
     step = size - overlap

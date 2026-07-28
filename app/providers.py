@@ -8,14 +8,17 @@ with a warning rather than failing.
 
 from __future__ import annotations
 
+import logging
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import dataclass
 from functools import lru_cache
 
 from openai import OpenAI
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 _EMBED_BATCH = 128
 
@@ -58,7 +61,7 @@ def openai_client() -> OpenAI:
 def estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
     """USD cost for a call, from the pricing table (0 for unknown models)."""
     if model not in PRICING:
-        print(f"[providers] WARNING: no pricing for model {model!r}; cost=0")
+        logger.warning("no pricing for model %r; cost recorded as 0", model)
         return 0.0
     in_price, out_price = PRICING[model]
     return (tokens_in * in_price + tokens_out * out_price) / 1_000_000
@@ -101,11 +104,13 @@ def stream_complete(
     model: str | None = None,
     temperature: float = 0.0,
     max_tokens: int | None = None,
-) -> Iterator[str]:
+) -> Generator[str, None, LLMResult]:
     """Stream a chat completion token-by-token.
 
     Yields text deltas as they arrive; the generator's return value (available
     via StopIteration.value) is the final `LLMResult` with token/cost/latency.
+    The ``Generator[..., LLMResult]`` annotation makes that final value part of
+    the type contract — a caller that ``for``-loops over the deltas discards it.
     """
     model = model or settings.llm_model
     client = openai_client()

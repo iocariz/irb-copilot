@@ -42,7 +42,11 @@ def reciprocal_rank_fusion(
 ) -> dict[str, float]:
     """Fuse ranked id lists into {id: score} via RRF: sum 1/(k + rank).
 
-    Pure function (no I/O) so the fusion logic is unit-testable. Rank is 0-based.
+    Pure function (no I/O) so the fusion logic is unit-testable. Rank is 0-based
+    (a common variant; the canonical Cormack et al. formula is 1-based). With the
+    default k=60 the one-position offset is negligible, and the choice is internal
+    and self-consistent — kept as-is deliberately so it doesn't change the ranking
+    the evaluation was run against.
     """
     scores: dict[str, float] = {}
     for ranking in rankings:
@@ -170,7 +174,9 @@ class Retriever:
     def _search_hybrid_rerank(
         self, query: str, top_k: int, doc_ids: list[str] | None
     ) -> list[RetrievedChunk]:
-        candidates = self._search_hybrid(query, _RERANK_POOL, doc_ids)
+        # Rerank at least top_k candidates; a larger top_k must not be silently
+        # truncated by the fixed pool size.
+        candidates = self._search_hybrid(query, max(top_k, _RERANK_POOL), doc_ids)
         if not candidates:
             return []
         scores = self._reranker.predict(
