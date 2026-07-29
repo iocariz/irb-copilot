@@ -85,6 +85,12 @@ class Retriever:
         # can't build a torch/BM25/Qdrant resource twice at once (loading a torch
         # model from multiple threads simultaneously can crash the interpreter).
         self._load_lock = threading.Lock()
+        # The cross-encoder's torch/tokenizers inference is not safe to call from
+        # multiple threads at once (native double-free / crash). Callers run under
+        # thread pools (the eval harness, FastAPI's sync-endpoint pool), so
+        # serialize predict — it's ~100ms, while the parallelism that matters
+        # (the LLM API calls) happens elsewhere.
+        self._rerank_lock = threading.Lock()
 
     # --- lazily loaded resources ------------------------------------------- #
     @cached_property
@@ -195,9 +201,10 @@ class Retriever:
         candidates = self._search_hybrid(query, max(top_k, _RERANK_POOL), doc_ids)
         if not candidates:
             return []
-        scores = self._reranker.predict(
-            [(query, rc.chunk.text) for rc in candidates]
-        )
+        pairs = [(query, rc.chunk.text) for rc in candidates]
+        reranker = self._reranker
+        with self._rerank_lock:  # native inference isn't safe to run concurrently
+            scores = reranker.predict(pairs)
         reranked = sorted(
             zip(candidates, scores, strict=True), key=lambda cs: cs[1], reverse=True
         )

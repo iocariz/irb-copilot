@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from collections.abc import Sequence
 
 from app.config import Settings, get_settings
@@ -17,6 +18,9 @@ def limit_torch_threads() -> None:
     CPU and thrash (turning minutes into hours). Parallelise at the Python-worker
     level and keep each torch call single-threaded. No-op if torch isn't installed.
     """
+    # Stop HF tokenizers from spawning its own thread pool when we already run a
+    # Python thread pool (source of the "leaked semaphore" warnings / deadlocks).
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     try:
         import torch
 

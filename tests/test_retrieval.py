@@ -179,6 +179,40 @@ def test_lazy_resource_loads_exactly_once_under_concurrency(monkeypatch) -> None
     assert len({id(x) for x in seen}) == 1  # every thread observes the same instance
 
 
+def test_reranker_inference_is_serialized_under_concurrency(monkeypatch) -> None:
+    # The cross-encoder's native inference isn't safe to run from multiple threads
+    # at once; _rerank_lock must ensure predict() never overlaps.
+    import threading
+    import time
+
+    retriever = Retriever(get_settings())
+    monkeypatch.setattr(retriever, "_search_hybrid", lambda q, pool, d: [_rc("c1")])
+
+    state = {"active": 0, "max": 0}
+    counter_lock = threading.Lock()
+
+    class _FakeReranker:
+        def predict(self, pairs):  # noqa: ANN001, ANN202
+            with counter_lock:
+                state["active"] += 1
+                state["max"] = max(state["max"], state["active"])
+            time.sleep(0.02)  # hold the "GPU" so overlap would be observable
+            with counter_lock:
+                state["active"] -= 1
+            return [0.5] * len(pairs)
+
+    retriever.__dict__["_reranker"] = _FakeReranker()  # skip the real model load
+    threads = [
+        threading.Thread(target=lambda: retriever._search_hybrid_rerank("q", 5, None))
+        for _ in range(8)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert state["max"] == 1  # predict never ran on two threads simultaneously
+
+
 # --- doc_id filtering ------------------------------------------------------- #
 def test_filter_by_doc_ids_none_is_noop() -> None:
     chunks = [_rc("1", doc_id="a"), _rc("2", doc_id="b")]

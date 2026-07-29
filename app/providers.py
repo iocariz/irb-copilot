@@ -21,6 +21,10 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _EMBED_BATCH = 128
+# The SDK auto-retries 429/5xx with exponential backoff honouring Retry-After;
+# the default of 2 is too few for sustained token-per-minute limits under the
+# eval's concurrent fan-out, so allow more attempts to ride out the window.
+_MAX_RETRIES = 8
 
 # USD per 1M tokens (input, output). Embeddings use the input column only.
 # Approximate list prices — adjust as needed; keep models here to keep cost math
@@ -55,7 +59,7 @@ def openai_client() -> OpenAI:
     kwargs: dict[str, str] = {"api_key": settings.openai_api_key}
     if settings.openai_base_url:
         kwargs["base_url"] = settings.openai_base_url
-    return OpenAI(**kwargs)
+    return OpenAI(max_retries=_MAX_RETRIES, **kwargs)
 
 
 def estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
