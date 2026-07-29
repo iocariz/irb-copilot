@@ -132,11 +132,20 @@ def run(
             )
         for prompt_version in PROMPT_VERSIONS:
             print(f"[eval-rag] config model={model} prompt={prompt_version} …")
-            row = evaluate_config(
-                gt, reference, settings,
-                model=model, prompt_version=prompt_version,
-                judge_model=judge_model, log_to_db=log_to_db, workers=workers,
-            )
+            try:
+                row = evaluate_config(
+                    gt, reference, settings,
+                    model=model, prompt_version=prompt_version,
+                    judge_model=judge_model, log_to_db=log_to_db, workers=workers,
+                )
+            except Exception as exc:  # noqa: BLE001 — don't discard completed configs
+                # e.g. a sustained rate limit that outlasts retries. Log loudly and
+                # keep going so the configs that finished still get written.
+                print(
+                    f"[eval-rag]   SKIPPED model={model} prompt={prompt_version} "
+                    f"after error: {type(exc).__name__}: {exc}"
+                )
+                continue
             print(
                 f"[eval-rag]   relevant={row['relevant_rate']:.2f} "
                 f"cite_ok={row['citation_supported_rate']:.2f} "
@@ -203,6 +212,10 @@ def main() -> None:
         gt, settings, judge_model=args.judge_model,
         log_to_db=not args.no_log_db, workers=args.workers,
     )
+    if not results:
+        raise SystemExit("[eval-rag] no configs completed — see the errors above")
+    if len(results) < n_configs:
+        print(f"[eval-rag] NOTE: {n_configs - len(results)}/{n_configs} configs were skipped")
     write_outputs(results)
 
 

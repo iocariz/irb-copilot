@@ -89,6 +89,44 @@ def test_evaluate_config_flags_self_judging(monkeypatch) -> None:
     assert row["self_judged"] is True  # judge == answer model
 
 
+def _config_row(model: str, prompt_version: str) -> dict:
+    return {
+        "model": model, "prompt_version": prompt_version, "n": 1, "self_judged": False,
+        "relevant": 1, "partly_relevant": 0, "non_relevant": 0, "relevant_rate": 1.0,
+        "citation_supported_rate": 1.0, "avg_answer_cost_usd": 0.0,
+        "avg_judge_cost_usd": 0.0, "avg_latency_ms": 1.0,
+    }
+
+
+class _StubRetriever:
+    def warm(self, **_kw) -> None:  # noqa: ANN003
+        pass
+
+
+def test_run_skips_failed_config_and_keeps_others(monkeypatch) -> None:
+    # A config that errors (e.g. a sustained rate limit past retries) must not
+    # discard the configs that already completed.
+    settings = eval_rag.get_settings().model_copy(update={"eval_models": "m1,m2"})
+    monkeypatch.setattr(eval_rag, "load_chunks", lambda kind, s=None: [])
+    monkeypatch.setattr(eval_rag, "get_retriever", lambda: _StubRetriever())
+
+    attempted: list[tuple[str, str]] = []
+
+    def fake_eval(gt, ref, s, *, model, prompt_version, judge_model, log_to_db, workers=8):  # noqa: ANN001, ANN202
+        attempted.append((model, prompt_version))
+        if (model, prompt_version) == ("m1", "v2"):
+            raise RuntimeError("simulated 429 after retries")
+        return _config_row(model, prompt_version)
+
+    monkeypatch.setattr(eval_rag, "evaluate_config", fake_eval)
+    results = eval_rag.run(
+        [{"question": "q", "chunk_id": "c"}], settings, judge_model="gpt-4o", log_to_db=False
+    )
+    assert len(attempted) == 4  # all 4 configs attempted (2 models x 2 prompts)
+    assert len(results) == 3  # the failing one skipped, the rest kept
+    assert ("m1", "v2") not in [(r["model"], r["prompt_version"]) for r in results]
+
+
 # --- grafana provisioning sanity -------------------------------------------- #
 def test_grafana_dashboard_has_five_plus_panels() -> None:
     root = Path(__file__).resolve().parent.parent
