@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 from app.config import PROJECT_ROOT, Settings, get_settings
 from app.rag import answer as rag_answer
 from app.retrieval import get_retriever
-from evaluation.corpus import load_chunks
+from evaluation.corpus import limit_torch_threads, load_chunks
 from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.judge import RELEVANCE_LABELS, judge_answer
 from monitoring.db import log_conversation
@@ -191,6 +191,7 @@ def _distribution_plot(results: list[dict], out_path) -> None:
 
 def main() -> None:
     args = _parse_args()
+    limit_torch_threads()  # avoid CPU oversubscription across the answer thread pool
     settings = get_settings()
     staleness = check_ground_truth_freshness(GROUND_TRUTH_CSV, settings)
     if staleness:

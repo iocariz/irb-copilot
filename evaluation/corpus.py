@@ -9,6 +9,22 @@ from app.config import Settings, get_settings
 from ingestion.models import Chunk, ParsedDoc
 
 
+def limit_torch_threads() -> None:
+    """Cap torch intra-op parallelism to 1 thread.
+
+    The evaluations rerank with a CPU cross-encoder inside a thread pool; if each
+    torch op also spawns cores-many OpenMP threads, N workers oversubscribe the
+    CPU and thrash (turning minutes into hours). Parallelise at the Python-worker
+    level and keep each torch call single-threaded. No-op if torch isn't installed.
+    """
+    try:
+        import torch
+
+        torch.set_num_threads(1)
+    except ImportError:
+        pass
+
+
 def corpus_fingerprint(chunks: Sequence[Chunk]) -> str:
     """Stable hash of a chunk set's ids — changes iff the corpus is re-chunked.
 

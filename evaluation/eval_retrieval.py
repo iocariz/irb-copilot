@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 from app.config import PROJECT_ROOT, Settings, get_settings
 from app.retrieval import RetrievedChunk, Retriever
 from app.rewrite import rewrite_query
-from evaluation.corpus import load_parsed_docs
+from evaluation.corpus import limit_torch_threads, load_parsed_docs
 from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.metrics import (
     hit_rate_at_k,
@@ -145,11 +145,12 @@ def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool, workers: int
     for chunker in CHUNKERS:
         for mode in MODES:
             for rewrite_on in REWRITE:
-                # hybrid_rerank uses a shared CPU model; keep it single-threaded.
-                cfg_workers = 1 if mode == "hybrid_rerank" else workers
+                # hybrid_rerank reranks on CPU; loads are thread-safe and torch is
+                # capped to 1 intra-op thread (see main), so the worker pool gives
+                # parallelism without oversubscribing — no longer forced single-threaded.
                 hr, mrr = evaluate_config(
                     retrievers[chunker], gt, queries,
-                    mode=mode, chunker=chunker, rewrite_on=rewrite_on, workers=cfg_workers,
+                    mode=mode, chunker=chunker, rewrite_on=rewrite_on, workers=workers,
                 )
                 label = f"{mode}|{chunker}|{'rw' if rewrite_on else 'raw'}"
                 print(f"[eval] {label:32s} hit@5={hr:.3f} mrr@5={mrr:.3f}")
@@ -207,6 +208,7 @@ def _bar_chart(labels: list[str], values: list[float], out_path) -> None:
 
 def main() -> None:
     args = _parse_args()
+    limit_torch_threads()  # rerank runs under the worker pool; keep torch single-threaded
     settings = get_settings()
     gt_path = Path(args.ground_truth)
     gt = load_ground_truth(gt_path)
