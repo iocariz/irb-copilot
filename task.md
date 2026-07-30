@@ -11,6 +11,39 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ---
 
+## Done — clean-clone check: `.env.example` shipped a broken API key (2026-07-30)
+
+Cloned the pushed repo to a fresh directory and ran `make setup` + the suite as a
+reviewer would. **17 API tests failed with 401** on the clean clone while passing
+in the working copy.
+
+Cause: `make setup` copies `.env.example` to `.env`, and
+
+    API_KEY=                                    # if set, /ask ... require X-API-Key
+
+parses as `api_key='# if set, /ask ... require X-API-Key'`. dotenv reads an inline
+comment that follows an **empty** value as the value itself. (`RATE_LIMIT=30  #
+...` is fine — the quirk only affects empty values.)
+
+**Effect on a reviewer:** every `/ask` and `/feedback` returns 401 with an API key
+nobody knows. The UI would look completely broken on first run. Invisible to us
+because our own `.env` never set `API_KEY` at all — the failure existed only on
+the path we never took.
+
+- [x] Comment moved above the variable in `.env.example`; `API_KEY` now resolves
+      to `''`
+- [x] `test_env_example_has_no_value_that_is_actually_a_comment` scans every
+      value in the example for the pattern, and a second test asserts settings
+      built from it serve requests unauthenticated. Verified the guard fails on
+      the original line
+- [x] Clean clone re-verified: `make setup` from the fixed example, 305/305 green
+
+**The general lesson:** the suite passed on every commit, because the suite ran
+against a `.env` that had drifted from the file we ship. Config that only some
+users receive needs testing against the artifact they actually get.
+
+---
+
 ## Done — UI: source verification + two false-alarm classes (2026-07-30)
 
 Started as UI polish; the second half turned out to be a correctness bug in the

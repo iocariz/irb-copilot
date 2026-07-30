@@ -87,3 +87,38 @@ def test_module_exposes_cached_singleton() -> None:
     importlib.reload(cfg)
     assert cfg.get_settings() is cfg.get_settings()
     assert cfg.settings is cfg.get_settings()
+
+
+# --- .env.example must be safe to copy (found by a clean-clone run) ---------- #
+def test_env_example_has_no_value_that_is_actually_a_comment() -> None:
+    """`make setup` copies .env.example to .env, so a parsing quirk there breaks
+    every fresh clone.
+
+    dotenv reads an inline comment that follows an *empty* value as the value:
+    `API_KEY=    # if set, ...` gave `api_key='# if set, ...'`, so every /ask and
+    /feedback returned 401 with a key nobody knows. Put such comments on their own
+    line above the variable.
+    """
+    from pathlib import Path
+
+    from dotenv import dotenv_values
+
+    example = Path(__file__).resolve().parent.parent / ".env.example"
+    offenders = {
+        key: value
+        for key, value in dotenv_values(example).items()
+        if value and value.lstrip().startswith("#")
+    }
+    assert not offenders, (
+        f"these .env.example values are comments, not settings: {offenders}"
+    )
+
+
+def test_settings_built_from_env_example_serve_requests_unauthenticated() -> None:
+    """The shipped example must not silently enable API-key auth."""
+    from pathlib import Path
+
+    example = Path(__file__).resolve().parent.parent / ".env.example"
+    settings = Settings(_env_file=str(example))
+    assert settings.api_key == "", "a fresh clone would 401 on every request"
+    assert settings.require_api_key is False
