@@ -1,8 +1,10 @@
-# Infrastructure for IRB Copilot.
+# Infrastructure for IRB Copilot (SPEC §13).
 #
-# Phase 1 brings up the stateful backing services (qdrant + postgres + grafana).
-# The `api` and `ui` application services are added in a later phase (§16.5);
-# they are intentionally not defined yet.
+# Five services: qdrant + postgres + grafana (state) and api + ui (application).
+#   `make up`     — backing services only, for running the app from the host
+#                   (the reranker then uses the local GPU; the image is CPU-only)
+#   `make up-all` — everything in containers
+# A production overlay adding Caddy lives in deploy/; see deploy/README.md.
 #
 # Ports and credentials are driven by `.env` (see `.env.example`) with sane
 # defaults so `docker compose up` works out of the box.

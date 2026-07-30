@@ -959,9 +959,12 @@ Eval answers land in `conversations` unmarked, so Grafana's "questions per day",
       estimation"` matches 2 corpus documents, so a citation can be "grounded"
       by a paragraph from a different document. (No false matches between the 7
       full titles themselves.) Scope the union to the single best-matching title.
-- [ ] **T13** `app/rag.py:32` — `_PARA_SPLIT_RE` splits only on `,;`, so
-      `para. 82-85` is one opaque token and is always flagged as a
-      hallucination. Expand ranges.
+- [~] **T13** `para. 82-85` is no longer *always* flagged — the sub-point
+      normalisation added for the `n/a` fix also yields `82` as an accepted
+      form, so a range is grounded when its **first** paragraph was retrieved
+      (verified). Still imperfect: `82-85` backed only by retrieved paragraph 84
+      is flagged. Expanding the full range would fix it, but that loosens the
+      check further, so measure how often ranges actually occur first.
 - [x] **T14** DONE — `finish_reason` surfaced in T3; `Answer.truncated`,
       `conversations.answer_truncated`, the UI warning and a dashboard panel all
       landed with T11's migration.
@@ -970,8 +973,10 @@ Eval answers land in `conversations` unmarked, so Grafana's "questions per day",
 - [ ] **T16** `evaluation/eval_rag.py:40` — `load_sample` is hardcoded to the
       standard (lexically biased) ground truth. Add `--ground-truth`, matching
       `eval_retrieval`.
-- [ ] **T17** `docker-compose.yml:3-5` — header still says api/ui "are
-      intentionally not defined yet"; both are defined. Fix the comment.
+- [x] **T17** `docker-compose.yml` header — said api/ui "are intentionally not
+      defined yet" when both are defined. Rewritten to list the five services and
+      the `up` / `up-all` / `prod-up` entry points; every claim verified against
+      `docker compose config --services` and the Makefile.
 
 ---
 
