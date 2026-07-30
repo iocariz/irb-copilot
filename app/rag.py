@@ -85,6 +85,9 @@ class Answer(BaseModel):
     # Answer-time self-check: are all citations backed by a retrieved source?
     citations_grounded: bool = Field(default=True)
     ungrounded_citations: list[str] = Field(default_factory=list)
+    # The model stopped because it hit MAX_ANSWER_TOKENS, so the text is cut off
+    # mid-sentence. Without this the answer looks complete but silently isn't.
+    truncated: bool = Field(default=False)
 
 
 def parse_citations(text: str) -> list[Citation]:
@@ -246,6 +249,7 @@ def _assemble(
         cost_usd=round(rewrite.cost_usd + llm.cost_usd, 8),
         latency_ms=int((time.perf_counter() - started) * 1000),
         used_rewrite=rewrite.used_llm,
+        truncated=llm.truncated,
     )
 
 

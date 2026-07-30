@@ -70,6 +70,12 @@ def render_details(ans: dict) -> None:
     """Citations, grounding warning, source snippets, and feedback buttons."""
     if ans.get("citations"):
         st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
+    if ans.get("truncated"):
+        # Otherwise the answer just stops mid-sentence and reads as complete.
+        st.warning(
+            "⚠ This answer hit the output-token limit and is cut off. Ask a "
+            "narrower question, or raise `MAX_ANSWER_TOKENS`."
+        )
     if ans.get("ungrounded_citations"):
         st.warning(
             "⚠ These citations were not found in the retrieved sources "

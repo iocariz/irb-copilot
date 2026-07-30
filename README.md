@@ -55,8 +55,9 @@ rather than guessing.
   paragraphs as citation anchors, tables).
 - **Full evaluation harness** — retrieval (hit-rate@5, MRR@5) and RAG
   (LLM-as-a-judge relevance + citation support), with a de-biasing analysis.
-- **Monitoring** — every question + feedback logged to Postgres, visualised in a
-  7-panel Grafana dashboard (incl. a hallucination-rate trend).
+- **Monitoring** — every question + feedback logged to Postgres, visualised in an
+  8-panel Grafana dashboard (incl. a hallucination-rate trend), with evaluation
+  traffic separated from real usage.
 - **Containerised & deployable** — one `docker compose` for everything, plus a
   hardened VM deployment behind a Caddy TLS proxy.
 
@@ -557,16 +558,26 @@ Both evals run their hundreds of API calls concurrently (`--workers`, default 8)
 
 Every `/ask` is logged to Postgres (`conversations`: question, rewritten query,
 answer, model, prompt/retrieval mode, chunk ids, tokens, cost, latency,
-`judge_relevance`, and the citation self-check result `citations_grounded` /
+`judge_relevance`, whether the answer was cut off at the token cap
+(`answer_truncated`), and the citation self-check result `citations_grounded` /
 `ungrounded_citations`), and every 👍/👎 to `feedback`. Grafana is
-auto-provisioned (datasource + dashboard) with seven panels:
+auto-provisioned (datasource + dashboard) with eight panels:
 
 1. questions per day · 2. thumbs up/down ratio · 3. cost over time ·
 4. latency p50/p95 · 5. retrieval-mode usage · 6. judge-relevance distribution ·
-7. ungrounded-citation rate (hallucination trend).
+7. ungrounded-citation rate (hallucination trend) · 8. truncated-answer rate.
+
+**Real traffic and evaluation traffic are separated.** `eval_rag` seeds hundreds
+of judged conversations so panel 6 has data — and until a `source` column was
+added they were indistinguishable from real usage: **1,901 of 1,921 rows** were
+the evaluation's own activity, so every usage, cost and latency panel was
+describing the harness rather than users. Panels 1–5, 7 and 8 now filter to
+`source = 'live'`; panel 6 reads `source = 'eval'`. No panel mixes the two, and a
+test enforces that every panel states its scope.
 
 Schema in [`monitoring/schema.sql`](monitoring/schema.sql); it's applied on first
-Postgres init and idempotently by `monitoring.db` at API startup.
+Postgres init and idempotently by `monitoring.db` at API startup, which also adds
+the newer columns to an existing database.
 
 ## Screenshots
 

@@ -27,6 +27,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from app.config import get_settings
 
+# Conversation origin. Keep these as constants: the Grafana panels filter on the
+# literal values, so a typo silently empties a dashboard.
+LIVE = "live"
+EVAL = "eval"
+
 
 class Base(DeclarativeBase):
     pass
@@ -52,6 +57,14 @@ class Conversation(Base):
     # Answer-time citation self-check: were all citations backed by a source?
     citations_grounded: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     ungrounded_citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Who generated this row. The RAG evaluation seeds hundreds of synthetic
+    # conversations so the Grafana judge panel has data; without this column they
+    # are indistinguishable from real usage, and the usage/cost/latency panels
+    # report the evaluation's traffic as though users had produced it.
+    source: Mapped[str] = mapped_column(String(8), default=LIVE, server_default=LIVE)
+    # The answer hit the output-token cap and is cut off mid-sentence. Surfaced so
+    # a truncated answer is visibly incomplete rather than quietly wrong.
+    answer_truncated: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
 
 class Feedback(Base):
@@ -81,6 +94,13 @@ def _sessions():  # noqa: ANN202
 _ADDED_COLUMNS = (
     "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS citations_grounded boolean",
     "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS ungrounded_citations jsonb",
+    # Existing rows predate the distinction. They were written by the evaluation
+    # and by real /ask calls alike and cannot be told apart after the fact, so
+    # they default to 'live' — the value that keeps them in the usage panels
+    # rather than silently deleting history. Backfill by hand if you know better.
+    f"ALTER TABLE conversations ADD COLUMN IF NOT EXISTS source text "
+    f"NOT NULL DEFAULT '{LIVE}'",
+    "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS answer_truncated boolean",
 )
 
 
@@ -92,11 +112,16 @@ def init_db() -> None:
             conn.execute(text(statement))
 
 
-def log_conversation(answer, judge_relevance: str | None = None) -> str:  # noqa: ANN001
+def log_conversation(
+    answer,  # noqa: ANN001
+    judge_relevance: str | None = None,
+    source: str = LIVE,
+) -> str:
     """Persist an answered question; return the new conversation id.
 
     `judge_relevance` is normally None for live traffic and filled by the RAG
-    evaluation (§11.3) when it seeds the monitoring DB.
+    evaluation (§11.3) when it seeds the monitoring DB. `source` must be `EVAL`
+    for those seeded rows so the usage, cost and latency panels can exclude them.
     """
     conversation_id = str(uuid.uuid4())
     with _sessions().begin() as session:
@@ -118,6 +143,8 @@ def log_conversation(answer, judge_relevance: str | None = None) -> str:  # noqa
                 judge_relevance=judge_relevance,
                 citations_grounded=answer.citations_grounded,
                 ungrounded_citations=answer.ungrounded_citations,
+                source=source,
+                answer_truncated=getattr(answer, "truncated", None),
             )
         )
     return conversation_id

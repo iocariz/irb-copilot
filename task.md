@@ -11,6 +11,57 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ---
 
+## Done — T11 (+ T14): eval traffic separated from real usage (2026-07-30)
+
+`eval_rag` seeds hundreds of judged conversations so the Grafana judge panel has
+data, but nothing distinguished them from real `/ask` calls. Measured on the live
+database: **1,901 of 1,921 rows (99%) were evaluation traffic.** Every usage,
+cost and latency panel was describing the harness's own activity as though users
+had produced it — a monitoring dashboard that was, in practice, monitoring itself.
+
+- [x] `conversations.source` (`'live'` | `'eval'`), NOT NULL with a server
+      default so provenance can never be unknown; constants `LIVE`/`EVAL` in
+      `monitoring.db` because the panels filter on the literal values
+- [x] `log_conversation(..., source=LIVE)` by default — a real `/ask` does not
+      have to remember to say so; `eval_rag._safe_log` passes `EVAL`
+- [x] Idempotent migration in `_ADDED_COLUMNS` + matching `schema.sql`, plus an
+      `(source, ts)` index since every usage panel now filters on it
+- [x] **Historical rows backfilled** by the one rule that identifies them
+      exactly: `judge_relevance IS NOT NULL` is set only by the evaluation.
+      1,901 rows reclassified; the 20 genuine ones remain `live`
+- [x] Panels 1–5, 7, 8 filter `source = 'live'`; panel 6 (judge relevance) reads
+      `source = 'eval'`. The feedback panel joins through to `conversations` so
+      its scope is stated rather than assumed
+- [x] New panel: **truncated-answer rate**
+
+### T14 finished here, as planned — it needed this migration
+
+- [x] `Answer.truncated`, set from `LLMResult.finish_reason == "length"`
+- [x] Persisted as `conversations.answer_truncated`
+- [x] The Streamlit UI warns when an answer was cut off. Previously it simply
+      stopped mid-sentence and read as complete, which in a citation-critical
+      domain is worse than an error
+
+### Tests: `tests/test_monitoring.py` (16 new)
+
+Structural rather than behavioural, because the failure mode is a *missing
+filter*, which no unit test of application code would catch:
+
+- every panel must state its scope — `test_every_panel_states_its_scope` fails if
+  any new panel forgets, which is exactly how this bug would return
+- each usage panel individually asserted to exclude eval traffic
+- `schema.sql` must not drift from the SQLAlchemy model
+- migration statements must be re-runnable (`init_db` runs on every startup)
+
+Verified end-to-end against the live database: a default `log_conversation`
+lands as `live`, the eval path as `eval`, and `answer_truncated` persists.
+
+Suite green (280), ruff clean. README monitoring section updated with the
+1,901/1,921 figure — it is the clearest evidence the dashboard now measures what
+it claims to.
+
+---
+
 ## Done — T10: citation anchors + full re-regeneration (2026-07-30)
 
 **T10 was scoped as "36 chunks have junk paragraph ids". The real defect was that
@@ -809,7 +860,7 @@ feeding T1's ambiguity.
 - [ ] Re-parse; assert 0 non-numeric / non-`Article`-shaped `para_id`s
 - [ ] Requires re-ingest → regenerate ground truth (chunk ids change)
 
-### [ ] T11. Separate eval traffic from live traffic in monitoring (MEDIUM)
+### [x] T11. Separate eval traffic from live traffic in monitoring (MEDIUM) — DONE, see above
 
 **Where:** `evaluation/eval_rag.py:111` (`_safe_log`), `monitoring/db.py:35`,
 `monitoring/schema.sql`
@@ -834,9 +885,9 @@ Eval answers land in `conversations` unmarked, so Grafana's "questions per day",
 - [ ] **T13** `app/rag.py:32` — `_PARA_SPLIT_RE` splits only on `,;`, so
       `para. 82-85` is one opaque token and is always flagged as a
       hallucination. Expand ranges.
-- [~] **T14** `finish_reason` is now surfaced by the provider (`LLMResult.truncated`,
-      done in T3). Remaining: propagate it onto `Answer` and mark a truncated
-      answer in the UI + `conversations` — pair with T11's migration.
+- [x] **T14** DONE — `finish_reason` surfaced in T3; `Answer.truncated`,
+      `conversations.answer_truncated`, the UI warning and a dashboard panel all
+      landed with T11's migration.
 - [x] **T15** `evaluate_config`'s unused `chunker` parameter — removed as part
       of T1 (one uniform relevance rule made it genuinely unnecessary).
 - [ ] **T16** `evaluation/eval_rag.py:40` — `load_sample` is hardcoded to the

@@ -52,3 +52,24 @@ def test_answer_stream_raises_if_stream_has_no_final_result(monkeypatch) -> None
     gen = rag.answer_stream("q", retriever=_EmptyRetriever(), settings=get_settings())
     with pytest.raises(RuntimeError, match="without returning an LLMResult"):
         list(gen)
+
+
+# --- truncation is surfaced, not silent (T14 via T11's migration) ----------- #
+def test_answer_reports_truncation_from_the_provider(monkeypatch) -> None:
+    """Hitting MAX_ANSWER_TOKENS leaves the text cut off mid-sentence. Without a
+    flag the answer looks complete and is quietly wrong."""
+    import app.rag as rag
+    from app.providers import LLMResult
+    from app.rewrite import RewriteResult
+
+    monkeypatch.setattr(
+        rag, "_prepare", lambda *a, **k: (RewriteResult("q", "q", False), [], [])
+    )
+    for reason, expected in (("length", True), ("stop", False)):
+        monkeypatch.setattr(
+            rag, "complete",
+            lambda *a, _r=reason, **k: LLMResult(
+                "partial answer", "gpt-4o-mini", 10, 5, 0.0, 1, finish_reason=_r
+            ),
+        )
+        assert rag.answer("q").truncated is expected

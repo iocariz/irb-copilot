@@ -1,12 +1,19 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "graphTooltip": 0,
   "schemaVersion": 39,
-  "tags": ["irb-copilot"],
-  "time": { "from": "now-30d", "to": "now" },
+  "tags": [
+    "irb-copilot"
+  ],
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
   "timezone": "browser",
-  "title": "IRB Copilot — Monitoring",
+  "title": "IRB Copilot \u2014 Monitoring",
   "uid": "irb-copilot",
   "version": 1,
   "panels": [
@@ -14,16 +21,39 @@
       "id": 1,
       "title": "Questions per day",
       "type": "timeseries",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60 } }, "overrides": [] },
-      "options": { "legend": { "showLegend": false } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', ts) AS time, count(*) AS questions FROM conversations GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', ts) AS time, count(*) AS questions FROM conversations WHERE source = 'live' GROUP BY 1 ORDER BY 1"
         }
       ]
     },
@@ -31,15 +61,39 @@
       "id": 2,
       "title": "Thumbs up/down ratio",
       "type": "piechart",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "options": { "pieType": "donut", "legend": { "displayMode": "list", "placement": "right" }, "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "table",
-          "rawSql": "SELECT thumbs AS metric, count(*) AS value FROM feedback GROUP BY thumbs"
+          "rawSql": "SELECT f.thumbs AS metric, count(*) AS value FROM feedback f JOIN conversations c ON c.id = f.conversation_id WHERE c.source = 'live' GROUP BY f.thumbs"
         }
       ]
     },
@@ -47,16 +101,40 @@
       "id": 3,
       "title": "Cost over time (USD)",
       "type": "timeseries",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "custom": { "drawStyle": "line", "fillOpacity": 20 } }, "overrides": [] },
-      "options": { "legend": { "showLegend": false } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('hour', ts) AS time, sum(cost_usd) AS cost FROM conversations GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT date_trunc('hour', ts) AS time, sum(cost_usd) AS cost FROM conversations WHERE source = 'live' GROUP BY 1 ORDER BY 1"
         }
       ]
     },
@@ -64,16 +142,42 @@
       "id": 4,
       "title": "Latency p50 / p95 (ms)",
       "type": "timeseries",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('hour', ts) AS time, percentile_cont(0.5) WITHIN GROUP (ORDER BY latency_ms) AS p50, percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95 FROM conversations GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT date_trunc('hour', ts) AS time, percentile_cont(0.5) WITHIN GROUP (ORDER BY latency_ms) AS p50, percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95 FROM conversations WHERE source = 'live' GROUP BY 1 ORDER BY 1"
         }
       ]
     },
@@ -81,15 +185,39 @@
       "id": 5,
       "title": "Retrieval mode usage",
       "type": "piechart",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "options": { "pieType": "pie", "legend": { "displayMode": "list", "placement": "right" }, "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "options": {
+        "pieType": "pie",
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "table",
-          "rawSql": "SELECT retrieval_mode AS metric, count(*) AS value FROM conversations GROUP BY retrieval_mode"
+          "rawSql": "SELECT retrieval_mode AS metric, count(*) AS value FROM conversations WHERE source = 'live' GROUP BY retrieval_mode"
         }
       ]
     },
@@ -97,15 +225,39 @@
       "id": 6,
       "title": "Judge relevance distribution",
       "type": "piechart",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "options": { "pieType": "pie", "legend": { "displayMode": "list", "placement": "right" }, "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "options": {
+        "pieType": "pie",
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "table",
-          "rawSql": "SELECT judge_relevance AS metric, count(*) AS value FROM conversations WHERE judge_relevance IS NOT NULL GROUP BY judge_relevance"
+          "rawSql": "SELECT judge_relevance AS metric, count(*) AS value FROM conversations WHERE source = 'eval' AND judge_relevance IS NOT NULL GROUP BY judge_relevance"
         }
       ]
     },
@@ -113,16 +265,83 @@
       "id": 7,
       "title": "Ungrounded-citation rate (hallucinations)",
       "type": "timeseries",
-      "datasource": { "type": "postgres", "uid": "irb_postgres" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20 } }, "overrides": [] },
-      "options": { "legend": { "showLegend": false } },
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "postgres", "uid": "irb_postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', ts) AS time, 100.0 * avg(CASE WHEN citations_grounded IS FALSE THEN 1 ELSE 0 END) AS ungrounded_pct FROM conversations WHERE citations_grounded IS NOT NULL GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', ts) AS time, 100.0 * avg(CASE WHEN citations_grounded IS FALSE THEN 1 ELSE 0 END) AS ungrounded_pct FROM conversations WHERE source = 'live' AND citations_grounded IS NOT NULL GROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Truncated answers (hit the token cap)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "irb_postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "irb_postgres"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', ts) AS time, 100.0 * avg(CASE WHEN answer_truncated THEN 1 ELSE 0 END) AS truncated_pct FROM conversations WHERE source = 'live' AND answer_truncated IS NOT NULL GROUP BY 1 ORDER BY 1"
         }
       ]
     }

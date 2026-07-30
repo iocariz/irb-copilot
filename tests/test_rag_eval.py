@@ -229,16 +229,22 @@ def test_unreadable_verdicts_are_logged_as_null_relevance(monkeypatch) -> None:
         eval_rag, "judge_answer", lambda *a, **k: JudgeResult(PARSE_ERROR, False, "x", 0.0)
     )
     monkeypatch.setattr(
-        eval_rag, "log_conversation", lambda ans, judge_relevance=None: logged.append(
-            judge_relevance
-        ) or "id"
+        eval_rag,
+        "log_conversation",
+        lambda ans, judge_relevance=None, source=None: logged.append(
+            (judge_relevance, source)
+        )
+        or "id",
     )
     eval_rag.evaluate_config(
         [{"question": "q", "chunk_id": "c1"}], {"c1": "ref"}, eval_rag.get_settings(),
         model="gpt-4o-mini", prompt_version="v2", judge_model="gpt-5.4-mini",
         log_to_db=True,
     )
-    assert logged == [None]
+    from monitoring.db import EVAL
+
+    # NULL relevance (no readable verdict) AND tagged as evaluation traffic.
+    assert logged == [(None, EVAL)]
 
 
 def test_judge_retries_once_then_accepts_a_readable_verdict(monkeypatch) -> None:

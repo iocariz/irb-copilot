@@ -17,7 +17,13 @@ CREATE TABLE IF NOT EXISTS conversations (
     latency_ms      INTEGER NOT NULL,
     judge_relevance TEXT,
     citations_grounded   BOOLEAN,
-    ungrounded_citations JSONB
+    ungrounded_citations JSONB,
+    -- 'live' = a real /ask call, 'eval' = seeded by evaluation/eval_rag.py.
+    -- The usage/cost/latency dashboards filter to 'live' so the evaluation's
+    -- hundreds of synthetic conversations don't read as user traffic.
+    source               TEXT NOT NULL DEFAULT 'live',
+    -- The answer hit the output-token cap and is cut off mid-sentence.
+    answer_truncated     BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS feedback (
@@ -29,4 +35,6 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversations_ts ON conversations (ts);
+-- Every usage panel filters on source, so index it alongside ts.
+CREATE INDEX IF NOT EXISTS idx_conversations_source_ts ON conversations (source, ts);
 CREATE INDEX IF NOT EXISTS idx_feedback_conversation ON feedback (conversation_id);

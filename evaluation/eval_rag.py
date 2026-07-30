@@ -37,7 +37,7 @@ from app.retrieval import get_retriever
 from evaluation.corpus import configure_torch_threads, load_chunks
 from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.judge import PARSE_ERROR, RELEVANCE_LABELS, judge_answer
-from monitoring.db import log_conversation
+from monitoring.db import EVAL, log_conversation
 
 RESULTS_DIR = PROJECT_ROOT / "evaluation" / "results"
 PROMPT_VERSIONS = ["v1", "v2"]
@@ -199,9 +199,11 @@ def _rate(count: int, denominator: int) -> float:
     return round(count / denominator, 4) if denominator else 0.0
 
 
-def _safe_log(answer, relevance: str) -> None:  # noqa: ANN001
+def _safe_log(answer, relevance: str | None) -> None:  # noqa: ANN001
     try:
-        log_conversation(answer, judge_relevance=relevance)
+        # source=EVAL keeps these synthetic rows out of the usage, cost and
+        # latency panels, which are meant to describe real traffic.
+        log_conversation(answer, judge_relevance=relevance, source=EVAL)
     except Exception as exc:  # noqa: BLE001 — DB seeding is best-effort.
         print(f"[eval-rag] log_conversation failed: {exc}")
 
