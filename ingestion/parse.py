@@ -64,7 +64,39 @@ def parse_pdf(pdf_path: Path, doc_id: str, doc_title: str) -> ParsedDoc:
         paragraphs = split_into_paragraphs(_extract_pages_pymupdf(pdf_path))
     if not paragraphs:
         raise ValueError(f"no paragraphs extracted from {doc_id} ({pdf_path})")
+    for warning in oversized_warnings(doc_id, paragraphs):
+        print(warning)
     return ParsedDoc(doc_id=doc_id, doc_title=doc_title, paragraphs=paragraphs)
+
+
+# A regulatory paragraph is at most a few thousand characters. Anything far past
+# that means marker detection failed and unrelated text was absorbed — the defect
+# that put 48% of this corpus under the wrong citation anchor. Detect it at parse
+# time rather than discovering it in a user's citation.
+MAX_PARAGRAPH_CHARS = 20_000
+
+
+def prose_length(text: str) -> int:
+    """Characters excluding rendered markdown table rows (pure).
+
+    A single regulatory table can legitimately run to tens of thousands of
+    characters, so raw length would flag it as a parse failure. Only absorbed
+    *prose* indicates that marker detection broke, and a guard that fires on
+    healthy documents is one people learn to ignore.
+    """
+    return sum(len(line) for line in text.split("\n") if not line.lstrip().startswith("|"))
+
+
+def oversized_warnings(doc_id: str, paragraphs: list[Paragraph]) -> list[str]:
+    """Warn about paragraphs so large they indicate a parse failure (pure)."""
+    return [
+        f"[parse] WARNING: {doc_id} paragraph {p.para_id or '(unnumbered)'!r} holds "
+        f"{prose_length(p.text):,} chars of prose (> {MAX_PARAGRAPH_CHARS:,}) — marker "
+        f"detection likely failed and unrelated text was absorbed; its citations "
+        f"would be wrong"
+        for p in paragraphs
+        if prose_length(p.text) > MAX_PARAGRAPH_CHARS
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -137,8 +169,16 @@ def build_paragraphs_from_items(
 
         if label == "table":
             md = table_md(item)
-            if current is not None and md:
-                current = _append_text(current, md, sep="\n\n")
+            if md:
+                # Attach to the open paragraph, or stand alone if a heading just
+                # closed one. Requiring an open paragraph silently dropped every
+                # table that follows a heading — 195k characters in a single
+                # document — once headings began flushing (SPEC §5 keeps tables).
+                current = (
+                    _append_text(current, md, sep="\n\n")
+                    if current is not None
+                    else _unnumbered(md, section_path, page)
+                )
             continue
 
         if label == "section_header":
@@ -152,6 +192,12 @@ def build_paragraphs_from_items(
                     page=page,
                 )
             elif text:
+                # A heading ENDS the open paragraph. Without this, any content
+                # docling does not label as a numbered list item keeps appending
+                # to the last numbered paragraph — annexes, impact assessments and
+                # feedback tables were being attributed to it, so a citation
+                # pointed at a paragraph that does not contain the text.
+                paragraphs, current = _flush(paragraphs, current)
                 section_path = _apply_heading(section_path, text, getattr(item, "level", None))
             continue
 
@@ -169,20 +215,43 @@ def build_paragraphs_from_items(
             elif current is not None:
                 current = _append_text(current, f"{marker} {text}".strip())
             elif text:
-                current = Paragraph(
-                    para_id=marker.rstrip(".") or text[:8],
-                    text=text,
-                    section_path=list(section_path),
-                    page=page,
-                )
+                # A sub-point with no numbered parent (e.g. a Wingdings bullet).
+                # Never mint an id from the body text: that produced citation
+                # anchors like "para.  model".
+                current = _unnumbered(text, section_path, page)
             continue
 
-        # Plain text: a continuation of the current paragraph (skip pre-body text).
-        if text and current is not None:
+        # Plain text. docling sometimes labels a numbered paragraph as plain text
+        # rather than a list item; recognising the marker here is what keeps whole
+        # sections from collapsing into one paragraph.
+        if not text:
+            continue
+        marker = _PARA_MARKER_RE.match(text)
+        if marker:
+            paragraphs, current = _flush(paragraphs, current)
+            current = Paragraph(
+                para_id=marker.group(1).rstrip("."),
+                text=text[marker.end() :].strip(),
+                section_path=list(section_path),
+                page=page,
+            )
+        elif current is not None:
             current = _append_text(current, text)
+        else:
+            current = _unnumbered(text, section_path, page)
 
     paragraphs, current = _flush(paragraphs, current)
     return paragraphs
+
+
+def _unnumbered(text: str, section_path: list[str], page: int) -> Paragraph:
+    """A paragraph with no citable number — kept, but never given a fake anchor.
+
+    Regulatory annexes and front matter carry real content but no paragraph
+    number. An empty ``para_id`` is dropped from the chunk's citation metadata, so
+    the answer cites the document and section without inventing a paragraph.
+    """
+    return Paragraph(para_id="", text=text, section_path=list(section_path), page=page)
 
 
 def _label_of(item: object) -> str | None:

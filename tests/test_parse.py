@@ -250,3 +250,100 @@ def test_missing_docling_fails_loudly(tmp_path: Path, monkeypatch) -> None:
         assert "docling" in str(exc)
         return
     raise AssertionError("expected RuntimeError when docling is missing")
+
+
+# --- citation-anchor integrity (T10) ---------------------------------------- #
+class _Item:
+    """Minimal stand-in for a docling item."""
+
+    def __init__(self, label, text="", marker="", level=None):  # noqa: ANN001
+        self.label, self.text, self.marker, self.level = label, text, marker, level
+        self.prov = None
+
+
+def _build(items, table_md=lambda _i: "| a | b |"):  # noqa: ANN001
+    from ingestion.parse import build_paragraphs_from_items
+
+    return build_paragraphs_from_items([(i, 0) for i in items], table_md=table_md)
+
+
+def test_a_heading_closes_the_open_paragraph() -> None:
+    """The core defect: without this, everything after the last numbered
+    paragraph (annexes, impact assessments) was attributed to it."""
+    paragraphs = _build([
+        _Item("list_item", "The body of paragraph 82.", marker="82."),
+        _Item("section_header", "Annex 1 Impact assessment"),
+        _Item("text", "Annex prose that belongs to no numbered paragraph."),
+    ])
+    numbered = [p for p in paragraphs if p.para_id == "82"]
+    assert len(numbered) == 1
+    assert "Annex prose" not in numbered[0].text  # not absorbed into para 82
+
+
+def test_annex_text_gets_no_fabricated_paragraph_anchor() -> None:
+    paragraphs = _build([
+        _Item("section_header", "Annex 1"),
+        _Item("text", "Unnumbered annex content."),
+    ])
+    annex = [p for p in paragraphs if "annex content" in p.text.lower()]
+    assert annex and annex[0].para_id == ""  # empty, never invented
+
+
+def test_unnumbered_paragraph_ids_are_dropped_from_citations() -> None:
+    from ingestion.chunk import chunk_structured
+    from ingestion.models import Paragraph, ParsedDoc
+
+    doc = ParsedDoc(
+        doc_id="d", doc_title="D",
+        paragraphs=[Paragraph(para_id="", text="Annex text.", section_path=["Annex"], page=1)],
+    )
+    chunk = chunk_structured(doc)[0]
+    assert chunk.para_ids == []  # cites document + section, not a fake paragraph
+
+
+def test_a_bullet_marker_never_becomes_a_citation_anchor() -> None:
+    # Produced anchors like "para.  model " from a Wingdings bullet.
+    paragraphs = _build([_Item("list_item", "model risk text", marker="")])
+    assert all(p.para_id == "" for p in paragraphs)
+
+
+def test_numbered_marker_in_plain_text_starts_a_paragraph() -> None:
+    """docling sometimes labels a numbered paragraph as plain text; missing that
+    collapsed whole documents into one paragraph."""
+    paragraphs = _build([
+        _Item("list_item", "First.", marker="41."),
+        _Item("text", "42. A numbered paragraph docling labelled as plain text."),
+    ])
+    assert [p.para_id for p in paragraphs] == ["41", "42"]
+
+
+def test_tables_are_kept_even_when_a_heading_just_closed_a_paragraph() -> None:
+    """Flushing on headings made the table branch drop 195k chars in one document
+    because it required an open paragraph (SPEC §5 keeps tables)."""
+    paragraphs = _build([
+        _Item("list_item", "Body.", marker="7."),
+        _Item("section_header", "Annex 2"),
+        _Item("table"),
+    ])
+    assert any("| a | b |" in p.text for p in paragraphs)
+
+
+# --- the parse-failure guard ------------------------------------------------- #
+def test_guard_flags_absorbed_prose() -> None:
+    from ingestion.models import Paragraph
+    from ingestion.parse import MAX_PARAGRAPH_CHARS, oversized_warnings
+
+    huge = Paragraph(para_id="221", text="x " * MAX_PARAGRAPH_CHARS, section_path=[], page=1)
+    assert oversized_warnings("d", [huge])
+
+
+def test_guard_does_not_flag_a_large_table() -> None:
+    """A single regulatory table is legitimately huge; a guard that fires on
+    healthy documents is one people learn to ignore."""
+    from ingestion.models import Paragraph
+    from ingestion.parse import MAX_PARAGRAPH_CHARS, oversized_warnings
+
+    table = "\n".join(["| cell | cell |"] * (MAX_PARAGRAPH_CHARS // 5))
+    para = Paragraph(para_id="", text=table, section_path=[], page=1)
+    assert len(para.text) > MAX_PARAGRAPH_CHARS
+    assert oversized_warnings("d", [para]) == []

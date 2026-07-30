@@ -10,13 +10,19 @@ from app.config import Settings, get_settings
 from ingestion.models import Chunk, ParsedDoc
 
 
-def limit_torch_threads() -> None:
-    """Cap torch intra-op parallelism to 1 thread.
+def configure_torch_threads() -> None:
+    """Let the CPU cross-encoder use every core.
 
-    The evaluations rerank with a CPU cross-encoder inside a thread pool; if each
-    torch op also spawns cores-many OpenMP threads, N workers oversubscribe the
-    CPU and thrash (turning minutes into hours). Parallelise at the Python-worker
-    level and keep each torch call single-threaded. No-op if torch isn't installed.
+    This used to pin torch to 1 thread. That made sense when reranking ran
+    concurrently across the worker pool — cores-many OpenMP threads per worker
+    oversubscribed the CPU and thrashed. `Retriever._rerank_lock` was added
+    afterwards and serialises `predict()`, so only ever one rerank runs at a
+    time: the cap then left every core but one idle, on the evaluation's slowest
+    stage (~64k query-passage pairs). The lock rules out oversubscription, so
+    give torch the whole machine.
+
+    The Python workers that keep running alongside are waiting on HTTP, so they
+    cost essentially no CPU. No-op if torch isn't installed.
     """
     # Stop HF tokenizers from spawning its own thread pool when we already run a
     # Python thread pool (source of the "leaked semaphore" warnings / deadlocks).
@@ -24,7 +30,7 @@ def limit_torch_threads() -> None:
     try:
         import torch
 
-        torch.set_num_threads(1)
+        torch.set_num_threads(os.cpu_count() or 1)
     except ImportError:
         pass
 

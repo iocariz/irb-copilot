@@ -14,12 +14,14 @@ optional ``doc_ids`` metadata filter.
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
 
 from qdrant_client import QdrantClient
 from qdrant_client import models as qmodels
+from qdrant_client.http.exceptions import ResponseHandlingException
 
 from app.config import Settings, get_settings
 from app.providers import embed_query
@@ -28,6 +30,9 @@ from ingestion.models import Chunk
 # Candidate pool pulled from each source before fusion / reranking.
 _FUSION_POOL = 60
 _RERANK_POOL = 20
+# Transport-level retries for Qdrant (see `Retriever._qdrant_search`).
+_QDRANT_ATTEMPTS = 3
+_QDRANT_BACKOFF = 0.25
 
 
 @dataclass(frozen=True)
@@ -169,16 +174,38 @@ class Retriever:
         self, query: str, top_k: int, doc_ids: list[str] | None
     ) -> list[RetrievedChunk]:
         pool = top_k if not doc_ids else max(top_k * 10, 50)
-        hits = self._qdrant.search(
-            collection_name=self._collection,
-            query_vector=embed_query(query),
-            limit=pool,
-            query_filter=_doc_filter(doc_ids),
-        )
+        vector = embed_query(query)
+        hits = self._qdrant_search(vector, pool, doc_ids)
         return [
             RetrievedChunk(Chunk.model_validate(hit.payload), float(hit.score))
             for hit in hits
         ][:top_k]
+
+    def _qdrant_search(self, vector: list[float], pool: int, doc_ids: list[str] | None):  # noqa: ANN202
+        """Query Qdrant, retrying briefly on transport-level failures.
+
+        One shared client serves a whole thread pool, and occasionally a pooled
+        connection dies under load ("[Errno 9] Bad file descriptor"). That is a
+        transport hiccup, not a bad request, and it is worth a retry: for a user
+        request it avoids a spurious 502, and for the evaluation it avoids losing
+        a config to a blip. `ResponseHandlingException` is raised only for
+        transport errors — real API errors (missing collection, bad filter) are
+        `UnexpectedResponse` and are not retried.
+        """
+        last: Exception | None = None
+        for attempt in range(_QDRANT_ATTEMPTS):
+            try:
+                return self._qdrant.search(
+                    collection_name=self._collection,
+                    query_vector=vector,
+                    limit=pool,
+                    query_filter=_doc_filter(doc_ids),
+                )
+            except ResponseHandlingException as exc:
+                last = exc
+                if attempt + 1 < _QDRANT_ATTEMPTS:
+                    time.sleep(_QDRANT_BACKOFF * (attempt + 1))
+        raise RuntimeError(f"Qdrant search failed after {_QDRANT_ATTEMPTS} attempts") from last
 
     def _search_hybrid(
         self, query: str, top_k: int, doc_ids: list[str] | None

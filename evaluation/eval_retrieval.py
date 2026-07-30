@@ -3,9 +3,16 @@
     python -m evaluation.eval_retrieval [--limit N] [--rebuild-naive]
 
 For every config in {bm25, vector, hybrid, hybrid_rerank} x {structure, naive}
-x {rewrite off, on}, computes hit-rate@5 and MRR@5 against the ground truth and
-writes results/retrieval_eval.csv plus a bar-chart PNG. Prints the best config,
-which should become the documented default in .env.example.
+x {off, glossary, llm} rewriting — 24 configs — computes hit-rate@5 and MRR@5
+against the ground truth and writes results/retrieval_eval.csv plus a bar-chart
+PNG.
+
+Prints the winning config. Only the DE-BIASED run (`--ground-truth
+evaluation/ground_truth_hard.csv`) should set production defaults — standard
+questions reuse the passages' wording and flatter lexical retrieval.
+
+Each rewrite arm is produced by the production `rewrite_query`, so what is
+measured is what ships.
 
 Needs a running Qdrant + OPENAI_API_KEY (query embeddings, and the LLM rewrite);
 `hybrid_rerank` also uses the cross-encoder (CPU, slower).
@@ -15,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -24,21 +32,27 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from app.config import PROJECT_ROOT, Settings, get_settings
+from app.providers import warm_query_embeddings
 from app.retrieval import RetrievedChunk, Retriever
 from app.rewrite import rewrite_query
-from evaluation.corpus import limit_torch_threads, load_parsed_docs
+from evaluation.corpus import configure_torch_threads, load_chunks, load_parsed_docs
 from evaluation.generate_ground_truth import GROUND_TRUTH_CSV, check_ground_truth_freshness
 from evaluation.metrics import (
     hit_rate_at_k,
     mrr_at_k,
     relevant_by_paragraph,
+    relevant_by_text,
+    shingles,
 )
 from ingestion.chunk import chunk_document
 from ingestion.index import index_chunks, index_targets
+from ingestion.models import Chunk
 
 MODES = ["bm25", "vector", "hybrid", "hybrid_rerank"]
 CHUNKERS = ["structure", "naive"]
-REWRITE = [False, True]
+# All three rewrite levels are ablated separately: `glossary` is what the app
+# shipped under ENABLE_REWRITE=false and had never been measured against `off`.
+REWRITE_MODES = ["off", "glossary", "llm"]
 TOP_K = 5
 
 RESULTS_DIR = PROJECT_ROOT / "evaluation" / "results"
@@ -80,47 +94,118 @@ def ensure_naive_index(settings: Settings, *, rebuild: bool) -> tuple[str, objec
 
 def precompute_queries(
     gt: list[dict], settings: Settings, *, workers: int = 8
-) -> dict[tuple[str, bool], str]:
-    """Map (question, rewrite_on) -> query string; rewrites each question once
-    (concurrently — the rewrites are I/O-bound API calls)."""
-    rw_settings = settings.model_copy(update={"enable_rewrite": True})
+) -> dict[tuple[str, str], str]:
+    """Map (question, rewrite_mode) -> the query that mode actually retrieves on.
+
+    Every arm — including ``off`` — goes through the production `rewrite_query`
+    under a settings copy for that mode, so the evaluation measures the shipped
+    code path by construction. The previous version hand-built the "rewrite off"
+    arm as the raw question, which silently diverged from production: with
+    ENABLE_REWRITE=false the app still applied glossary expansion, so the
+    default config was never the config that was measured.
+
+    Only the `llm` arm makes API calls; those are run concurrently.
+    """
     questions = sorted({row["question"] for row in gt})
-    queries: dict[tuple[str, bool], str] = {(q, False): q for q in questions}
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        rewrites = pool.map(lambda q: rewrite_query(q, rw_settings).rewritten, questions)
-    for question, rewritten in zip(questions, rewrites, strict=True):
-        queries[(question, True)] = rewritten
+    queries: dict[tuple[str, str], str] = {}
+    for mode in REWRITE_MODES:
+        mode_settings = settings.model_copy(update={"rewrite_mode": mode})
+        if mode == "llm":  # I/O-bound: one API call per question
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                rewritten = list(
+                    # bind mode_settings now — the lambda outlives this iteration
+                    pool.map(
+                        lambda q, s=mode_settings: rewrite_query(q, s).rewritten, questions
+                    )
+                )
+        else:  # pure/deterministic: no need for a pool
+            rewritten = [rewrite_query(q, mode_settings).rewritten for q in questions]
+        queries.update(zip(((q, mode) for q in questions), rewritten, strict=True))
     return queries
 
 
-def _is_relevant(hit: RetrievedChunk, row: dict) -> bool:
-    """Relevance by document + paragraph-anchor overlap, for BOTH chunkers.
+class GroundTruthIndex:
+    """Resolves a ground-truth row to the corpus chunk it was written from.
 
-    Using the same criterion makes the structure-vs-naive comparison fair:
-    previously structure required an exact chunk-id match (stricter than naive's
-    paragraph overlap, biasing the comparison) and also missed hard-split sibling
-    chunks that cover the same ground-truth paragraph. Paragraph anchors are the
-    stable citation unit, so they are the right common denominator.
+    The ground-truth CSV stores only ids and paragraph anchors, but a sound
+    relevance rule needs the source chunk's *text*. It is looked up here, and the
+    derived shingle sets are cached — the eval asks the same question tens of
+    thousands of times across 16 configs.
+
+    Read concurrently from the per-config worker pool. No lock: the cache is
+    idempotent (a race just recomputes the same shingle set) and both the dict
+    assignment and the `missing` set insert are atomic under the GIL.
     """
-    return relevant_by_paragraph(
-        hit.chunk.doc_id, hit.chunk.para_ids, row["doc_id"], row["para_ids_list"]
+
+    def __init__(self, chunks: Sequence[Chunk]) -> None:
+        self._by_id = {c.chunk_id: c for c in chunks}
+        self._shingles: dict[str, set[tuple[str, ...]]] = {}
+        self.missing: set[str] = set()
+
+    def chunk_for(self, gt_chunk_id: str) -> Chunk | None:
+        chunk = self._by_id.get(gt_chunk_id)
+        if chunk is None:
+            self.missing.add(gt_chunk_id)
+        return chunk
+
+    def shingles_for(self, chunk: Chunk) -> set[tuple[str, ...]]:
+        cached = self._shingles.get(chunk.chunk_id)
+        if cached is None:
+            cached = shingles(chunk.text)
+            self._shingles[chunk.chunk_id] = cached
+        return cached
+
+    def report_missing(self) -> None:
+        if self.missing:
+            print(
+                f"[eval] WARNING: {len(self.missing)} ground-truth chunk id(s) are not "
+                f"in the current corpus — those rows fall back to the loose "
+                f"doc+paragraph rule, which over-counts. Regenerate the ground truth."
+            )
+
+
+def _is_relevant(hit: RetrievedChunk, row: dict, gt: GroundTruthIndex) -> bool:
+    """Is this retrieved chunk the passage the question was written from?
+
+    Exact chunk id, or the chunk reproduces enough of the ground-truth passage's
+    text (`relevant_by_text`) — one criterion for both chunkers.
+
+    The previous rule, document + paragraph-anchor overlap, accepted a *mean of
+    6.71 chunks per ground-truth row* on this corpus (max 51), because paragraph
+    numbering restarts in every section. That inflated hit-rate@5 and MRR@5.
+    Anchoring on the text instead brings it to 1.10 (structure) / 1.58 (naive).
+
+    Matching on section path + paragraph was tried first and is not enough: it
+    leaves parse failures where a single "paragraph" spans 51 chunks in one
+    section (mean 4.28, max 51). Only the text test pins a hit to the passage.
+    """
+    chunk = hit.chunk
+    if chunk.chunk_id == row["chunk_id"]:
+        return True
+    gt_chunk = gt.chunk_for(row["chunk_id"])
+    if gt_chunk is None:  # stale ground truth: no text to compare, warn and degrade
+        return relevant_by_paragraph(
+            chunk.doc_id, chunk.para_ids, row["doc_id"], row["para_ids_list"]
+        )
+    return relevant_by_text(
+        chunk.doc_id, chunk.text, row["doc_id"], gt.shingles_for(gt_chunk)
     )
 
 
 def evaluate_config(
     retriever: Retriever,
     gt: list[dict],
-    queries: dict[tuple[str, bool], str],
+    queries: dict[tuple[str, str], str],
+    gt_index: GroundTruthIndex,
     *,
     mode: str,
-    chunker: str,
-    rewrite_on: bool,
+    rewrite_mode: str,
     workers: int = 8,
 ) -> tuple[float, float]:
     def relevances_for(row: dict) -> list[bool]:
-        query = queries[(row["question"], rewrite_on)]
+        query = queries[(row["question"], rewrite_mode)]
         hits = retriever.search(query, mode=mode, top_k=TOP_K)
-        return [_is_relevant(h, row) for h in hits]
+        return [_is_relevant(h, row, gt_index) for h in hits]
 
     # bm25 is local (fast, single-threaded); other modes hit the embedding API.
     pool_workers = 1 if mode == "bm25" else workers
@@ -130,6 +215,9 @@ def evaluate_config(
 
 
 def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool, workers: int = 8) -> list[dict]:
+    # The relevance rule needs each ground-truth chunk's section path and text,
+    # which the CSV doesn't carry — resolve them from the structure corpus.
+    gt_index = GroundTruthIndex(load_chunks("structure", settings))
     collection, bm25_dir = ensure_naive_index(settings, rebuild=rebuild_naive)
     retrievers = {
         "structure": Retriever(settings),
@@ -140,35 +228,52 @@ def run(gt: list[dict], settings: Settings, *, rebuild_naive: bool, workers: int
     for retriever in retrievers.values():
         retriever.warm(full=True)
     queries = precompute_queries(gt, settings, workers=workers)
+    # Every vector/hybrid config re-embeds the same query strings. Embed each one
+    # once, in batches of 128, before the configs run: ~14,400 single-item
+    # requests collapse to ~19 batched ones.
+    warmed = warm_query_embeddings(queries.values())
+    print(f"[eval] pre-embedded {warmed} distinct queries (batched)")
 
     results: list[dict] = []
     for chunker in CHUNKERS:
         for mode in MODES:
-            for rewrite_on in REWRITE:
+            for rewrite_mode in REWRITE_MODES:
                 # hybrid_rerank reranks on CPU; loads are thread-safe and torch is
                 # capped to 1 intra-op thread (see main), so the worker pool gives
                 # parallelism without oversubscribing — no longer forced single-threaded.
-                hr, mrr = evaluate_config(
-                    retrievers[chunker], gt, queries,
-                    mode=mode, chunker=chunker, rewrite_on=rewrite_on, workers=workers,
-                )
-                label = f"{mode}|{chunker}|{'rw' if rewrite_on else 'raw'}"
-                print(f"[eval] {label:32s} hit@5={hr:.3f} mrr@5={mrr:.3f}")
+                label = f"{mode}|{chunker}|{rewrite_mode}"
+                try:
+                    hr, mrr = evaluate_config(
+                        retrievers[chunker], gt, queries, gt_index,
+                        mode=mode, rewrite_mode=rewrite_mode, workers=workers,
+                    )
+                except Exception as exc:  # noqa: BLE001 — don't discard completed configs
+                    # A full run is 24 configs over hundreds of questions; losing
+                    # all of it to one transient fault (a dropped Qdrant
+                    # connection, a rate limit outlasting retries) is the worst
+                    # outcome. Same policy as eval_rag.
+                    print(
+                        f"[eval] SKIPPED {label} after error: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                    continue
+                print(f"[eval] {label:36s} hit@5={hr:.3f} mrr@5={mrr:.3f}")
                 results.append(
                     {
                         "retrieval_mode": mode,
                         "chunker": chunker,
-                        "rewrite": rewrite_on,
+                        "rewrite_mode": rewrite_mode,
                         "hit_rate_at_5": round(hr, 4),
                         "mrr_at_5": round(mrr, 4),
                         "n_queries": len(gt),
                     }
                 )
+    gt_index.report_missing()
     return results
 
 
 def _config_label(r: dict) -> str:
-    return f"{r['retrieval_mode']}|{r['chunker']}|{'rw' if r['rewrite'] else 'raw'}"
+    return f"{r['retrieval_mode']}|{r['chunker']}|{r['rewrite_mode']}"
 
 
 def write_outputs(results: list[dict], suffix: str = "") -> dict:
@@ -186,11 +291,35 @@ def write_outputs(results: list[dict], suffix: str = "") -> dict:
     best = max(results, key=lambda r: (r["hit_rate_at_5"], r["mrr_at_5"]))
     print(f"\n[eval] wrote {csv_path} and {png_path.name}")
     print(
-        f"[eval] BEST: mode={best['retrieval_mode']} chunker={best['chunker']} "
-        f"rewrite={best['rewrite']} (hit@5={best['hit_rate_at_5']}, mrr@5={best['mrr_at_5']})"
+        f"[eval] BEST on {_gt_label(suffix)}: mode={best['retrieval_mode']} "
+        f"chunker={best['chunker']} rewrite_mode={best['rewrite_mode']} "
+        f"(hit@5={best['hit_rate_at_5']}, mrr@5={best['mrr_at_5']})"
     )
-    print("[eval] -> set this as the default in .env.example")
+    print(_default_guidance(suffix))
     return best
+
+
+def _gt_label(suffix: str) -> str:
+    return "the DE-BIASED ground truth" if suffix == "_hard" else "the STANDARD ground truth"
+
+
+def _default_guidance(suffix: str) -> str:
+    """What to do with the winner — which depends on which ground truth ran.
+
+    Only the de-biased set should pick production defaults. Standard-set
+    questions are LLM-generated from the passages and reuse their vocabulary
+    (mean lexical overlap ~0.83), which flatters lexical retrieval: BM25 tends to
+    win there for a reason that does not survive real user phrasing. Emitting a
+    blanket "set this as the default" after either run invites shipping exactly
+    the config this project's own analysis argues against.
+    """
+    if suffix == "_hard":
+        return "[eval] -> this is the de-biased winner: set it as the default in .env.example"
+    return (
+        "[eval] -> do NOT set this as the default: these questions reuse the "
+        "passages' vocabulary, which flatters lexical search. Pick defaults from "
+        "`make eval-retrieval-hard`; this run is the contrast that shows the bias."
+    )
 
 
 def _bar_chart(labels: list[str], values: list[float], out_path) -> None:
@@ -208,7 +337,7 @@ def _bar_chart(labels: list[str], values: list[float], out_path) -> None:
 
 def main() -> None:
     args = _parse_args()
-    limit_torch_threads()  # rerank runs under the worker pool; keep torch single-threaded
+    configure_torch_threads()  # rerank is lock-serialised, so give it every core
     settings = get_settings()
     gt_path = Path(args.ground_truth)
     gt = load_ground_truth(gt_path)
@@ -217,8 +346,13 @@ def main() -> None:
         print(staleness)
     if args.limit:
         gt = gt[: args.limit]
-    print(f"[eval] {len(gt)} ground-truth questions x {len(MODES) * len(CHUNKERS) * 2} configs")
+    n_configs = len(MODES) * len(CHUNKERS) * len(REWRITE_MODES)
+    print(f"[eval] {len(gt)} ground-truth questions x {n_configs} configs")
     results = run(gt, settings, rebuild_naive=args.rebuild_naive, workers=args.workers)
+    if not results:
+        raise SystemExit("[eval] no configs completed — see the errors above")
+    if len(results) < n_configs:
+        print(f"[eval] NOTE: {n_configs - len(results)}/{n_configs} configs were skipped")
     write_outputs(results, output_suffix(gt_path))
 
 

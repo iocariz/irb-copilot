@@ -127,6 +127,17 @@ stages run standalone via `python -m ingestion`.
    noise). Sub-points (`a.`, `ii.`) are folded into their parent paragraph. If
    docling is unavailable or fails on a document, a pymupdf text extraction +
    regex fallback kicks in.
+
+   Two rules exist specifically to keep citation anchors honest. A **section
+   heading closes the open paragraph** — without that, any content docling does
+   not label as a numbered item keeps appending to the last numbered paragraph it
+   saw, which had put annexes and consultation-feedback tables under a paragraph
+   number that does not contain them. And content with no paragraph number
+   (annexes, front matter) gets an **empty anchor** rather than one invented from
+   its own text, so it cites document + section instead of a paragraph that does
+   not exist. A `MAX_PARAGRAPH_CHARS` guard warns at ingest time if any paragraph
+   accumulates implausible amounts of prose, so a regression surfaces there rather
+   than in a user's citation.
 3. **chunk** ([`ingestion/chunk.py`](ingestion/chunk.py)) — **structure-aware**:
    one chunk per numbered paragraph; consecutive paragraphs in the same
    subsection are merged while under ~250 tokens; any chunk over ~1000 tokens is
@@ -157,12 +168,15 @@ scores + metadata and supporting an optional `doc_ids` filter:
 
 ### 3. Query rewriting ([`app/rewrite.py`](app/rewrite.py))
 
-Optional (`ENABLE_REWRITE`, default off). A cheap step that (a) expands domain
-acronyms (PD, LGD, EAD, MoC, DoD, CCF, CRR, RDS…) from a hard-coded glossary,
-then (b) optionally calls the LLM to reformulate conversational phrasing into a
-search query. The evaluation found it *hurts* retrieval on this corpus (it
-paraphrases away the exact regulatory terms), so it's off by default — but it's
-implemented and evaluated.
+Three levels, selected by `REWRITE_MODE`: `off` (the question verbatim),
+`glossary` (expand domain acronyms — PD, LGD, EAD, MoC, DoD, CCF, CRR, RDS… —
+from a hard-coded glossary, deterministic and free), or `llm` (glossary plus an
+LLM reformulation). Each level is ablated separately by `eval_retrieval`.
+
+The evaluation found rewriting *hurts* retrieval on this corpus at both levels —
+expansion and paraphrase both move the query away from the exact regulatory
+terms the documents use — so the default is `off`, but all three are implemented
+and measured.
 
 For **follow-up questions**, a separate step (`condense_query`, `CONDENSE_HISTORY`,
 on by default) rewrites the follow-up into a *standalone* query using the chat
@@ -259,7 +273,8 @@ are **not** committed; the pipeline downloads and verifies them.
 | `ebagl_2019_03` | EBA Guidelines on downturn LGD estimation |
 | `ebagl_2020_05` | EBA Guidelines on credit risk mitigation for A-IRB institutions |
 
-docling parsing yields **~1,600 structure-aware chunks** across the seven docs.
+docling parsing yields **2,968 numbered paragraphs → 2,241 structure-aware chunks**
+across the seven documents.
 
 ## Quick start (clone → first answer)
 
@@ -333,7 +348,7 @@ the evaluation winners, so the app is sensible out of the box.
 | `EMBEDDING_MODEL` / `EMBEDDING_DIM` | `text-embedding-3-small` / `1536` | embeddings (dim must match) |
 | `EVAL_MODELS` | `gpt-4o-mini,gpt-4o` | models compared by `eval_rag` |
 | `RETRIEVAL_MODE` | `hybrid_rerank` | `bm25` \| `vector` \| `hybrid` \| `hybrid_rerank` |
-| `ENABLE_REWRITE` | `false` | first-turn query rewriting / acronym expansion |
+| `REWRITE_MODE` | `off` | first-turn query rewriting: `off` \| `glossary` (acronym expansion) \| `llm` |
 | `CONDENSE_HISTORY` | `true` | rewrite follow-ups into standalone retrieval queries |
 | `PROMPT_VERSION` | `v2` | `v1` (plain) \| `v2` (few-shot, stricter citations) |
 | `CHUNKER` | `structure` | `structure` \| `naive` (eval baseline) |
@@ -355,49 +370,186 @@ Reproducible; artifacts committed under
 [`evaluation/results/`](evaluation/results/). The ground truth is LLM-generated
 questions whose answer sits in a sampled chunk (stratified by document).
 
+### What counts as a hit
+
+Before the numbers, the relevance rule, because it decides what they mean. Each
+ground-truth question was written from one specific chunk, so a retrieved chunk
+counts as relevant only if it **is** that passage: an exact chunk-id match, or it
+reproduces ≥30% of the passage's word 5-grams (so a differently-merged chunk that
+still contains the answer counts). The same rule applies to both chunkers, which
+is what makes the structure-vs-naive comparison fair.
+
+Matching on document + paragraph number instead — the obvious shortcut — does not
+work here: these regulations restart paragraph numbering in every section, so
+"paragraph 82" is dozens of different passages. On this corpus that rule admits a
+mean of **2.4 chunks per question** (worst case 22), against **1.4** for the text
+rule. It was far worse before the parser was fixed to stop annexes accumulating
+under the last numbered paragraph: 6.7 on average, worst case 51.
+
+Two limitations worth stating. Twelve of the 796 questions (1.5%) cannot be
+matched to *any* fixed-window chunk at any threshold, so they are guaranteed
+misses for that chunker — a small floor bias against the naive baseline, which
+already loses every comparison, so it cannot explain the result. And a handful of
+ground-truth questions were generated from short, repeated table headers, which
+match many chunks; those inflate rather than depress the scores.
+
 ### Retrieval (`eval_retrieval.py`) — hit-rate@5 / MRR@5
 
-16 configs = {bm25, vector, hybrid, hybrid_rerank} × {structure, naive} ×
-{rewrite off/on}, over 800 questions. On the standard ground truth
-([CSV](evaluation/results/retrieval_eval.csv)) `bm25/structure/raw` wins (0.950).
+24 configs = {bm25, vector, hybrid, hybrid_rerank} × {structure, naive} ×
+{`off`, `glossary`, `llm`} rewriting, over 796 questions, on two ground truths
+([standard CSV](evaluation/results/retrieval_eval.csv) ·
+[de-biased CSV](evaluation/results/retrieval_eval_hard.csv)).
 
-**But that win is a measurement artifact.** LLM-generated questions reuse the
-source's vocabulary (mean question↔chunk lexical overlap **0.83**), which flatters
-lexical search. A **de-biased** ground truth (`--style hard`) paraphrases the
-questions (overlap **0.46**) and flips the result — BM25 collapses while the
-semantic methods hold up (structure chunks, no rewrite):
+LLM-generated questions reuse the source's vocabulary — mean question↔chunk
+lexical overlap **0.78** — which flatters lexical search. A **de-biased** ground
+truth (`--style hard`) paraphrases them (overlap **0.43**), and comparing the two
+separates genuine retrieval quality from that artifact (structure chunks, no
+rewriting):
 
-| mode | standard hit@5 | **de-biased** hit@5 |
-|------|:---:|:---:|
-| bm25 | 0.950 | 0.528 (−0.42) |
-| vector | 0.835 | 0.605 |
-| hybrid | 0.923 | 0.615 |
-| **hybrid_rerank** | 0.936 | **0.636** |
+| mode | standard hit@5 | **de-biased** hit@5 | change |
+|------|:---:|:---:|:---:|
+| bm25 | 0.899 | 0.545 | **−0.354** |
+| vector | 0.766 | 0.637 | −0.129 |
+| hybrid | 0.877 | 0.694 | −0.183 |
+| **hybrid_rerank** | **0.902** | **0.716** | −0.186 |
 
-Query rewriting hurt every config on both sets. **Chosen default:
-`hybrid_rerank` + structure + no rewrite** — it leads on realistic (paraphrased)
-queries a user would actually type. It adds an embedding + cross-encoder step, so
-it's slower than BM25 (a deliberate quality-for-latency trade; set
-`RETRIEVAL_MODE=bm25` for the fast lexical path). Reproduce with
-`make ground-truth-hard && make eval-retrieval-hard`.
+- standard order: `hybrid_rerank > bm25 > hybrid > vector`
+- de-biased order: `hybrid_rerank > hybrid > vector > bm25`
 
-### RAG (`eval_rag.py`) — LLM-as-a-judge, 100 questions × 4 configs
+**BM25 falls from second to last.** It is within a third of a point of the best
+config when questions echo the passage, and 17pt behind it when they don't —
+losing **35 points** between the two sets, against 19 for `hybrid_rerank`. Pure
+vector search is the most *robust* to paraphrase (−0.129) without ever being the
+best; the cross-encoder is what converts that robustness into the top score.
 
-A judge (gpt-4o) labels each answer RELEVANT / PARTLY / NON given the question +
-the ground-truth passage, and separately checks citation support
-([CSV](evaluation/results/rag_eval.csv)):
+**Chosen default: `hybrid_rerank` + `structure` + `off`** — it wins **both** ground
+truths (standard hit@5 **0.902** / MRR@5 **0.7947**; de-biased **0.7161** /
+**0.5571**), so the choice does not depend on trusting the de-biased set over the
+standard one. It adds an embedding lookup and a cross-encoder pass, so it is
+slower than BM25: a deliberate quality-for-latency trade. Set
+`RETRIEVAL_MODE=bm25` for the fast lexical path.
 
-| model | prompt | RELEVANT | cite-ok | cost/q | latency |
-|-------|--------|----------|---------|--------|---------|
-| gpt-4o-mini | v1 | 0.76 | 0.69 | $0.0004 | 2.3 s |
-| **gpt-4o-mini** | **v2** | **0.80** | **0.77** | **$0.0004** | **2.3 s** |
-| gpt-4o | v1 | 0.81 | 0.78 | $0.0063 | 4.0 s |
-| gpt-4o | v2 | 0.79 | 0.79 | $0.0067 | 9.9 s |
+Two further results:
 
-**Chosen default: `gpt-4o-mini` + prompt `v2`** — statistically tied with gpt-4o
-on quality at **1/16th the cost** and ~2× faster. The stricter few-shot prompt
-(`v2`) clearly beats the plain one on the default model. The RAG eval also seeds
-the monitoring DB with judged conversations so the Grafana judge panel has data.
+- **Query rewriting never helps.** The LLM reformulation is clearly harmful —
+  worse than `glossary` in **8/8** mode×chunker combinations on *both* ground
+  truths, by 15–20pt. Deterministic acronym expansion is milder: consistently
+  negative on the standard set (8/8) but indistinguishable from zero on the
+  de-biased one (6/8, margins of 0.3pt), because only 3% of those questions
+  contain an acronym at all — for the rest, `off` and `glossary` are literally the
+  same query. Both levels move the query away from the exact regulatory wording
+  the documents use, which is why `REWRITE_MODE=off` ships — see
+  [the ablation note](#query-rewriting-ablation).
+- **Structure-aware chunking beats the fixed-window baseline in 12/12**
+  mode×rewrite comparisons, on *both* ground truths, and it held after the corpus
+  was re-parsed from scratch with 38% more chunks. Re-ranking partly compensates
+  for bad chunking: on the standard set it lifts naive chunks from 0.780 (hybrid)
+  to 0.857, a reasonable argument for keeping a re-ranker as insurance.
+
+Reproduce with `make eval-retrieval` and `make eval-retrieval-hard`. Only the
+de-biased run should set defaults; the tool says so explicitly when it finishes.
+
+<a id="query-rewriting-ablation"></a>
+#### Why acronym expansion was dropped
+
+`glossary` mode appends `LGD (loss given default)` to the query. Aggregated over
+all questions its effect looks like noise (≈1pt), because most questions contain
+no acronym at all — 25% on the standard set and just **3%** on the de-biased set.
+Measured only on the questions where it actually changes the query (n=200), it
+clearly hurts: **−0.035** hit@5 on bm25 and **−0.050** on vector. The expansion
+dilutes term weights and pulls the embedding away from the corpus's own
+vocabulary, which uses the acronyms too.
+
+This is why the de-biased set shows `glossary` beating `off` in two of eight
+configs by ~0.3pt: with 97% of its questions unaffected, that arm has almost no
+signal to carry a sign. Reporting it as a tie would be more honest than reading a
+direction into it — the effect is only measurable where acronyms occur.
+
+Caveat worth stating: ground-truth questions are generated *from* the passages, so
+they inherit the corpus's acronym usage. A user typing "MoC" against a document
+that spells out "margin of conservatism" is the case where expansion *should*
+help, and this ground truth cannot represent it. The measured harm is real; a
+possible benefit is under-measured. Revisitable against real query logs, which the
+monitoring DB collects.
+
+### RAG (`eval_rag.py`) — LLM-as-a-judge
+
+For each (prompt version × answer model) config, a judge model labels every answer
+RELEVANT / PARTLY_RELEVANT / NON_RELEVANT against the question and the ground-truth
+passage, and *separately* checks whether each `[doc, para. X]` citation is
+supported by the sources the answer was shown. Cost and latency are recorded per
+config ([CSV](evaluation/results/rag_eval.csv)).
+
+Three things the harness does deliberately, because each is a way this kind of
+evaluation usually goes wrong:
+
+- **A cross-family judge.** `JUDGE_MODEL` defaults to `gpt-5.4-mini` while answers
+  come from `gpt-4o-mini`. A judge scoring its own family shows self-preference
+  bias, so every row carries a `self_judged` flag — computed on the model *family*
+  (`gpt-4o-mini` and `gpt-4o` are the same family), not on the exact name — and
+  the run warns loudly when it is set.
+- **Unreadable verdicts are missing data, not bad answers.** A malformed or
+  truncated judge response becomes `PARSE_ERROR`, is excluded from the rate
+  denominators, and is reported in its own `parse_errors` column and as a grey
+  segment on the plot. Folding those into NON_RELEVANT (the obvious shortcut)
+  understates every config, and worst the one whose answers make the judge most
+  verbose — a bias that looks exactly like a quality difference.
+- **Rates are over answers actually judged** (`judged` column = n − parse errors);
+  cost and latency stay over all n, because they were really spent.
+
+The run also seeds the monitoring DB with judged conversations, so the Grafana
+judge-relevance panel has data.
+
+**100 questions × 4 configs** = {`gpt-4o-mini`, `gpt-4o`} × {`v1`, `v2`}. Every
+config answered and judged all 100, with zero parse errors:
+
+| model | prompt | RELEVANT | cite-ok | cost/q |
+|-------|--------|:---:|:---:|:---:|
+| gpt-4o-mini | v1 | 0.84 | 0.64 | $0.00032 |
+| **gpt-4o-mini** | **v2** | 0.85 | **0.78** | **$0.00033** |
+| gpt-4o | v1 | **0.89** | **0.78** | $0.00509 |
+| gpt-4o | v2 | 0.88 | **0.78** | $0.00547 |
+
+**Chosen default: `gpt-4o-mini` + prompt `v2`.** Note that this is *not* the
+highest-relevance config — `gpt-4o` + `v1` scores 0.89 against 0.85. It is a
+deliberate cost trade: **4pt of relevance for 15× the price per question**, with
+**identical** citation support (0.78). Citation correctness is the metric this
+domain actually cares about, and it is tied. Set `LLM_MODEL=gpt-4o` if you want
+those 4 points.
+
+**The prompt matters more than the model — but read the size of each effect.**
+Three configs were measured twice across runs, giving a repeat-measurement noise
+floor of ~2–3pt on relevance and ~3–6pt on citation support.
+
+- **`v1` → `v2` on gpt-4o-mini: +14pt citation support** (0.64 → 0.78), far
+  outside the noise and consistent across both runs. The relevance gain is only
+  +1pt. The stricter few-shot prompt does specifically what it was written to
+  do — enforce citations — and little else.
+- **`v2` does nothing for gpt-4o** (0.89 → 0.88 relevance, 0.78 → 0.78
+  citations). Few-shot scaffolding lifts the weaker model to the stronger one's
+  citation discipline and is redundant once the model already has it. A prompt
+  improvement should not be assumed to transfer across models.
+- **gpt-4o's relevance edge is real but small** (+4pt, marginally outside noise),
+  and it buys nothing on citations. In an earlier run on the previous corpus the
+  comparison went the other way (gpt-4o-mini ahead by 1pt), so treat 4pt as the
+  upper end of what the larger model is worth here.
+
+> **Latency is deliberately not reported.** The harness measures end-to-end wall
+> time, and a few requests stall for minutes under concurrency — one outlier of
+> 606 s moved a config's *mean* from ~3 s to ~18 s, which would have made the
+> cheap model look 7× slower than the expensive one. Medians are comparable
+> (3.3 s vs 2.0 s). The harness now records `p50_latency_ms` and
+> `p95_latency_ms`; the committed CSV predates that column.
+
+Throughput, unlike per-request latency, does differ sharply: gpt-4o's 30k TPM
+ceiling on this account sustains only ~8 requests/minute against ~80 for
+gpt-4o-mini, which is why the evaluation paces it to one request in flight (see
+`MODEL_MAX_CONCURRENCY`).
+
+**Prompt versions.** `v1` states the grounding and citation rules plainly; `v2`
+adds a worked few-shot example and requires a citation on every factual sentence.
+`PROMPT_VERSION=v2` ships. Both are in [`app/prompts.py`](app/prompts.py).
+Reproduce with `make eval-rag`.
 
 Both evals run their hundreds of API calls concurrently (`--workers`, default 8).
 

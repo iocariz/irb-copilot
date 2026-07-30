@@ -463,3 +463,133 @@ def test_estimate_cost_known_model() -> None:
 
 def test_estimate_cost_unknown_model_is_zero() -> None:
     assert estimate_cost("some-unknown-model", 1000, 1000) == 0.0
+
+
+# --- rewrite modes: the eval arms ARE the production paths (T2) ------------- #
+def test_rewrite_mode_off_retrieves_on_the_question_verbatim() -> None:
+    from app.config import Settings
+    from app.rewrite import rewrite_query
+
+    s = Settings(_env_file=None, REWRITE_MODE="off")
+    result = rewrite_query("What is the LGD floor for retail?", s)
+    assert result.rewritten == "What is the LGD floor for retail?"
+    assert result.used_llm is False
+    assert result.cost_usd == 0.0
+
+
+def test_rewrite_mode_glossary_expands_acronyms_without_an_llm_call() -> None:
+    from app.config import Settings
+    from app.rewrite import rewrite_query
+
+    s = Settings(_env_file=None, REWRITE_MODE="glossary")
+    result = rewrite_query("What is the LGD floor for retail?", s)
+    assert "loss given default" in result.rewritten
+    assert result.used_llm is False  # deterministic, free
+    assert result.cost_usd == 0.0
+
+
+def test_glossary_mode_is_not_the_same_query_as_off_mode() -> None:
+    """The bug T2 fixes: the eval's "rewrite off" arm used the raw question
+    while production (ENABLE_REWRITE=false) retrieved on the expanded one."""
+    from app.config import Settings
+    from app.rewrite import rewrite_query
+
+    q = "How is MoC applied to PD estimates?"
+    off = rewrite_query(q, Settings(_env_file=None, REWRITE_MODE="off")).rewritten
+    glossary = rewrite_query(q, Settings(_env_file=None, REWRITE_MODE="glossary")).rewritten
+    assert off != glossary
+
+
+def test_rewrite_mode_llm_calls_the_model(monkeypatch) -> None:
+    import app.rewrite as rw
+    from app.config import Settings
+    from app.providers import LLMResult
+
+    monkeypatch.setattr(
+        rw, "complete",
+        lambda *a, **k: LLMResult("expanded query", "m", 10, 5, 0.001, 12),
+    )
+    result = rw.rewrite_query("What is MoC?", Settings(_env_file=None, REWRITE_MODE="llm"))
+    assert result.rewritten == "expanded query"
+    assert result.used_llm is True and result.cost_usd == 0.001
+
+
+def test_eval_arms_are_built_from_the_production_rewrite(monkeypatch) -> None:
+    """Each eval arm must equal what `app.rag` would retrieve on for that mode,
+    so the measured config is the shipped config."""
+    import app.rewrite as rw
+    from app.config import Settings
+    from app.providers import LLMResult
+    from app.rewrite import rewrite_query
+    from evaluation.eval_retrieval import REWRITE_MODES, precompute_queries
+
+    # `precompute_queries` builds every arm, including `llm`. Stub the model call
+    # so this stays hermetic — it must not depend on network or API credit.
+    monkeypatch.setattr(
+        rw, "complete", lambda *a, **k: LLMResult("stubbed query", "m", 1, 1, 0.0, 1)
+    )
+    settings = Settings(_env_file=None)
+    gt = [{"question": "How is MoC applied to PD estimates?"}]
+    queries = precompute_queries(gt, settings.model_copy(update={"rewrite_mode": "off"}))
+    assert queries[(gt[0]["question"], "llm")] == "stubbed query"
+    for mode in ("off", "glossary"):
+        expected = rewrite_query(
+            gt[0]["question"], settings.model_copy(update={"rewrite_mode": mode})
+        ).rewritten
+        assert queries[(gt[0]["question"], mode)] == expected
+    assert set(REWRITE_MODES) == {"off", "glossary", "llm"}
+
+
+# --- Qdrant transport resilience -------------------------------------------- #
+def test_vector_search_retries_a_transport_error_then_succeeds(monkeypatch) -> None:
+    """A pooled connection occasionally dies under load ("Bad file descriptor").
+    That is a transport hiccup, not a bad request, and must not fail the call."""
+    from qdrant_client.http.exceptions import ResponseHandlingException
+
+    import app.retrieval as retrieval_mod
+    from app.config import Settings
+    from app.retrieval import Retriever
+
+    monkeypatch.setattr(retrieval_mod, "embed_query", lambda text: [0.1, 0.2])
+    monkeypatch.setattr(retrieval_mod.time, "sleep", lambda _s: None)
+
+    class _Hit:
+        score = 0.9
+        payload = {
+            "chunk_id": "c1", "doc_id": "d", "doc_title": "D", "section_path": [],
+            "para_ids": ["1"], "pages": [1], "text": "t",
+        }
+
+    attempts = {"n": 0}
+
+    class _Client:
+        def search(self, **_kw):  # noqa: ANN003
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise ResponseHandlingException(OSError(9, "Bad file descriptor"))
+            return [_Hit()]
+
+    retriever = Retriever(Settings(_env_file=None))
+    retriever.__dict__["_qdrant"] = _Client()
+    results = retriever.search("q", mode="vector", top_k=1)
+    assert attempts["n"] == 2 and len(results) == 1
+
+
+def test_vector_search_gives_up_after_repeated_transport_errors(monkeypatch) -> None:
+    from qdrant_client.http.exceptions import ResponseHandlingException
+
+    import app.retrieval as retrieval_mod
+    from app.config import Settings
+    from app.retrieval import Retriever
+
+    monkeypatch.setattr(retrieval_mod, "embed_query", lambda text: [0.1, 0.2])
+    monkeypatch.setattr(retrieval_mod.time, "sleep", lambda _s: None)
+
+    class _Client:
+        def search(self, **_kw):  # noqa: ANN003
+            raise ResponseHandlingException(OSError(9, "Bad file descriptor"))
+
+    retriever = Retriever(Settings(_env_file=None))
+    retriever.__dict__["_qdrant"] = _Client()
+    with pytest.raises(RuntimeError, match="failed after 3 attempts"):
+        retriever.search("q", mode="vector", top_k=1)

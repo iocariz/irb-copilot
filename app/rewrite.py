@@ -1,10 +1,15 @@
 """Query rewriting (SPEC §7).
 
-Two steps before retrieval, toggleable via ``ENABLE_REWRITE``:
+Two steps before retrieval, selected by ``REWRITE_MODE`` (off | glossary | llm):
 
 1. expand domain acronyms from a hardcoded glossary (deterministic, no cost);
 2. if unknown all-caps terms remain, or to reformulate conversational phrasing
    into a search query, make one cheap LLM call.
+
+``REWRITE_MODE`` names how far to go, so each step can be ablated separately in
+the evaluation. The predecessor flag ``ENABLE_REWRITE`` could not express that:
+it gated only step 2 while step 1 ran unconditionally, so "rewriting off" still
+rewrote the query. See ``app.config.RewriteMode``.
 
 The glossary step is a pure function so it is unit-testable without any LLM.
 """
@@ -109,11 +114,24 @@ def unknown_acronyms(text: str, glossary: dict[str, str] = GLOSSARY) -> list[str
 
 
 def rewrite_query(question: str, settings: Settings | None = None) -> RewriteResult:
-    """Expand acronyms; call the LLM to reformulate when rewriting is enabled."""
-    settings = settings or get_settings()
-    expanded = expand_acronyms(question)
+    """Build the retrieval query for a first-turn question (SPEC §7).
 
-    if not settings.enable_rewrite:
+    Applies as much rewriting as ``REWRITE_MODE`` asks for:
+
+    * ``off``      — the question verbatim;
+    * ``glossary`` — deterministic acronym expansion, no LLM call;
+    * ``llm``      — glossary expansion plus an LLM reformulation.
+
+    This is the single definition of "what gets retrieved on", so the
+    evaluation's ablation arms are the production paths rather than a
+    reimplementation that can drift from them.
+    """
+    settings = settings or get_settings()
+    if settings.rewrite_mode == "off":
+        return RewriteResult(original=question, rewritten=question, used_llm=False)
+
+    expanded = expand_acronyms(question)
+    if settings.rewrite_mode == "glossary":
         return RewriteResult(original=question, rewritten=expanded, used_llm=False)
 
     result = complete(

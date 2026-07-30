@@ -107,7 +107,10 @@ def _finalize_group(
 ) -> list[_Raw]:
     """Build one or more raw chunks from a merged paragraph group."""
     text = "\n\n".join(p.text for p in group)
-    para_ids = [p.para_id for p in group]
+    # Unnumbered paragraphs (annexes, front matter) carry an empty id and must not
+    # reach citation metadata — the answer cites document + section instead of
+    # inventing a paragraph anchor.
+    para_ids = [p.para_id for p in group if p.para_id]
     pages = sorted({p.page for p in group})
     section_path = group[0].section_path
 

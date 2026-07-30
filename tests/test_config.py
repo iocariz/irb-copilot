@@ -17,7 +17,7 @@ def test_defaults_match_spec() -> None:
     assert s.llm_model == "gpt-4o-mini"
     assert s.embedding_model == "text-embedding-3-small"
     assert s.retrieval_mode == "hybrid_rerank"  # de-biased eval winner (§11.2)
-    assert s.enable_rewrite is False
+    assert s.rewrite_mode == "off"  # evaluated winner (§11.2); see task.md T2
     assert s.prompt_version == "v2"
     assert s.chunker == "structure"
     assert s.top_k == 5
@@ -32,12 +32,31 @@ def test_secret_is_optional_for_import_and_tests() -> None:
 def test_env_overrides_are_read(monkeypatch) -> None:
     """Environment variables (case-insensitive aliases) override defaults."""
     monkeypatch.setenv("RETRIEVAL_MODE", "bm25")
-    monkeypatch.setenv("ENABLE_REWRITE", "false")
+    monkeypatch.setenv("REWRITE_MODE", "off")
     monkeypatch.setenv("TOP_K", "10")
     s = Settings(_env_file=None)
     assert s.retrieval_mode == "bm25"
-    assert s.enable_rewrite is False
+    assert s.rewrite_mode == "off"
     assert s.top_k == 10
+
+
+# --- legacy ENABLE_REWRITE migration ---------------------------------------- #
+def test_legacy_enable_rewrite_false_maps_to_glossary(monkeypatch) -> None:
+    """The old flag never meant "no rewriting": glossary expansion always ran.
+    A deployment still setting it must keep the behaviour it had."""
+    monkeypatch.setenv("ENABLE_REWRITE", "false")
+    assert Settings(_env_file=None).rewrite_mode == "glossary"
+
+
+def test_legacy_enable_rewrite_true_maps_to_llm(monkeypatch) -> None:
+    monkeypatch.setenv("ENABLE_REWRITE", "true")
+    assert Settings(_env_file=None).rewrite_mode == "llm"
+
+
+def test_explicit_rewrite_mode_wins_over_legacy_flag(monkeypatch) -> None:
+    monkeypatch.setenv("ENABLE_REWRITE", "true")
+    monkeypatch.setenv("REWRITE_MODE", "off")
+    assert Settings(_env_file=None).rewrite_mode == "off"
 
 
 def test_eval_models_list_parsing() -> None:

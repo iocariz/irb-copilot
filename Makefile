@@ -2,6 +2,17 @@
 # All Python runs through `uv run` so the pinned environment (uv.lock) is used.
 
 .DEFAULT_GOAL := help
+
+# Environment for the long evaluation runs.
+#   HF_HUB_OFFLINE  — model weights are already in ~/.cache/huggingface. Without
+#     this, an unauthenticated (rate-limited) HF Hub metadata check can hang a
+#     run indefinitely *after* the model has loaded — observed as a 1-hour stall
+#     with zero Qdrant or OpenAI traffic. Offline uses the cache and fails fast
+#     if a model is genuinely missing, which beats hanging. Run `make setup` (or
+#     any non-eval target) once online to populate the cache.
+#   PYTHONUNBUFFERED — piping to `tee` switches stdout to block buffering, so a
+#     40-minute run shows nothing until it finishes. Keep progress live.
+EVAL_ENV := HF_HUB_OFFLINE=1 PYTHONUNBUFFERED=1
 .PHONY: help setup up up-all down prod-up prod-down ingest ground-truth ground-truth-hard eval-retrieval eval-retrieval-hard eval-rag regen run api ui test lint fmt
 
 help: ## Show available targets
@@ -31,30 +42,30 @@ ingest: ## Run the full ingestion pipeline via Prefect (download -> parse -> chu
 	uv run python -m ingestion.flow
 
 ground-truth: ## Generate evaluation ground truth (LLM; writes evaluation/ground_truth.csv)
-	uv run python -m evaluation.generate_ground_truth
+	$(EVAL_ENV) uv run python -m evaluation.generate_ground_truth
 
 ground-truth-hard: ## Generate de-biased (paraphrased) ground truth
-	uv run python -m evaluation.generate_ground_truth --style hard
+	$(EVAL_ENV) uv run python -m evaluation.generate_ground_truth --style hard
 
 eval-retrieval: ## Evaluate retrieval configs, pick the best (writes results/)
-	uv run python -m evaluation.eval_retrieval
+	$(EVAL_ENV) uv run python -m evaluation.eval_retrieval
 
 eval-retrieval-hard: ## Evaluate retrieval on the de-biased ground truth
-	uv run python -m evaluation.eval_retrieval --ground-truth evaluation/ground_truth_hard.csv
+	$(EVAL_ENV) uv run python -m evaluation.eval_retrieval --ground-truth evaluation/ground_truth_hard.csv
 
 eval-rag: ## Evaluate RAG prompt/model configs (writes results/)
-	uv run python -m evaluation.eval_rag
+	$(EVAL_ENV) uv run python -m evaluation.eval_rag
 
 regen: up ## Regenerate EVERYTHING: re-ingest + ground truth + retrieval & RAG eval (Docker + OPENAI_API_KEY)
 	@echo "[regen] full pipeline: re-ingest -> ground truth -> retrieval & RAG eval."
 	@echo "[regen] requires OPENAI_API_KEY in .env; this makes paid LLM/embedding calls and can take a while."
 	@grep -Eq '^OPENAI_API_KEY=.+' .env 2>/dev/null || { echo "[regen] ERROR: set OPENAI_API_KEY in .env first"; exit 1; }
 	uv run python -m ingestion.flow --recreate                                        # clean rebuild: chunk ids change, so drop the collection to avoid orphans
-	uv run python -m evaluation.generate_ground_truth                                 # writes ground_truth.csv + .meta.json
-	uv run python -m evaluation.generate_ground_truth --style hard                    # writes ground_truth_hard.csv + .meta.json
-	uv run python -m evaluation.eval_retrieval --rebuild-naive                        # rebuilds the stale naive index once
-	uv run python -m evaluation.eval_retrieval --ground-truth evaluation/ground_truth_hard.csv
-	uv run python -m evaluation.eval_rag                                              # also re-seeds the Grafana judge panel
+	$(EVAL_ENV) uv run python -m evaluation.generate_ground_truth                                 # writes ground_truth.csv + .meta.json
+	$(EVAL_ENV) uv run python -m evaluation.generate_ground_truth --style hard                    # writes ground_truth_hard.csv + .meta.json
+	$(EVAL_ENV) uv run python -m evaluation.eval_retrieval --rebuild-naive                        # rebuilds the stale naive index once
+	$(EVAL_ENV) uv run python -m evaluation.eval_retrieval --ground-truth evaluation/ground_truth_hard.csv
+	$(EVAL_ENV) uv run python -m evaluation.eval_rag                                              # also re-seeds the Grafana judge panel
 	@echo "[regen] done. Review evaluation/results/*.csv; if BEST changed, update RETRIEVAL_MODE/CHUNKER in .env.example + README."
 
 run: ## Run API + UI locally
