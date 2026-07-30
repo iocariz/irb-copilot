@@ -11,6 +11,83 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ---
 
+## Done — UI: source verification + two false-alarm classes (2026-07-30)
+
+Started as UI polish; the second half turned out to be a correctness bug in the
+hallucination check that T10 had introduced.
+
+### Rendering bugs (one of them mine)
+
+- [x] **Source headers were broken for 24% of chunks.** T10 correctly stopped
+      inventing paragraph anchors for annexes and tables, but `ui.py` still
+      rendered `— para.  (p. [1])` — an empty anchor and a raw Python list.
+      Unnumbered chunks now fall back to their section (`§ Contents`), pages
+      render as `p. 45` / `pp. 12–14`, and a section label that merely repeats
+      the document title is skipped (3/535 chunks, but it looks broken).
+      I introduced this in T10 and did not check the render path.
+- [x] **Feedback could be submitted repeatedly** — every click POSTed a new row,
+      skewing the up/down panel, which has the least data of any panel and so is
+      the most distorted by duplicates. State is set only after a successful
+      POST, so a network failure still allows a retry.
+- [x] **An answer with no citations rendered silently.** That is the exact
+      failure this project exists to prevent. Worded neutrally, because a correct
+      refusal ("the context does not cover this") also has zero citations, and a
+      warning that fires on correct behaviour gets ignored.
+
+### The real find: 34% of hallucination flags were false
+
+`prompts.citation_header` shows a chunk with no paragraph number as
+`[Title, para. n/a]` — so that is the only way an answer *can* cite one. But
+`check_citation_grounding` looked for "n/a" among the retrieved paragraph
+numbers, found nothing, and flagged it. Since T10 made 24% of chunks unnumbered,
+**every citation of an annex or table was reported as a possible hallucination**.
+
+Measured on the last evaluation run: 278 of 1,497 answers flagged (19%), of which
+**95 (34%) mention "n/a"**. A second class was visible in the same data —
+`para. 91(d)` failed against a chunk carrying `91`, because sub-point suffixes
+were compared literally.
+
+- [x] `cited_paragraph_forms()` — a sub-point is satisfied by its parent
+      paragraph; `n/a` is satisfied by an unnumbered chunk from that document
+- [x] The all-paragraphs rule is preserved: `para. 91, 999` with only 91
+      retrieved is still flagged. Tested explicitly, since the fix is a
+      *loosening* and that is exactly what a loosening tends to break
+
+A noisy hallucination warning is worse than none — users learn to dismiss it, in
+the one domain where they most need to read it.
+
+### Source verification (the point of the exercise)
+
+- [x] `attribute_citations()` fills `SourceChunk.cited_by`, computed server-side
+      with the **same matcher** as the grounding check, so the UI cannot mark a
+      source as backing a citation the grounding check calls unsupported. Tested
+      by asserting the two agree.
+- [x] The UI lists cited sources first, marked `✓` and already expanded, showing
+      which citation each one backs; uncited sources stay collapsed under a
+      count. Verifying a claim no longer means opening every source in turn.
+
+### Transparency (items 5-6)
+
+- [x] **The query retrieval actually ran on** is shown when it differs from the
+      question. Live example: "and what is the materiality threshold for that?"
+      was retrieved as "What is the materiality threshold for a material
+      obligation as defined in EU prudential regulation?" — a completely
+      different query the user could not previously see. First thing worth
+      checking when the sources look wrong.
+- [x] **Retrieval rank shown explicitly**, *because* grouping cited sources first
+      destroyed the rank signal that used to be implicit in the ordering. Fixing
+      one thing removed information elsewhere; worth noticing before shipping.
+- [x] **Raw score shown, always labelled with its mode.** Scores are not
+      comparable across modes — a top `hybrid_rerank` hit reads ~0.4 where a
+      `hybrid` one reads ~0.016 for the same quality of match — so a bare number
+      would be read as a confidence it is not. Rank is the comparable signal.
+
+Verified on real answers: attribution correct (3 of 5, then 2 of 5 cited),
+condensed follow-up query surfaced, scores and ranks rendered.
+`tests/test_ui.py` (19) + 6 attribution tests. Suite green (305).
+
+---
+
 ## Done — T11 (+ T14): eval traffic separated from real usage (2026-07-30)
 
 `eval_rag` seeds hundreds of judged conversations so the Grafana judge panel has

@@ -30,6 +30,11 @@ _CITE_RE = re.compile(
     r"^(?P<title>.+?),\s*(?:paragraphs?|paras?)\.?\s*(?P<paras>.+)$", re.IGNORECASE
 )
 _PARA_SPLIT_RE = re.compile(r"[,;]")
+# Leading paragraph number of a sub-point reference: "91(d)" -> "91", "12.3" -> "12".
+_PARA_LEADING_NUMBER_RE = re.compile(r"^(\d+)\D")
+# What `prompts.citation_header` shows for a chunk with no paragraph number, and
+# therefore the only way an answer can cite one.
+UNNUMBERED_PARA = "n/a"
 # Title normalization for grounding: LLMs often drop dates/parentheticals.
 _PAREN_RE = re.compile(r"\([^)]*\)")
 _WS_RE = re.compile(r"\s+")
@@ -64,6 +69,9 @@ class SourceChunk(BaseModel):
     pages: list[int]
     score: float
     text: str
+    # Citations in the answer that this chunk backs. Empty means the chunk was
+    # retrieved but the answer did not lean on it.
+    cited_by: list[str] = Field(default_factory=list)
 
 
 class Answer(BaseModel):
@@ -152,31 +160,90 @@ def titles_match(cited: str, available: str) -> bool:
     return shared >= _TITLE_MIN_SHARED_TOKENS and shared / smaller >= _TITLE_MIN_CONTAINMENT
 
 
+def cited_paragraph_forms(paras: str) -> list[set[str]]:
+    """One entry per cited paragraph, each the set of forms that satisfy it (pure).
+
+    Two forms beyond the literal token, both of which were producing false
+    hallucination warnings:
+
+    * a sub-point reference (``91(d)``, ``12.3``) is satisfied by the paragraph
+      that contains it (``91``, ``12``) — the sub-point is part of that paragraph
+      and is never retrieved separately;
+    * ``n/a`` is what the prompt shows for a chunk carrying no paragraph number.
+      Since T10 stopped inventing anchors for annexes and tables, 24% of chunks
+      are unnumbered, and every citation of one was being flagged — 34% of all
+      flags on the last evaluation run.
+    """
+    forms: list[set[str]] = []
+    for raw in _PARA_SPLIT_RE.split(paras):
+        token = raw.strip()
+        if not token:
+            continue
+        alternatives = {token, token.casefold()}
+        if leading := _PARA_LEADING_NUMBER_RE.match(token):
+            alternatives.add(leading.group(1))
+        forms.append(alternatives)
+    return forms
+
+
+def _available_forms(chunks: list[SourceChunk]) -> set[str]:
+    """Paragraph forms these chunks can support (pure)."""
+    available: set[str] = set()
+    for chunk in chunks:
+        if chunk.para_ids:
+            available |= set(chunk.para_ids)
+        else:
+            available.add(UNNUMBERED_PARA)  # cited as "para. n/a"
+    return available
+
+
+def citation_supported_by(citation: Citation, chunk: SourceChunk) -> bool:
+    """True if `chunk` can back any paragraph named in `citation` (pure)."""
+    if not titles_match(citation.doc_title, chunk.doc_title):
+        return False
+    available = _available_forms([chunk])
+    return any(forms & available for forms in cited_paragraph_forms(citation.paras))
+
+
 def check_citation_grounding(
     citations: list[Citation], chunks_used: list[SourceChunk]
 ) -> list[str]:
     """Return the texts of citations NOT backed by a retrieved source (pure).
 
     A citation is grounded only if a retrieved document matches its title (exact
-    or fuzzy — see ``titles_match``) and **every** cited paragraph number was
-    actually retrieved. Requiring all paragraphs — not just one — means a partly
+    or fuzzy — see ``titles_match``) and **every** cited paragraph was actually
+    retrieved. Requiring all paragraphs — not just one — means a partly
     hallucinated citation (e.g. ``para. 82, 99`` when only 82 was retrieved) is
     flagged rather than laundered by the one real paragraph.
     """
-    available: dict[str, set[str]] = {}
-    for chunk in chunks_used:
-        available.setdefault(chunk.doc_title, set()).update(chunk.para_ids)
     ungrounded: list[str] = []
     for citation in citations:
-        cited = {p.strip() for p in _PARA_SPLIT_RE.split(citation.paras) if p.strip()}
-        # Paragraphs available under any document whose title matches the citation.
-        covered: set[str] = set()
-        for title, paras in available.items():
-            if titles_match(citation.doc_title, title):
-                covered |= paras
-        if not cited or not cited.issubset(covered):
+        matching = [c for c in chunks_used if titles_match(citation.doc_title, c.doc_title)]
+        covered = _available_forms(matching)
+        cited = cited_paragraph_forms(citation.paras)
+        if not cited or not all(forms & covered for forms in cited):
             ungrounded.append(citation.text)
     return ungrounded
+
+
+def attribute_citations(
+    citations: list[Citation], chunks_used: list[SourceChunk]
+) -> list[SourceChunk]:
+    """Return `chunks_used` with `cited_by` filled in (pure).
+
+    Lets the UI show which retrieved sources the answer actually leaned on, so
+    verifying a claim does not mean opening every source in turn. Shares its
+    matching with the grounding check above, so the two cannot disagree about
+    what a citation refers to.
+    """
+    return [
+        chunk.model_copy(
+            update={
+                "cited_by": [c.text for c in citations if citation_supported_by(c, chunk)]
+            }
+        )
+        for chunk in chunks_used
+    ]
 
 
 def _to_source(rc: RetrievedChunk) -> SourceChunk:
@@ -236,7 +303,7 @@ def _assemble(
     return Answer(
         text=llm.text,
         citations=citations,
-        chunks_used=sources,
+        chunks_used=attribute_citations(citations, sources),
         citations_grounded=not ungrounded,
         ungrounded_citations=ungrounded,
         question=question,

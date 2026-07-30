@@ -223,7 +223,8 @@ the `rewritten_query`, `retrieval_mode`, `prompt_version`, `model`,
 
 Conversation logging is **best-effort** — a monitoring outage never blocks an
 answer. The Streamlit UI is a single page: question box, document filter,
-streaming cited answer, expandable source snippets, feedback buttons, follow-ups,
+streaming cited answer, source snippets (the ones the answer actually cited are
+marked and expanded first), feedback buttons, follow-ups,
 and a sidebar showing the last answer's model / cost / latency.
 
 ## Project structure
@@ -310,8 +311,11 @@ Two ways to run it — **don't run both at once**, they both bind ports 8000/850
 
 Then open:
 - **UI** → http://localhost:8501 — type a question, optionally restrict to specific
-  documents; the cited answer **streams in** with expandable source snippets,
-  👍/👎 feedback, and follow-up questions (a short conversation history is kept).
+  documents; the cited answer **streams in**. Sources the answer actually cited
+  are marked ✓ and opened first — verifying a claim is the real task — with the
+  rest collapsed underneath. Warns when an answer cites nothing, is cut off at
+  the token cap, or cites something the retrieved sources do not support. 👍/👎
+  feedback and follow-up questions (a short conversation history is kept).
 - **Grafana** → http://localhost:3000 (`admin` / `admin`) — the monitoring dashboard.
 
 ### API

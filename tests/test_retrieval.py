@@ -593,3 +593,71 @@ def test_vector_search_gives_up_after_repeated_transport_errors(monkeypatch) -> 
     retriever.__dict__["_qdrant"] = _Client()
     with pytest.raises(RuntimeError, match="failed after 3 attempts"):
         retriever.search("q", mode="vector", top_k=1)
+
+
+# --- citation <-> source attribution, and its false-alarm fixes -------------- #
+def _sc(title: str, paras: list[str]) -> SourceChunk:
+    return SourceChunk(
+        chunk_id="c", doc_id="d", doc_title=title, section_path=["A"],
+        para_ids=paras, pages=[1], score=1.0, text="t",
+    )
+
+
+def test_citation_of_an_unnumbered_source_is_not_a_hallucination() -> None:
+    """T10 stopped inventing paragraph anchors, so 24% of chunks are unnumbered
+    and the prompt shows them as "para. n/a". Every such citation was being
+    flagged — 34% of all flags on the last evaluation run."""
+    from app.rag import check_citation_grounding, parse_citations
+
+    citations = parse_citations("X [ECB Guide to Internal Models, para. n/a].")
+    assert check_citation_grounding(citations, [_sc("ECB Guide to Internal Models", [])]) == []
+
+
+def test_subpoint_citation_is_backed_by_its_parent_paragraph() -> None:
+    """"91(d)" is part of paragraph 91 and is never retrieved on its own."""
+    from app.rag import check_citation_grounding, parse_citations
+
+    citations = parse_citations("X [EBA GL (EBA/GL/2017/16), para. 91(d)].")
+    assert check_citation_grounding(citations, [_sc("EBA GL (EBA/GL/2017/16)", ["91"])]) == []
+
+
+def test_a_real_hallucination_is_still_flagged() -> None:
+    from app.rag import check_citation_grounding, parse_citations
+
+    citations = parse_citations("X [EBA GL (EBA/GL/2017/16), para. 999].")
+    assert check_citation_grounding(citations, [_sc("EBA GL (EBA/GL/2017/16)", ["91"])])
+
+
+def test_partly_hallucinated_citation_is_still_flagged() -> None:
+    """The all-paragraphs rule must survive the new leniency: one real paragraph
+    must not launder an invented one."""
+    from app.rag import check_citation_grounding, parse_citations
+
+    citations = parse_citations("X [EBA GL (EBA/GL/2017/16), para. 91, 999].")
+    assert check_citation_grounding(citations, [_sc("EBA GL (EBA/GL/2017/16)", ["91"])])
+
+
+def test_attribution_marks_only_the_sources_the_answer_used() -> None:
+    from app.rag import attribute_citations, parse_citations
+
+    citations = parse_citations("X [EBA GL (EBA/GL/2017/16), para. 91].")
+    used, unused = _sc("EBA GL (EBA/GL/2017/16)", ["91"]), _sc("Other Doc Entirely", ["5"])
+    attributed = attribute_citations(citations, [used, unused])
+    assert attributed[0].cited_by == ["EBA GL (EBA/GL/2017/16), para. 91"]
+    assert attributed[1].cited_by == []
+
+
+def test_attribution_and_grounding_agree() -> None:
+    """They share a matcher precisely so the UI cannot mark a source as backing a
+    citation the grounding check calls unsupported."""
+    from app.rag import attribute_citations, check_citation_grounding, parse_citations
+
+    sources = [_sc("EBA GL (EBA/GL/2017/16)", ["91"]), _sc("ECB Guide to Internal Models", [])]
+    for answer in (
+        "A [EBA GL (EBA/GL/2017/16), para. 91].",
+        "B [ECB Guide to Internal Models, para. n/a].",
+        "C [EBA GL (EBA/GL/2017/16), para. 91(d)].",
+    ):
+        citations = parse_citations(answer)
+        assert check_citation_grounding(citations, sources) == []
+        assert any(s.cited_by for s in attribute_citations(citations, sources))

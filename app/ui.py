@@ -66,10 +66,62 @@ def send_feedback(answer_id: str, thumbs: str, comment: str | None = None) -> No
     ).raise_for_status()
 
 
+def format_pages(pages: list[int]) -> str:
+    """Render page numbers for a citation (pure).
+
+    Was interpolating the list directly, which printed Python syntax: "(p. [12,
+    13])". Contiguous runs collapse to a range, which is how a page reference is
+    normally written.
+    """
+    if not pages:
+        return ""
+    if len(pages) == 1:
+        return f"p. {pages[0]}"
+    if pages[-1] - pages[0] == len(pages) - 1:  # contiguous
+        return f"pp. {pages[0]}–{pages[-1]}"
+    return "pp. " + ", ".join(str(p) for p in pages)
+
+
+def source_header(src: dict) -> str:
+    """Label for a source expander (pure).
+
+    Not every chunk has a paragraph number: annexes and tables carry none by
+    design, since inventing one is what put 48% of the corpus under a wrong
+    citation anchor. 24% of chunks are unnumbered, and this used to render them
+    as a bare "— para.  " with nothing after it. Those fall back to their section
+    path, which is the honest anchor for that content.
+    """
+    section = (src.get("section_path") or [""])[-1].strip()
+    if src.get("para_ids"):
+        anchor = "para. " + ", ".join(src["para_ids"])
+    elif section and section.lower() not in src["doc_title"].lower():
+        # Skip a top-level heading that merely repeats the document title, which
+        # would render as "Basel III … — § Basel III …".
+        anchor = "§ " + section
+    else:
+        anchor = "unnumbered"
+    pages = format_pages(src.get("pages") or [])
+    return f"{src['doc_title']} — {anchor}" + (f" · {pages}" if pages else "")
+
+
+def _feedback_state_key(answer_id: str) -> str:
+    return f"feedback_sent::{answer_id}"
+
+
 def render_details(ans: dict) -> None:
     """Citations, grounding warning, source snippets, and feedback buttons."""
     if ans.get("citations"):
         st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
+    else:
+        # The whole design rests on every claim carrying a source, so silence here
+        # is the failure this tool exists to prevent. Stated neutrally, because an
+        # answer that correctly declines ("the context does not cover this") also
+        # has no citations and is behaving properly.
+        st.warning(
+            "⚠ This answer cites no sources. Either the model declined to answer "
+            "from the corpus, or it answered without grounding — check before "
+            "relying on it."
+        )
     if ans.get("truncated"):
         # Otherwise the answer just stops mid-sentence and reads as complete.
         st.warning(
@@ -81,18 +133,91 @@ def render_details(ans: dict) -> None:
             "⚠ These citations were not found in the retrieved sources "
             "(possible hallucination): " + "; ".join(ans["ungrounded_citations"])
         )
-    st.markdown("#### Sources")
-    for src in ans["chunks_used"]:
-        header = f"{src['doc_title']} — para. {', '.join(src['para_ids'])} (p. {src['pages']})"
-        with st.expander(header):
-            if src["section_path"]:
-                st.caption(" › ".join(src["section_path"]))
-            st.write(src["text"])
+    _render_search_query(ans)
+    _render_sources(ans["chunks_used"], ans.get("retrieval_mode"))
+    _render_feedback(ans)
 
+
+def _render_search_query(ans: dict) -> None:
+    """Show the query retrieval actually ran on, when it isn't the question.
+
+    A follow-up is condensed into a standalone query before retrieval ("what
+    about the materiality threshold?" becomes something quite different), and
+    until now that rewrite was invisible. When the sources look wrong, this is
+    the first thing worth checking.
+    """
+    searched = (ans.get("rewritten_query") or "").strip()
+    if searched and searched != (ans.get("question") or "").strip():
+        st.caption(f"🔍 Retrieved on: _{searched}_")
+
+
+def format_score(score: float, mode: str | None) -> str:
+    """Retrieval score, always labelled with the mode that produced it (pure).
+
+    Scores are not comparable across modes: cosine similarity (0–1), BM25
+    (unbounded), reciprocal rank fusion (~1/60 scale) and the cross-encoder's
+    own scale all surface here — a top `hybrid_rerank` hit reads ~0.4 where a
+    `hybrid` one reads ~0.016, for the same quality of match. Showing a bare
+    number invites reading it as a confidence; naming the mode makes clear it is
+    a raw score, and rank is the signal that survives the comparison.
+    """
+    return f"{mode} score {score:.3g}" if mode else f"score {score:.3g}"
+
+
+def _render_sources(sources: list[dict], retrieval_mode: str | None = None) -> None:
+    """Sources, cited ones first and already open.
+
+    Verifying a claim is the actual task here, and it used to mean opening every
+    collapsed source in turn to find which one backed a given citation. Sources
+    the answer leaned on are marked, expanded, and listed first; the rest stay
+    available but out of the way.
+
+    Retrieval rank is shown explicitly *because* of that reordering — it used to
+    be implicit in the order, and grouping by citation destroyed it. Rank is the
+    mode-independent signal; the raw score is secondary.
+    """
+    ranked = list(enumerate(sources, start=1))
+    cited = [(rank, s) for rank, s in ranked if s.get("cited_by")]
+    uncited = [(rank, s) for rank, s in ranked if not s.get("cited_by")]
+    st.markdown(f"#### Sources ({len(cited)} of {len(sources)} cited)")
+    for rank, src in cited:
+        with st.expander(f"✓ #{rank} " + source_header(src), expanded=True):
+            st.caption("Backs: " + " · ".join(src["cited_by"]))
+            _render_source_body(src, rank, len(sources), retrieval_mode)
+    if uncited:
+        st.caption(
+            f"{len(uncited)} further source(s) were retrieved but not cited by the answer."
+        )
+        for rank, src in uncited:
+            with st.expander(f"○ #{rank} " + source_header(src)):
+                _render_source_body(src, rank, len(sources), retrieval_mode)
+
+
+def _render_source_body(
+    src: dict, rank: int, total: int, retrieval_mode: str | None
+) -> None:
+    if src.get("section_path"):
+        st.caption(" › ".join(src["section_path"]))
+    st.caption(f"rank {rank} of {total} · {format_score(src.get('score', 0.0), retrieval_mode)}")
+    st.write(src["text"])
+
+
+def _render_feedback(ans: dict) -> None:
+    """Thumbs buttons, or a record of the rating already given.
+
+    Each click used to POST a new `feedback` row, so a user clicking twice skewed
+    the up/down ratio panel — which has the least data of any panel and so is the
+    most distorted by duplicates.
+    """
+    answer_id = ans.get("answer_id")
+    already = st.session_state.get(_feedback_state_key(answer_id)) if answer_id else None
+    if already:
+        st.caption(f"Feedback recorded: {'👍' if already == 'up' else '👎'} — thank you.")
+        return
     col_up, col_down, _ = st.columns([1, 1, 6])
-    if col_up.button("👍", key=f"up_{ans.get('answer_id')}"):
+    if col_up.button("👍", key=f"up_{answer_id}"):
         _submit_feedback(ans, "up")
-    if col_down.button("👎", key=f"down_{ans.get('answer_id')}"):
+    if col_down.button("👎", key=f"down_{answer_id}"):
         _submit_feedback(ans, "down")
 
 
@@ -109,9 +234,14 @@ def _submit_feedback(ans: dict, thumbs: str) -> None:
         return
     try:
         send_feedback(ans["answer_id"], thumbs)
-        st.success("Thanks for the feedback!")
     except Exception as exc:  # noqa: BLE001
+        # Do NOT mark it as sent — the user should be able to retry.
         st.error(f"Could not send feedback: {exc}")
+        return
+    # Marked only after the POST succeeds, so the buttons are replaced by the
+    # recorded rating and a second click cannot log a duplicate row.
+    st.session_state[_feedback_state_key(ans["answer_id"])] = thumbs
+    st.rerun()
 
 
 def render_sidebar() -> None:
