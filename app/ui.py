@@ -1,9 +1,15 @@
 """Streamlit front end (SPEC §10).
 
-A single page: ask a question (optionally filtered to specific documents), watch
-the cited answer stream in, expand the source snippets, rate it 👍/👎, and ask
-follow-ups (a short conversation history is kept). Calls the FastAPI backend's
-streaming endpoint; model/cost/latency of the last answer are in the sidebar.
+Ask a question, watch the cited answer stream in, and check the sources behind
+it. Sources the answer actually cited are marked and opened first, because
+verifying a claim against the regulation is the task this tool exists for; the
+rest stay collapsed. Follow-ups keep a short conversation history, and 👍/👎
+feeds the monitoring dashboard. Calls the FastAPI backend's streaming endpoint.
+
+Controls and telemetry live in the sidebar so the answer starts at the top of
+the page. Presentation is set by `.streamlit/config.toml` (palette, so Streamlit's
+own widgets inherit it) plus the `_CSS` sheet below (typography and source
+cards, which have no theme hooks).
 """
 
 from __future__ import annotations
@@ -26,6 +32,98 @@ from app.config import get_settings
 settings = get_settings()
 _TIMEOUT = httpx.Timeout(120.0)
 _HISTORY_TURNS = 3  # prior turns sent as follow-up context
+
+# Presentation. The palette itself lives in .streamlit/config.toml so Streamlit's
+# own widgets pick it up; this sheet handles typography and the source cards,
+# which have no theme hooks.
+#
+# Design intent: an instrument for reading regulation, not a dashboard. Answer
+# and source text are set in a serif at a readable measure because that is what
+# the user is here to read; everything else (labels, metadata, controls) is small
+# sans, deliberately quiet. Navy marks a source the answer actually cited —
+# amber and red are left unused by the chrome so a warning still carries weight.
+#
+# Selectors are limited to `data-testid` hooks and classes emitted below.
+# Streamlit's generated class names change between releases and are not touched.
+_CSS = """
+<style>
+  :root {
+    --ink: #1B1B19;
+    --ink-soft: #5C594F;
+    --rule: #DCD8CE;
+    --accent: #234E70;
+    --accent-wash: #EDF1F5;
+    --serif: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  }
+
+  /* Reading measure: long lines of regulation are hard to track. */
+  .block-container { max-width: 62rem; padding-top: 2.2rem; }
+
+  /* Masthead */
+  .irb-masthead { border-bottom: 2px solid var(--ink); margin-bottom: 1.6rem; }
+  .irb-masthead h1 {
+    font-family: var(--serif); font-size: 2.05rem; font-weight: 600;
+    letter-spacing: -0.015em; margin: 0 0 .15rem 0; color: var(--ink);
+  }
+  .irb-masthead p {
+    font-size: .82rem; color: var(--ink-soft); margin: 0 0 .7rem 0;
+    letter-spacing: .01em;
+  }
+
+  /* Small caps metadata labels, used for section headings and source meta. */
+  .irb-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .11em;
+    color: var(--ink-soft); font-weight: 600; margin: 1.4rem 0 .45rem 0;
+  }
+
+  /* Answer body: this is the thing being read. */
+  .irb-answer, .irb-answer p, .irb-answer li {
+    font-family: var(--serif); font-size: 1.06rem; line-height: 1.62;
+    color: var(--ink);
+  }
+
+  /* Citations rendered inline by the model, e.g. [Doc, para. 82]. */
+  .irb-cites code, .irb-chip {
+    display: inline-block; font-size: .72rem; padding: .12rem .42rem;
+    border: 1px solid var(--rule); border-radius: 3px; background: #fff;
+    color: var(--ink-soft); margin: 0 .25rem .25rem 0;
+  }
+
+  /* Source cards. A left rule carries the signal: navy = the answer cited it. */
+  div[data-testid="stExpander"] {
+    border: 1px solid var(--rule) !important; border-radius: 0 !important;
+    border-left: 3px solid var(--rule) !important; margin-bottom: .4rem;
+    background: #fff;
+  }
+  div[data-testid="stExpander"]:has(.irb-cited) {
+    border-left-color: var(--accent) !important; background: var(--accent-wash);
+  }
+  div[data-testid="stExpander"] summary { font-size: .86rem; }
+  div[data-testid="stExpander"] p { font-family: var(--serif); line-height: 1.55; }
+
+  .irb-meta {
+    font-size: .7rem; color: var(--ink-soft); letter-spacing: .02em;
+    border-top: 1px dotted var(--rule); padding-top: .35rem; margin-top: .5rem;
+  }
+  .irb-rank {
+    font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent);
+  }
+
+  /* Sidebar reads as an instrument panel, not a second page. */
+  section[data-testid="stSidebar"] { border-right: 1px solid var(--rule); }
+  section[data-testid="stSidebar"] .irb-stat {
+    display: flex; justify-content: space-between; gap: 1rem;
+    font-size: .78rem; padding: .28rem 0; border-bottom: 1px dotted var(--rule);
+  }
+  section[data-testid="stSidebar"] .irb-stat span:last-child {
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  section[data-testid="stSidebar"] .irb-stat span:first-child { color: var(--ink-soft); }
+
+  /* Alerts: keep their semantics, lose the sticker look. */
+  div[data-testid="stAlert"] { border-radius: 2px; font-size: .86rem; }
+</style>
+"""
 
 
 def _headers() -> dict[str, str]:
@@ -111,7 +209,10 @@ def _feedback_state_key(answer_id: str) -> str:
 def render_details(ans: dict) -> None:
     """Citations, grounding warning, source snippets, and feedback buttons."""
     if ans.get("citations"):
-        st.caption("Citations: " + " · ".join(c["text"] for c in ans["citations"]))
+        chips = "".join(
+            f'<span class="irb-chip">{c["text"]}</span>' for c in ans["citations"]
+        )
+        st.markdown(f'<div class="irb-cites">{chips}</div>', unsafe_allow_html=True)
     else:
         # The whole design rests on every claim carrying a source, so silence here
         # is the failure this tool exists to prevent. Stated neutrally, because an
@@ -164,6 +265,11 @@ def format_score(score: float, mode: str | None) -> str:
     return f"{mode} score {score:.3g}" if mode else f"score {score:.3g}"
 
 
+def _label(text: str) -> None:
+    """A small-caps section label."""
+    st.markdown(f'<div class="irb-label">{text}</div>', unsafe_allow_html=True)
+
+
 def _render_sources(sources: list[dict], retrieval_mode: str | None = None) -> None:
     """Sources, cited ones first and already open.
 
@@ -179,27 +285,35 @@ def _render_sources(sources: list[dict], retrieval_mode: str | None = None) -> N
     ranked = list(enumerate(sources, start=1))
     cited = [(rank, s) for rank, s in ranked if s.get("cited_by")]
     uncited = [(rank, s) for rank, s in ranked if not s.get("cited_by")]
-    st.markdown(f"#### Sources ({len(cited)} of {len(sources)} cited)")
+    _label(f"Sources · {len(cited)} of {len(sources)} cited")
     for rank, src in cited:
-        with st.expander(f"✓ #{rank} " + source_header(src), expanded=True):
-            st.caption("Backs: " + " · ".join(src["cited_by"]))
+        with st.expander(f"#{rank}  {source_header(src)}", expanded=True):
+            # Marker class the stylesheet keys the navy left rule off.
+            st.markdown(
+                '<div class="irb-cited"></div>Backs '
+                + " ".join(f'<span class="irb-chip">{c}</span>' for c in src["cited_by"]),
+                unsafe_allow_html=True,
+            )
             _render_source_body(src, rank, len(sources), retrieval_mode)
     if uncited:
         st.caption(
             f"{len(uncited)} further source(s) were retrieved but not cited by the answer."
         )
         for rank, src in uncited:
-            with st.expander(f"○ #{rank} " + source_header(src)):
+            with st.expander(f"#{rank}  {source_header(src)}"):
                 _render_source_body(src, rank, len(sources), retrieval_mode)
 
 
 def _render_source_body(
     src: dict, rank: int, total: int, retrieval_mode: str | None
 ) -> None:
-    if src.get("section_path"):
-        st.caption(" › ".join(src["section_path"]))
-    st.caption(f"rank {rank} of {total} · {format_score(src.get('score', 0.0), retrieval_mode)}")
     st.write(src["text"])
+    trail = " › ".join(src.get("section_path") or []) or "—"
+    st.markdown(
+        f'<div class="irb-meta"><span class="irb-rank">#{rank}</span> of {total} · '
+        f'{format_score(src.get("score", 0.0), retrieval_mode)} · {trail}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def _render_feedback(ans: dict) -> None:
@@ -211,20 +325,21 @@ def _render_feedback(ans: dict) -> None:
     """
     answer_id = ans.get("answer_id")
     already = st.session_state.get(_feedback_state_key(answer_id)) if answer_id else None
+    _label("Was this useful?")
     if already:
-        st.caption(f"Feedback recorded: {'👍' if already == 'up' else '👎'} — thank you.")
+        st.caption(f"Recorded: {'👍' if already == 'up' else '👎'} — thank you.")
         return
-    col_up, col_down, _ = st.columns([1, 1, 6])
-    if col_up.button("👍", key=f"up_{answer_id}"):
+    col_up, col_down, _ = st.columns([1, 1, 8])
+    if col_up.button("👍", key=f"up_{answer_id}", use_container_width=True):
         _submit_feedback(ans, "up")
-    if col_down.button("👎", key=f"down_{answer_id}"):
+    if col_down.button("👎", key=f"down_{answer_id}", use_container_width=True):
         _submit_feedback(ans, "down")
 
 
 def render_answer(ans: dict) -> None:
     """Static (non-streaming) render of a stored answer."""
-    st.markdown("### Answer")
-    st.write(ans["text"])
+    _label("Answer")
+    st.markdown(f'<div class="irb-answer">{ans["text"]}</div>', unsafe_allow_html=True)
     render_details(ans)
 
 
@@ -244,24 +359,57 @@ def _submit_feedback(ans: dict, thumbs: str) -> None:
     st.rerun()
 
 
-def render_sidebar() -> None:
-    st.sidebar.header("Last answer")
-    ans = st.session_state.get("answer")
-    if not ans:
-        st.sidebar.caption("Ask a question to see stats.")
-        return
-    st.sidebar.metric("Model", ans["model"])
-    st.sidebar.metric("Cost (USD)", f"${ans['cost_usd']:.5f}")
-    st.sidebar.metric("Latency (ms)", ans["latency_ms"])
-    st.sidebar.caption(
-        f"mode: {ans['retrieval_mode']} · prompt: {ans['prompt_version']} · "
-        f"tokens: {ans['tokens_in']}→{ans['tokens_out']}"
+def render_sidebar(docs: dict[str, str]) -> list[str]:
+    """Controls and last-answer telemetry. Returns the selected doc_ids.
+
+    Filters live here rather than above the question so the answer starts at the
+    top of the page — this is a reading tool, and the text is the point.
+    """
+    st.sidebar.markdown('<div class="irb-label">Corpus filter</div>', unsafe_allow_html=True)
+    selected = st.sidebar.multiselect(
+        "Restrict to documents", options=list(docs.values()),
+        label_visibility="collapsed",
+        placeholder=f"All {len(docs)} documents",
     )
+    title_to_id = {title: doc_id for doc_id, title in docs.items()}
+
+    if st.session_state.get("history"):
+        turns = len(st.session_state["history"]) // 2
+        st.sidebar.markdown(
+            f'<div class="irb-label">Conversation · {turns} turn(s)</div>',
+            unsafe_allow_html=True,
+        )
+        if st.sidebar.button("Start over", use_container_width=True):
+            st.session_state["history"] = []
+            st.session_state.pop("answer", None)
+            st.rerun()
+
+    ans = st.session_state.get("answer")
+    st.sidebar.markdown('<div class="irb-label">Last answer</div>', unsafe_allow_html=True)
+    if not ans:
+        st.sidebar.caption("Ask a question to see model, cost and latency.")
+    else:
+        stats = [
+            ("model", ans["model"]),
+            ("cost", f"${ans['cost_usd']:.5f}"),
+            ("latency", f"{ans['latency_ms']:,} ms"),
+            ("tokens", f"{ans['tokens_in']:,} → {ans['tokens_out']:,}"),
+            ("retrieval", ans["retrieval_mode"]),
+            ("prompt", ans["prompt_version"]),
+        ]
+        st.sidebar.markdown(
+            "".join(
+                f'<div class="irb-stat"><span>{k}</span><span>{v}</span></div>'
+                for k, v in stats
+            ),
+            unsafe_allow_html=True,
+        )
+    return [title_to_id[t] for t in selected]
 
 
 def _run_streaming_ask(question: str, doc_ids: list[str]) -> None:
     history = st.session_state.get("history", [])
-    st.markdown("### Answer")
+    _label("Answer")
     captured: dict[str, dict] = {}
 
     def tokens():
@@ -274,7 +422,18 @@ def _run_streaming_ask(question: str, doc_ids: list[str]) -> None:
         except Exception as exc:  # noqa: BLE001
             st.error(f"Request failed: {exc}")
 
-    st.write_stream(tokens())
+    # Retrieval (embedding + cross-encoder) runs before the first token, so the
+    # page would otherwise sit blank for ~half a second with no acknowledgement.
+    slot = st.empty()
+    with st.spinner("Searching the corpus…"), slot:
+        streamed = st.write_stream(tokens())
+    # st.write_stream renders raw, so a just-streamed answer would be sans-serif
+    # while the same answer re-rendered after a rerun is serif. Swap in the styled
+    # version once the text is complete, so the two paths look identical.
+    if streamed:
+        slot.markdown(
+            f'<div class="irb-answer">{streamed}</div>', unsafe_allow_html=True
+        )
     if "error" in captured:
         st.error(captured["error"].get("detail", "The answer could not be generated."))
         return
@@ -290,41 +449,47 @@ def _run_streaming_ask(question: str, doc_ids: list[str]) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="IRB Copilot", page_icon="📘")
-    st.title("📘 IRB Copilot")
-    st.caption(
-        "Q&A over EU prudential regulation for credit-risk modeling. "
-        "Answers cite their sources."
+    st.set_page_config(
+        page_title="IRB Copilot",
+        page_icon="§",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    st.markdown(_CSS, unsafe_allow_html=True)
+    st.markdown(
+        '<div class="irb-masthead">'
+        "<h1>IRB Copilot</h1>"
+        "<p>Question answering over EU prudential regulation for credit-risk "
+        "modelling · every claim carries its source</p>"
+        "</div>",
+        unsafe_allow_html=True,
     )
     st.session_state.setdefault("history", [])
 
-    docs = load_documents()
-    selected_titles = st.multiselect(
-        "Restrict to documents (optional)", options=list(docs.values())
-    )
-    title_to_id = {title: doc_id for doc_id, title in docs.items()}
-    doc_ids = [title_to_id[t] for t in selected_titles]
+    doc_ids = render_sidebar(load_documents())
 
     question = st.text_area(
         "Your question",
-        placeholder="What does the EBA require regarding margin of conservatism in LGD estimation?",
+        label_visibility="collapsed",
+        height=88,
+        placeholder=(
+            "What does the EBA require regarding margin of conservatism in LGD "
+            "estimation?"
+        ),
     )
-    col_ask, col_new = st.columns([1, 1])
-    ask = col_ask.button("Ask", type="primary")
-    if st.session_state["history"] and col_new.button("New conversation"):
-        st.session_state["history"] = []
-        st.session_state.pop("answer", None)
-        st.rerun()
+    asked = st.button("Ask", type="primary")
+    if asked and not question.strip():
+        # Used to do nothing at all, which reads as a broken button.
+        st.warning("Enter a question first.")
+        return
 
     if st.session_state["history"]:
-        with st.expander(f"Conversation so far ({len(st.session_state['history']) // 2} turns)"):
+        with st.expander("Conversation so far"):
             for turn in st.session_state["history"]:
-                who = "**You:** " if turn["role"] == "user" else "**Copilot:** "
-                st.markdown(who + turn["content"])
+                who = "**You**" if turn["role"] == "user" else "**Copilot**"
+                st.markdown(f"{who} · {turn['content']}")
 
-    render_sidebar()
-
-    if ask and question.strip():
+    if asked:
         _run_streaming_ask(question.strip(), doc_ids)
     elif st.session_state.get("answer"):
         render_answer(st.session_state["answer"])

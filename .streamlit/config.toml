@@ -1,0 +1,17 @@
+# Streamlit theme for IRB Copilot.
+#
+# The tool is a reading instrument for regulation, so it is styled like a
+# document rather than a dashboard: warm paper ground, near-black ink, and a
+# single navy accent reserved for "this source backs the answer". Amber and red
+# stay unused by the chrome so they still mean something when a warning appears.
+#
+# Set here rather than in CSS because these values reach Streamlit's own widgets
+# (inputs, sidebar, expanders), which CSS overrides tend to miss or fight.
+
+[theme]
+base = "light"
+primaryColor = "#234E70"          # navy — verified/cited affordances, focus rings
+backgroundColor = "#FBFAF7"       # warm paper, not clinical white
+secondaryBackgroundColor = "#F1EFE9"  # sidebar, code, source cards
+textColor = "#1B1B19"             # warm near-black; pure #000 is harsh on paper
+font = "sans serif"               # chrome stays sans; body copy is serif via CSS

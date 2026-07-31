@@ -139,3 +139,81 @@ def test_scores_are_never_rendered_as_percentages_or_probabilities() -> None:
 
     rendered = format_score(0.87, "vector")
     assert "%" not in rendered and "confidence" not in rendered.lower()
+
+
+# --- the app actually renders (Streamlit's headless runner) ----------------- #
+def _stored_answer() -> dict:
+    return {
+        "answer_id": "abc",
+        "text": "Institutions shall apply a margin of conservatism [Doc, para. 82].",
+        "citations": [{"text": "Doc, para. 82"}],
+        "ungrounded_citations": [],
+        "truncated": False,
+        "question": "q",
+        "rewritten_query": "expanded q",
+        "retrieval_mode": "hybrid_rerank",
+        "model": "gpt-4o-mini",
+        "cost_usd": 0.0004,
+        "latency_ms": 2100,
+        "tokens_in": 2069,
+        "tokens_out": 350,
+        "prompt_version": "v2",
+        "chunks_used": [
+            {
+                "doc_title": "Doc", "para_ids": ["82"], "section_path": ["5", "5.3"],
+                "pages": [45, 46], "score": 0.41, "text": "body",
+                "cited_by": ["Doc, para. 82"],
+            },
+            {
+                "doc_title": "Other", "para_ids": [], "section_path": ["Annex 1"],
+                "pages": [3], "score": 0.16, "text": "annex", "cited_by": [],
+            },
+        ],
+    }
+
+
+def _app(**session):
+    """Run app/ui.py headlessly. Catches render-time errors in the markup, which
+    unit tests of the helpers cannot see."""
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file("app/ui.py", default_timeout=30)
+    for key, value in session.items():
+        at.session_state[key] = value
+    return at.run()
+
+
+def test_initial_page_renders_without_error() -> None:
+    at = _app()
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("irb-masthead" in m.value for m in at.markdown)
+    assert [b.label for b in at.button] == ["Ask"]
+
+
+def test_answer_page_renders_without_error() -> None:
+    at = _app(answer=_stored_answer())
+    assert not at.exception, [e.value for e in at.exception]
+
+
+def test_cited_source_is_marked_and_ranks_are_shown() -> None:
+    """The navy left rule keys off `irb-cited`, and rank is displayed because
+    grouping cited sources first destroyed the ordering signal."""
+    at = _app(answer=_stored_answer())
+    markup = " ".join(m.value for m in at.markdown)
+    assert "irb-cited" in markup, "cited source lost its marker class"
+    assert 'class="irb-rank">#1' in markup and 'class="irb-rank">#2' in markup
+    assert "1 of 2 cited" in markup
+
+
+def test_both_sources_are_listed_cited_first() -> None:
+    at = _app(answer=_stored_answer())
+    labels = [x.label for x in at.expander]
+    assert len(labels) == 2
+    assert labels[0].startswith("#1") and "para. 82" in labels[0]
+    assert "§ Annex 1" in labels[1]  # unnumbered chunk keeps an honest anchor
+
+
+def test_stylesheet_is_injected_once() -> None:
+    at = _app()
+    sheets = [m for m in at.markdown if "<style>" in m.value]
+    assert len(sheets) == 1, "duplicate stylesheets would fight each other"

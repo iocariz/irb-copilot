@@ -18,7 +18,7 @@ Built as the final project for the DataTalks.Club **LLM Zoomcamp**.
 
 - [Problem](#problem) · [Features](#features) · [Tech stack](#tech-stack)
 - [Architecture](#architecture) · [How it works](#how-it-works) · [Project structure](#project-structure)
-- [Dataset](#dataset) · [Quick start](#quick-start-clone--first-answer) · [Running the app](#running-the-app)
+- [Dataset](#dataset) · **[Run it yourself](#run-it-yourself-reviewer-walkthrough)** · [Running the app](#running-the-app)
 - [Configuration](#configuration) · [Evaluation](#evaluation) · [Monitoring](#monitoring)
 - [Deployment](#deployment) · [Development](#development) · [Design decisions](#design-decisions--trade-offs)
 - [Rubric mapping](#rubric-mapping)
@@ -278,23 +278,122 @@ are **not** committed; the pipeline downloads and verifies them.
 docling parsing yields **2,968 numbered paragraphs → 2,241 structure-aware chunks**
 across the seven documents.
 
-## Quick start (clone → first answer)
+## Run it yourself (reviewer walkthrough)
+
+Verified end to end from a fresh clone of this repository. Each step says what
+you should see, so you can tell a slow step from a stuck one.
+
+**Before you start**
+
+| | |
+|---|---|
+| Docker Desktop | running (Qdrant, Postgres, Grafana) |
+| An OpenAI API key | ~**$0.05** for ingestion + a few questions |
+| Disk | ~3 GB (PDFs, Python deps, docling models) |
+| Time | ~10 min, most of it the first `make ingest` |
+
+`uv` is the only tool you may need to install:
+`curl -LsSf https://astral.sh/uv/install.sh | sh`.
+
+---
+
+**1 — Install and configure** (~1 min, or ~3 with a cold `uv` cache)
 
 ```bash
-# 1. Install (uv; docling + reranker are default groups) and create .env
-make setup
-#    then edit .env and set OPENAI_API_KEY=sk-...
-
-# 2. Start backing services (qdrant + postgres + grafana)
-make up
-
-# 3. Ingest the corpus (download → parse → chunk → index), orchestrated by Prefect.
-make ingest                           # = uv run python -m ingestion.flow (~a few minutes)
-#   in Docker: docker compose exec api python -m ingestion.flow
-
-# 4. Run the API + UI locally (hot-reload)
-make run                              # API :8000, Streamlit UI :8501
+make setup            # uv sync from the lockfile, then copies .env.example -> .env
 ```
+
+Now open `.env` and set `OPENAI_API_KEY=sk-...`. Leave everything else alone —
+the defaults are the configurations the evaluation selected.
+
+```bash
+uv run pytest -q      # 312 passed  <- confirms the checkout is sound before you spend anything
+```
+
+**2 — Start the backing services** (~30 s)
+
+```bash
+make up               # qdrant + postgres + grafana
+docker compose ps     # all three should read "running"
+```
+
+**3 — Build the corpus** (~6 min, ~$0.02)
+
+```bash
+make ingest
+```
+
+This downloads seven official PDFs (sha256-verified), parses them with docling,
+chunks them, and indexes into Qdrant + BM25. You should see, per document:
+
+```
+[parse] ebagl_2017_16: 368 paragraphs -> .../data/parsed/ebagl_2017_16.json
+[chunk] ebagl_2017_16: 337 structure chunks -> ...
+[index] 2241 structure chunks from 7 doc(s) -> collection=irb_chunks, bm25=bm25_index
+```
+
+**2,968 paragraphs → 2,241 chunks, and no `[parse] WARNING` lines.** A warning
+would mean paragraph detection failed and text was absorbed under the wrong
+citation anchor — the defect [described below](#what-counts-as-a-hit).
+
+> The first run downloads ~2 GB of docling layout models from HuggingFace. If it
+> appears to hang here with no output, that is the Hub being rate-limited, not
+> the pipeline: `hf auth login` with a free token, or retry later.
+
+**4 — Run it** (~10 s)
+
+```bash
+make run              # FastAPI on :8000, Streamlit on :8501
+```
+
+Open **http://localhost:8501** and ask:
+
+> *How many days past due trigger a default?*
+
+**What to look for** — this is the part worth your attention:
+
+- The answer streams in with an inline citation after each claim.
+- Under **Sources**, the ones the answer actually cited are marked **✓ and opened
+  first**; uncited retrievals stay collapsed. Open a cited source and check the
+  paragraph really says what the answer claims. That verification loop is the
+  whole point of the tool.
+- Each source shows its **retrieval rank** and score. Rank is the meaningful
+  signal — scores are not comparable across retrieval modes.
+- Ask a follow-up like *"and what is the materiality threshold for that?"* A
+  caption then shows **the query retrieval actually ran on**, which is a rewritten
+  standalone version of your question, not the words you typed.
+- Try something outside the corpus (*"what is the capital of France?"*). The
+  answer should decline rather than guess, and a banner notes that it cited
+  nothing.
+
+Then **http://localhost:3000** (`admin`/`admin`) for the Grafana dashboard. Your
+questions appear under `source = 'live'`; the panels deliberately exclude the
+evaluation's own synthetic traffic.
+
+---
+
+**Reproducing the evaluation** is optional and slower — roughly 3 hours and ~$4,
+because it re-runs 24 retrieval configurations over 796 questions twice, plus a
+100-question RAG grid:
+
+```bash
+make eval-retrieval        # standard ground truth
+make eval-retrieval-hard   # de-biased ground truth  <- this one picks the defaults
+make eval-rag              # prompt x model grid, LLM-as-a-judge
+```
+
+The committed results in [`evaluation/results/`](evaluation/results/) are what the
+tables below quote, and `uv run pytest tests/test_readme_claims.py` checks that
+every number in this file still matches those CSVs.
+
+**Troubleshooting**
+
+| Symptom | Cause |
+|---|---|
+| `address already in use` on `make run` | the Docker `api`/`ui` containers hold 8000/8501 — `docker compose stop api ui` |
+| `/ask` returns 401 | `API_KEY` is set in your `.env`; leave it empty for local use |
+| `429 ... exceeded your current quota` | the OpenAI account is out of credit (this is billing, not rate limiting) |
+| `no chunk files ... run ingestion first` | step 3 has not completed |
 
 ## Running the app
 
@@ -374,6 +473,76 @@ the evaluation winners, so the app is sensible out of the box.
 Reproducible; artifacts committed under
 [`evaluation/results/`](evaluation/results/). The ground truth is LLM-generated
 questions whose answer sits in a sampled chunk (stratified by document).
+
+### How this evaluation was built (and what it took to trust it)
+
+Measuring a RAG system is mostly a fight against measuring the wrong thing. Each
+subsection below is a mistake that was actually made here, what it did to the
+numbers, and how it was fixed — the fixes are the reason the tables further down
+are worth reading.
+
+**1. LLM-generated ground truth is biased toward lexical search.**
+The ground truth is built by sampling chunks and asking a model to write
+questions answerable from each. Those questions reuse the passage's own
+vocabulary, so BM25 can win by matching words rather than meaning. That bias is
+measurable: the **mean question↔chunk lexical overlap is 0.78**. The fix is a
+second ground truth (`--style hard`) that instructs the generator to paraphrase
+heavily, dropping overlap to **0.43**. Neither set is "correct" — the *gap
+between them* is the finding, and it is what separates real retrieval quality
+from vocabulary matching.
+
+**2. A loose relevance rule inflates every score, unevenly.**
+See [What counts as a hit](#what-counts-as-a-hit). Matching a retrieved chunk to
+the ground truth by paragraph number seems natural and is wrong here, because
+these regulations restart numbering in every section. It accepted **6.7 chunks
+per question** where it should accept ~1 — and it flattered the fixed-window
+chunker more than the structure-aware one, because a larger window sweeps up more
+recurring numbers. A metric that is generous is bad; a metric that is generous
+*unevenly across the things being compared* invalidates the comparison.
+
+**3. An ablation must run the production code path, not a reimplementation.**
+The "no rewriting" arm originally retrieved on the raw question, while the app
+itself always applied acronym expansion — so the shipped configuration was never
+the configuration measured. Every arm now calls the same `rewrite_query` the
+application calls, differing only by setting. Fixing that exposed a second
+problem: acronym expansion had *never* been evaluated at all, because the flag
+that supposedly disabled rewriting only disabled the LLM half of it.
+
+**4. Aggregate effects hide where a feature only fires on a subset.**
+Acronym expansion looked like noise across all questions (~1pt). But only 25% of
+questions contain an acronym, and just **3%** of the de-biased set — for the rest,
+"expansion on" and "expansion off" are literally the same query string. Measured
+only on the questions it can affect, it clearly hurts: **−0.035** hit@5 on BM25,
+**−0.050** on vector. Any feature that fires conditionally needs a conditional
+measurement, or the aggregate will average the effect away.
+
+**5. A judge that cannot be read is missing data, not a bad answer.**
+Malformed or truncated judge output was being scored `NON_RELEVANT`, which is
+indistinguishable from a genuine negative verdict — and it penalised whichever
+configuration made the judge most verbose, which looks exactly like a quality
+difference. Unreadable verdicts are now a distinct `PARSE_ERROR`, retried once,
+and excluded from the denominator. The CSV reports `n → answered → judged` so a
+shrunken sample is always visible rather than implied.
+
+**6. The judge must not share a family with what it judges.**
+Models prefer their own output. `JUDGE_MODEL` is `gpt-5.4-mini` while answers come
+from `gpt-4o-mini`, and every row carries a `self_judged` flag computed on the
+model *family* — `gpt-4o` and `gpt-4o-mini` are the same family, so name equality
+is not enough.
+
+**7. Report noise before reporting rankings.**
+Three configurations were measured twice, giving a repeat-measurement noise floor
+of ~2–3pt on relevance and ~3–6pt on citation support. That single number changes
+what may be claimed: the prompt effect (+14pt citations) is real, while the
+model effect (+4pt relevance) sits close enough to the noise that it is reported
+as a cost trade rather than a win.
+
+**8. What survives a rebuild is what you can believe.**
+After the parser was fixed, the corpus was rebuilt from the PDFs — 38% more
+chunks — and everything re-run. `structure > naive` (12/12) and `glossary > llm`
+(8/8) held on both ground truths; the rank ordering and one prompt/model
+conclusion changed. Conclusions that survive a corpus rebuild are findings;
+conclusions that do not were artifacts.
 
 ### What counts as a hit
 
@@ -659,13 +828,21 @@ layers, so the suite runs offline in ~1 s.
 - **CPU-only torch in Docker.** docling/sentence-transformers pull CUDA torch
   (~2 GB of nvidia packages) by default; the lockfile pins `torch+cpu` on Linux,
   halving the image.
-- **`hybrid_rerank` as the default** despite BM25 winning the naive eval — the
-  de-biased evaluation showed BM25's edge was lexical-overlap bias; on realistic
-  queries the reranker leads. Latency is the trade (set `bm25` for speed).
+- **`hybrid_rerank` as the default.** It wins *both* ground truths, so the
+  choice does not rest on trusting the de-biased set over the standard one. What
+  the two sets reveal is how badly lexical search degrades: BM25 loses 35pt
+  between them and falls from second place to last, against 19pt for the winner.
+  Latency is the trade (set `bm25` for speed).
 - **Config paths are anchored to the repo root**, so the app works from any cwd
   (CLI, notebook, container, API).
 - **`Answer` is a pydantic model** (a boundary type serialized by the API and
   consumed by the UI), superseding the plain dataclass in the original spec.
+- **Unnumbered content gets an empty citation anchor, not a fabricated one.**
+  Annexes and tables carry no paragraph number; inventing one is what previously
+  filed 48% of the corpus under the wrong citation. They now cite document +
+  section, and 24% of chunks are honestly unnumbered.
+- **Relevance is decided by text, not by paragraph number** — one rule for both
+  chunkers, which is also what makes the structure-vs-naive comparison fair.
 
 ## Rubric mapping
 
@@ -677,10 +854,10 @@ layers, so the suite runs offline in ~1 s.
 | LLM: multiple prompts/models evaluated, best used | `app/prompts.py` (v1/v2), `evaluation/eval_rag.py`, default = winner |
 | Interface: UI + API | `app/ui.py` (Streamlit) + `app/api.py` (FastAPI, incl. streaming) |
 | Ingestion: automated pipeline (special tool) | **Prefect** flow `ingestion/flow.py` (`make ingest`); stages in `ingestion/pipeline.py` |
-| Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (6 panels) |
+| Monitoring: feedback + dashboard (5+ panels) | `/feedback`, `monitoring/db.py`, Grafana (8 panels), with evaluation traffic excluded from the usage panels |
 | Containerization | full `docker-compose.yml` + multi-stage `Dockerfile` (uv, non-root, CPU-only torch); build verified |
 | Deployment | VM deploy via `deploy/` — production overlay behind a Caddy TLS proxy, [runbook](deploy/README.md) |
-| Reproducibility | `make setup`, auto-download + sha256, `uv.lock` pins all versions, committed eval results |
+| Reproducibility | `make setup`, auto-download + sha256, `uv.lock` pins all versions, committed eval results. Verified from a fresh clone: the rebuilt corpus reproduces a **byte-identical fingerprint**, so all 796 ground-truth rows and every committed result resolve against a corpus you build yourself |
 | Best practices: hybrid search / re-ranking / query rewriting | all implemented (`retrieval.py`, `rewrite.py`) and evaluated |
 
 See [SPEC.md](SPEC.md) for the full original specification.
